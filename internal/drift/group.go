@@ -411,6 +411,10 @@ func GroupAll(ctx context.Context, cache string, records []py.Value, tiers map[s
 			out.Stop = "usage limit: " + py.Head(lim.Msg, 120)
 			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_limit"], "tool", name))
 			return out
+		case func() bool { _, ok := IsErrModel(err); return ok }():
+			// the grouping model was refused: skip grouping for this tool (no switch); judged results stay
+			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_refused"], "tool", name, "model", ModelName(tier)))
+			continue
 		case errors.As(err, &cfg):
 			out.Stop = py.Head(cfg.Msg, 300)
 			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_not_run"], "tool", name, "msg", out.Stop))

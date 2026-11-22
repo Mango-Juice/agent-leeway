@@ -59,7 +59,7 @@ Or run it in a terminal, where it covers both Claude Code and Codex:
 
 ```sh
 agent-leeway leak              # the cost check only
-agent-leeway drift --dry-run   # which sessions the drift check would judge; sends nothing
+agent-leeway drift --dry-run   # which sessions the in-depth check would check; sends nothing
 agent-leeway drift             # judge them (asks before it starts)
 agent-leeway report            # the report: cost check plus the drift results judged so far
 ```
@@ -76,7 +76,7 @@ By default it looks at the last 30 days and judges at most the 50 most recent se
 - where the agent went off course, and where the money went, grouped by the habit behind it
 - a section to look up each session
 
-Each time you had to steer the agent back, the drift check names one of three causes:
+Each time you had to steer the agent back, the in-depth check names one of three causes:
 
 - the agent ignored an instruction it already had, or made its own mistake
 - your instruction was missing or unclear; you get a sentence to add to `CLAUDE.md` or `AGENTS.md`
@@ -87,7 +87,7 @@ How the checks work: [docs/how-it-works.md](docs/how-it-works.md).
 ## What leaves your computer, and what it costs
 
 - The cost check and `report` send nothing and cost nothing.
-- The drift check sends excerpts of the sessions you approve to Anthropic or OpenAI, through your own `claude` or `codex` CLI and login.
+- The in-depth check sends excerpts of the sessions you approve to Anthropic or OpenAI, through your own `claude` or `codex` CLI and login.
 - It makes one call per session, plus one for Claude Code and one for Codex to group the results.
 - On a subscription, this uses your plan. With an API key, it costs about $0.15 to $0.35 per session (about $8 to $18 for the default 50).
 
@@ -97,9 +97,9 @@ How the checks work: [docs/how-it-works.md](docs/how-it-works.md).
 
 - [docs/install.md](docs/install.md): other install methods, Windows, updates and removal
 - [docs/commands.md](docs/commands.md): commands, options, settings and the rubric
-- [docs/how-it-works.md](docs/how-it-works.md): the cost check, the drift check and grouping
+- [docs/how-it-works.md](docs/how-it-works.md): the cost check, the in-depth check and grouping
 - [docs/privacy.md](docs/privacy.md): what is read, what is sent, and what the judge may do
-- [docs/validation.md](docs/validation.md): how well the drift check matches published reference labels, and its limits
+- [docs/validation.md](docs/validation.md): how well the in-depth check matches published reference labels, and its limits
 - [docs/rubric.md](docs/rubric.md): the rubric the judge follows, with its evidence in [docs/rubric-evidence.md](docs/rubric-evidence.md) and [docs/references.md](docs/references.md)
 - [docs/development.md](docs/development.md): building and testing
 - [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), [CONTRIBUTING.md](CONTRIBUTING.md)

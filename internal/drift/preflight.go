@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -112,6 +114,54 @@ func preflight(provider string) (string, error) {
 	}
 	return version, nil
 }
+
+// preflightVersion is the version a passed preflight found ("" when unknown).
+func preflightVersion(provider string) string {
+	preflightMu.Lock()
+	defer preflightMu.Unlock()
+	return preflightDone[provider].version
+}
+
+// OlderThanTested says whether a CLI version ("codex-cli 0.169.0", "2.1.329 (Claude Code)") is older than the
+// tested one; false when either cannot be read.
+func OlderThanTested(provider, version string) bool {
+	a, b := versionNums(version), versionNums(TestedCLIs[provider])
+	if a == nil || b == nil {
+		return false
+	}
+	for i := 0; i < len(a) && i < len(b); i++ {
+		if a[i] != b[i] {
+			return a[i] < b[i]
+		}
+	}
+	return len(a) < len(b)
+}
+
+// BareVersion is the version number alone ("codex-cli 0.169.0" -> "0.169.0").
+func BareVersion(s string) string {
+	if m := versionRe.FindString(s); m != "" {
+		return m
+	}
+	return s
+}
+
+var versionRe = regexp.MustCompile(`(\d+)\.(\d+)\.(\d+)`)
+
+func versionNums(s string) []int {
+	m := versionRe.FindStringSubmatch(s)
+	if m == nil {
+		return nil
+	}
+	var out []int
+	for _, x := range m[1:] {
+		n, _ := strconv.Atoi(x)
+		out = append(out, n)
+	}
+	return out
+}
+
+// ResetPreflight forgets earlier checks (tests of several CLI versions in one process).
+func ResetPreflight() { resetPreflight() }
 
 // resetPreflight forgets earlier checks (tests).
 func resetPreflight() {

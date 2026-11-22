@@ -61,7 +61,7 @@ func Terminal(m *Model, md, html string) string {
 	st := s.St
 	out := []string{s.T("kicker") + ": " + strings.ToUpper(s.T("rating."+st.Overall)) + "   (" + s.T("period", "a", m.From, "b", m.To) + ")", ""}
 	if pl := s.PartsLine(); pl != "" { // first, so an agent relaying the summary keeps the order: what is done, what is not
-		out = append(append(Wrap(pl, TermWidth, ""), ""), out...)
+		out = append([]string{pl, ""}, out...) // one line, not wrapped: agents relay it word for word
 	}
 	w := 0
 	rows := s.axisRows()
@@ -78,6 +78,13 @@ func Terminal(m *Model, md, html string) string {
 	}
 	if !s.DriftRun() && st.Cost != "na" {
 		out = append(out, Wrap(s.T("rating_cost_only"), TermWidth, "  ")...)
+	}
+	if s.DriftRun() { // which model checked, per tool
+		var js []string
+		for _, v := range m.Verdicts {
+			js = append(js, s.X.Judge(v))
+		}
+		out = append(out, Wrap(strings.Join(js, "; "), TermWidth, "  ")...)
 	}
 	if len(s.Top) > 0 {
 		q := s.Plain(s.Top[0])
@@ -128,8 +135,8 @@ func Terminal(m *Model, md, html string) string {
 	default:
 		out = append(out, s.X.T["scope_more"])
 	}
-	if nj != "" { // last, so an agent reading the summary sees it
-		out = append(out, "", nj)
+	if nj != "" { // the command, then line ⑤ last, so an agent relays it as the closing question
+		out = append(out, "", nj, "", s.AskLine())
 	}
 	return strings.Join(out, "\n") + "\n"
 }
@@ -146,9 +153,6 @@ func Markdown(m *Model) string {
 		return "**" + s.T("scale."+itoa(map[string]int{"good": 0, "watch": 1, "attention": 2}[lv])) + "**"
 	}
 	md := []string{"# " + s.T("kicker") + ": " + s.T("rating."+st.Overall), "", s.T("period", "a", m.From, "b", m.To), ""}
-	if pl := s.PartsLine(); pl != "" {
-		md = append(md, "**"+pl+"**", "")
-	}
 	md = append(md,
 		"| | "+s.T("md_rating")+" | "+s.T("md_detail")+" |", "|:--|:--|:--|",
 		"| "+s.T("c_drift")+" | "+scl(st.Drift)+" | "+joinDot(joinDot(s.T("f_drift", "n", st.Serious, "j", m.J), st.DDrift), s.PartialLine())+" |")

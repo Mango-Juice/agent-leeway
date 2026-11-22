@@ -24,3 +24,9 @@ var Prices []byte
 //
 //go:embed advice.json
 var Advice []byte
+
+// Judges lists the preferred judging model families per tool and the exact versions checked with the fixed test
+// set (drift/judges.go reads it).
+//
+//go:embed judges.json
+var Judges []byte

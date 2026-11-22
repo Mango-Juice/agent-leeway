@@ -53,30 +53,30 @@ Homebrew, Scoop, `npx skills`, 직접 내려받기, 체크섬 확인, Windows �
 Leeway 리포트 만들어줘
 ```
 
-비용 점검은 따로 묻지 않고 바로 진행합니다. 이탈 점검은 세션을 판정 모델(내 `claude`나 `codex` CLI)에 보내기 전에 어떤 세션을 보낼지 보여 주고 먼저 묻습니다. Claude Code에서 부르면 Claude Code 세션만, Codex에서 부르면 Codex 세션만 판정합니다. 둘 다 보고 싶으면 그렇게 말하면 됩니다.
+비용 점검은 따로 묻지 않고 바로 진행합니다. 정밀 점검은 세션을 판정 모델(내 `claude`나 `codex` CLI)에 보내기 전에 어떤 세션을 보낼지 보여 주고 먼저 묻습니다. Claude Code에서 부르면 Claude Code 세션만, Codex에서 부르면 Codex 세션만 판정합니다. 둘 다 보고 싶으면 그렇게 말하면 됩니다.
 
 터미널에서 직접 실행해도 됩니다. 이때는 Claude Code와 Codex 세션을 모두 봅니다.
 
 ```sh
 agent-leeway leak --lang ko              # 비용 점검만
-agent-leeway drift --dry-run --lang ko   # 이탈 점검이 판정할 세션 목록만 보기 (아무것도 보내지 않음)
-agent-leeway drift --lang ko             # 판정하기 (시작 전에 물어봄)
-agent-leeway report --lang ko            # 리포트: 비용 점검 + 지금까지 판정한 이탈 결과
+agent-leeway drift --dry-run --lang ko   # 정밀 점검할 세션 목록만 보기 (아무것도 보내지 않음)
+agent-leeway drift --lang ko             # 정밀 점검 실행 (시작 전에 물어봄)
+agent-leeway report --lang ko            # 리포트: 비용 점검 + 지금까지 정밀 점검한 결과
 ```
 
-기본으로 최근 30일을 보고, 그중 가장 최근 세션 50개까지 판정합니다. 명령과 옵션 전체는 [docs/commands.md](docs/commands.md)에 있습니다.
+기본으로 최근 30일을 보고, 그중 아직 점검하지 않은 가장 최근 세션 50개까지 정밀 점검합니다. 명령과 옵션 전체는 [docs/commands.md](docs/commands.md)에 있습니다.
 
 ## 리포트에 나오는 것
 
 `report`는 HTML 파일과 같은 내용의 Markdown 파일을 `~/.cache/agent-leeway/reports`(Windows는 `%LOCALAPPDATA%\agent-leeway\reports`)에 만들고, 터미널에 짧은 요약을 출력합니다. 리포트에는 이런 내용이 들어갑니다.
 
-- 비용 점검과 이탈 점검의 총평
+- 비용 점검과 정밀 점검의 총평
 - 가장 효과가 큰 개선점 3가지와 각각의 근거
 - 잘하고 있는 것
 - 에이전트가 요청에서 벗어난 곳과 비용이 샌 곳(원인이 된 사용 습관별로 묶음)
 - 세션별 상세 내역
 
-이탈 점검은 내가 에이전트를 바로잡아야 했던 순간마다 원인을 셋 중 하나로 나눕니다.
+정밀 점검은 내가 에이전트를 바로잡아야 했던 순간마다 원인을 셋 중 하나로 나눕니다.
 
 - 에이전트가 이미 받은 지시를 어겼거나 스스로 실수했다
 - 내 지시가 없거나 모호했다. 이때는 `CLAUDE.md`나 `AGENTS.md`에 추가할 문장을 제안합니다
@@ -87,7 +87,7 @@ agent-leeway report --lang ko            # 리포트: 비용 점검 + 지금까�
 ## 밖으로 나가는 것과 비용
 
 - 비용 점검과 `report`는 아무것도 보내지 않고, 비용도 들지 않습니다.
-- 이탈 점검은 내가 승인한 세션의 일부 내용을 Anthropic이나 OpenAI로 보냅니다. 내 `claude`나 `codex` CLI와 그 로그인을 그대로 씁니다.
+- 정밀 점검은 내가 승인한 세션의 일부 내용을 Anthropic이나 OpenAI로 보냅니다. 내 `claude`나 `codex` CLI와 그 로그인을 그대로 씁니다.
 - 세션마다 한 번 호출하고, 결과를 주제별로 정리할 때 Claude Code와 Codex에 한 번씩 더 호출합니다.
 - 구독 요금제를 쓰면 사용량 한도에서 차감됩니다. API 키를 쓰면 세션당 약 $0.15~$0.35입니다(기본값 50개 세션이면 약 $8~$18).
 
@@ -99,9 +99,9 @@ agent-leeway report --lang ko            # 리포트: 비용 점검 + 지금까�
 
 - [docs/install.md](docs/install.md): 다른 설치 방법, Windows, 업데이트와 삭제
 - [docs/commands.md](docs/commands.md): 명령, 옵션, 설정, 평가 기준(rubric)
-- [docs/how-it-works.md](docs/how-it-works.md): 비용 점검, 이탈 점검, 주제별 묶기
+- [docs/how-it-works.md](docs/how-it-works.md): 비용 점검, 정밀 점검, 주제별 묶기
 - [docs/privacy.md](docs/privacy.md): 무엇을 읽고 무엇을 보내는지, 판정 모델이 할 수 있는 일
-- [docs/validation.md](docs/validation.md): 이탈 점검 결과가 공개 연구의 기준 라벨과 얼마나 맞는지, 그리고 한계
+- [docs/validation.md](docs/validation.md): 정밀 점검 결과가 공개 연구의 기준 라벨과 얼마나 맞는지, 그리고 한계
 - [docs/rubric.md](docs/rubric.md): 판정 모델이 따르는 평가 기준. 근거는 [docs/rubric-evidence.md](docs/rubric-evidence.md), [docs/references.md](docs/references.md)
 - [docs/development.md](docs/development.md): 빌드와 테스트
 - [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), [CONTRIBUTING.md](CONTRIBUTING.md)

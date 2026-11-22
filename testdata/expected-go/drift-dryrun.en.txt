@@ -1,6 +1,6 @@
-Drift check · 11 sessions (direct conversations and automations, most recent first, at most 50) · rubric v2.1-b636272b+t2
+In-depth check · 11 sessions (direct conversations and automations, most recent first, at most 50) · rubric v2.1-b636272b+t2
 Sessions in the window: Claude Code 8 · Codex 3
-11 sessions in the window; the 11 most recent not judged yet will be judged (one judge call per session). On a subscription this counts against your plan's usage; with an API key it costs about $2.57 at list prices.
+11 sessions in the window; the 11 most recent not checked yet will be checked (one judge call per session). On a subscription this counts against your plan's usage; with an API key it costs about $2.57 at list prices.
   2026-01-20 Claude Code proyecto-demo: about 0k tokens (1 KB)
   2026-01-18 Codex       orq: about 0k tokens (0 KB)
   2026-01-16 Codex       proyecto: about 0k tokens (1 KB)
@@ -12,7 +12,7 @@ Sessions in the window: Claude Code 8 · Codex 3
   2026-01-11 Codex       코덱스: about 0k tokens (1 KB)
   2026-01-10 Claude Code demo-project: about 0k tokens (1 KB)
   2025-12-21 Claude Code demo-project: about 0k tokens (1 KB)
-By project, all 11 sessions to judge: demo-project 2 · panel 2 · big logs 1 · orq 1 · proyecto 1 · proyecto-demo 1 · worker-repo 1 · 데모 프로젝트 1 · 코덱스 1
+By project, all 11 sessions to check: demo-project 2 · panel 2 · big logs 1 · orq 1 · proyecto 1 · proyecto-demo 1 · worker-repo 1 · 데모 프로젝트 1 · 코덱스 1
 Each excerpt includes the instruction files found in the log (CLAUDE.md, AGENTS.md). For Claude Code sessions without them, the current CLAUDE.md, CLAUDE.local.md and AGENTS.md files of the project folder and your global CLAUDE.md are added (--no-current-instructions turns this off).
   claude:opus: 8 sessions, estimated $1.94 (at least $0.243 per session: the validation-run average)
   codex:gpt-6.2-astra: 3 sessions, estimated $0.62 (at least $0.208 per session: the validation-run average)
@@ -20,6 +20,6 @@ Each excerpt includes the instruction files found in the log (CLAUDE.md, AGENTS.
   These are upper estimates for the input: nothing is assumed to come from the provider's prompt cache. Judging the same sessions again soon after costs less, because the cache is reused.
 Grouping by meaning after judging: Claude Code on, Codex on. Turn a tool off or on with --grouping claude=off (or settings.json "grouping").
 After judging, 2 grouping call(s) (Claude Code, Codex), about $0.14 in total: each provider gets only its own sessions' judged problems (the quotes and summaries the judge already saw) and groups them by meaning. --no-grouping skips this.
-Privacy: logs, cache and reports stay on this computer. Two things go out: the drift check sends each selected session to its own provider's official CLI (claude -p or codex exec), which sends it wherever that CLI is set up to (its logged-in account, or a base URL or proxy you configured) together with the CLI's own telemetry, and then makes one grouping call per provider with that provider's judged problems (the same quotes the judge already saw, plus its summaries; --no-grouping skips it); and `self-update --check` asks GitHub for the latest release tag. Nothing else opens a network connection (`privacy` lists the details).
---dry-run: estimate only, nothing judged.
-To judge fewer or other sessions: --max-sessions N (how many, most recent first), --since 7d (the period), --project <name> (one project).
+Privacy: logs, cache and reports stay on this computer. Two things go out: the in-depth check sends each selected session to its own provider's official CLI (claude -p or codex exec), which sends it wherever that CLI is set up to (its logged-in account, or a base URL or proxy you configured) together with the CLI's own telemetry, and then makes one grouping call per provider with that provider's judged problems (the same quotes the judge already saw, plus its summaries; --no-grouping skips it); and `self-update --check` asks GitHub for the latest release tag. Nothing else opens a network connection (`privacy` lists the details).
+--dry-run: estimate only, nothing checked.
+To check fewer or other sessions: --max-sessions N (how many, most recent first), --since 7d (the period), --project <name> (one project).

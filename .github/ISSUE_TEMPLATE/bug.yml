@@ -49,6 +49,12 @@ body:
     validations:
       required: true
   - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics file (for in-depth check errors)
+      description: Run the same command again with `--debug-log` and attach the file it names (`.../debug/judge-<time>.log`). It is safe to attach. It holds the CLI and its version, the command-line arguments, the exit status, the last lines of the CLI's error output and the type of each output event with any error message. Your home folder is shown as `~`, and e-mail addresses and secrets are replaced. It holds no session text, prompt or answer.
+      render: text
+  - type: textarea
     id: reproduction
     attributes:
       label: Synthetic reproduction (optional)

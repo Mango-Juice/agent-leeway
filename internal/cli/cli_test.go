@@ -104,11 +104,11 @@ func TestDriftAndReportCommands(t *testing.T) {
 		t.Fatalf("dry run: rc %d\n%s", rc, errs)
 	}
 	out, errs, rc := run(t, "drift", "--include-auto", "--no-current-instructions", "--yes", "--concurrency", "1")
-	if rc != 0 || !strings.Contains(errs, "9 judged") || !strings.Contains(out, "Drift check: 9 sessions") {
+	if rc != 0 || !strings.Contains(errs, "9 checked") || !strings.Contains(out, "In-depth check: 9 sessions") {
 		t.Fatalf("drift: rc %d\n%s\n%s", rc, errs, out)
 	}
 	_, errs, _ = run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run")
-	if !strings.Contains(errs, "9 sessions already judged are skipped") {
+	if !strings.Contains(errs, "9 sessions already checked are skipped") {
 		t.Errorf("resume: %s", errs)
 	}
 	// The report text is checked against the Go golden files (testdata/expected-go/report.*), in both
@@ -313,7 +313,7 @@ func TestDriftExitsNonZeroWhenNothingCanBeJudged(t *testing.T) {
 	fixtureEnv(t)
 	t.Setenv("LEEWAY_FAKE_MODE", "fail")
 	out, errs, rc := run(t, "drift", "--include-auto", "--no-current-instructions", "--yes", "--concurrency", "1")
-	if rc == 0 || strings.Contains(out, "Drift check: 0 sessions") || !strings.Contains(errs, "two judge calls failed") {
+	if rc == 0 || strings.Contains(out, "In-depth check: 0 sessions") || !strings.Contains(errs, "two judge calls failed") {
 		t.Errorf("failed run: rc %d\nout %s\nerr %s", rc, out, errs)
 	}
 }
@@ -349,7 +349,7 @@ func TestDriftDefaultsAndPlanMessage(t *testing.T) {
 	legacy(t)
 	fixtureEnv(t)
 	_, errs, rc := run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run")
-	if rc != 0 || !strings.Contains(errs, "11 sessions in the window; the 11 most recent not judged yet will be judged (one judge call per session)") ||
+	if rc != 0 || !strings.Contains(errs, "11 sessions in the window; the 11 most recent not checked yet will be checked (one judge call per session)") ||
 		strings.Contains(errs, "--budget $") || strings.Contains(errs, "Only the") {
 		t.Fatalf("default run: rc %d\n%s", rc, errs)
 	}
@@ -357,12 +357,12 @@ func TestDriftDefaultsAndPlanMessage(t *testing.T) {
 		t.Errorf("the estimate is not labelled as an upper estimate:\n%s", errs)
 	}
 	_, errs, _ = run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run", "--max-sessions", "3")
-	if !strings.Contains(errs, "the 3 most recent not judged yet will be judged") || !strings.Contains(errs, "Only the 3 most recent of the 11 sessions not judged yet are taken") || !strings.Contains(errs, "--max-sessions 0 for all 11") {
+	if !strings.Contains(errs, "the 3 most recent not checked yet will be checked") || !strings.Contains(errs, "Only the 3 most recent of the 11 sessions not checked yet are taken") || !strings.Contains(errs, "--max-sessions 0 for all 11") {
 		t.Errorf("--max-sessions line missing:\n%s", errs)
 	}
 	for _, n := range []string{"100", "0"} {
 		_, errs, _ = run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run", "--max-sessions", n)
-		if !strings.Contains(errs, "the 11 most recent not judged yet will be judged") || strings.Contains(errs, "Only the") {
+		if !strings.Contains(errs, "the 11 most recent not checked yet will be checked") || strings.Contains(errs, "Only the") {
 			t.Errorf("--max-sessions %s must take all 11:\n%s", n, errs)
 		}
 	}
@@ -445,19 +445,19 @@ func TestDriftDryRunFollowsLang(t *testing.T) {
 	if rc != 0 {
 		t.Fatalf("rc %d %s", rc, errs)
 	}
-	for _, want := range []string{"이탈 점검 ·", "이 기간 세션:", "판정 뒤 뜻으로 묶기: Claude Code 켬, Codex 켬", "개인정보:", "--dry-run: 예상만"} {
+	for _, want := range []string{"정밀 점검 ·", "이 기간 세션:", "점검 뒤 뜻으로 묶기: Claude Code 켬, Codex 켬", "개인정보:", "--dry-run: 예상만"} {
 		if !strings.Contains(errs, want) {
 			t.Errorf("Korean dry run lacks %q:\n%s", want, errs)
 		}
 	}
-	for _, bad := range []string{"Drift check", "Privacy:", "Sessions in the window", "Grouping by meaning", "estimate only", "Read Claude Code logs"} {
+	for _, bad := range []string{"In-depth check", "Privacy:", "Sessions in the window", "Grouping by meaning", "estimate only", "Read Claude Code logs"} {
 		if strings.Contains(errs, bad) {
 			t.Errorf("English line %q in the Korean dry run", bad)
 		}
 	}
 	// and the next command in English is English again
 	_, errs, _ = run(t, "drift", "--dry-run", "--lang", "en", "--include-auto", "--no-current-instructions")
-	if !strings.Contains(errs, "Drift check ·") || strings.Contains(errs, "이탈 점검") {
+	if !strings.Contains(errs, "In-depth check ·") || strings.Contains(errs, "이탈 점검") {
 		t.Errorf("English after Korean:\n%s", errs)
 	}
 }
@@ -467,7 +467,7 @@ func TestDriftDryRunFollowsLang(t *testing.T) {
 func TestDryRunEndsWithScopeLine(t *testing.T) {
 	fixtureEnv(t)
 	for lang, want := range map[string]string{
-		"en": "To judge fewer or other sessions: --max-sessions N (how many, most recent first), --since 7d (the period), --project <name> (one project).",
+		"en": "To check fewer or other sessions: --max-sessions N (how many, most recent first), --since 7d (the period), --project <name> (one project).",
 		"ko": "범위를 바꾸려면: --max-sessions N(최근 몇 개), --since 7d(기간), --project <이름>(한 프로젝트만).",
 	} {
 		_, errs, rc := run(t, "drift", "--dry-run", "--lang", lang, "--include-auto", "--no-current-instructions")
@@ -475,7 +475,7 @@ func TestDryRunEndsWithScopeLine(t *testing.T) {
 		if rc != 0 || lines[len(lines)-1] != want {
 			t.Errorf("%s: last line %q\n%s", lang, lines[len(lines)-1], errs)
 		}
-		head := map[string]string{"en": "Drift check ·", "ko": "이탈 점검 ·"}[lang]
+		head := map[string]string{"en": "In-depth check ·", "ko": "정밀 점검 ·"}[lang]
 		if i := strings.Index(errs, head); i < 0 {
 			t.Errorf("%s: no estimate in\n%s", lang, errs)
 		} else {
@@ -494,19 +494,21 @@ func TestReportSaysWhatIsNotJudged(t *testing.T) {
 	run(t, "drift", "--include-auto", "--no-current-instructions", "--yes", "--tool", "claude", "--max-sessions", "3")
 	for _, lang := range []string{"en", "ko"} {
 		want := map[string][2]string{
-			"en": {"Not judged yet: ", " Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d"},
-			"ko": {"아직 판정하지 않음: 이 기간의 Claude Code 세션 ", "개. 무엇을 판정할지 보려면(아무것도 보내지 않음): agent-leeway drift --dry-run --tool claude --since 30d"},
+			"en": {"Not checked in depth yet: ", " Claude Code sessions in this period. To see what would be checked (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d"},
+			"ko": {"아직 정밀 점검하지 않음: 이 기간의 Claude Code 세션 ", "개. 무엇을 점검할지 보려면(아무것도 보내지 않음): agent-leeway drift --dry-run --tool claude --since 30d"},
 		}[lang]
 		out, errs, rc := run(t, "report", "--include-auto", "--tool", "claude", "--lang", lang, "--out", filepath.Join(t.TempDir(), "r"))
 		lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
-		last := lines[len(lines)-1]
-		if rc != 0 || !strings.HasPrefix(last, want[0]) || !strings.HasSuffix(last, want[1]) {
-			t.Errorf("%s: the summary must end with the not-judged line, got %q\n%s%s", lang, last, out, errs)
+		last, cmdLine := lines[len(lines)-1], lines[len(lines)-3]
+		ask := map[string]string{"en": "Run the in-depth check on the remaining sessions too and add them to the report's \"did the agent do what you asked\" result? It takes longer than the basic report.",
+			"ko": "남은 세션도 정밀 점검해서 리포트의 \"요청대로 했는지\" 결과에 더할까요? 기본 리포트보다 시간이 더 걸립니다."}[lang]
+		if rc != 0 || last != ask || !strings.HasPrefix(cmdLine, want[0]) || !strings.HasSuffix(cmdLine, want[1]) {
+			t.Errorf("%s: the summary must end with the not-checked line and then line 5, got %q / %q\n%s%s", lang, cmdLine, last, out, errs)
 		}
 		// codex asked for: nothing of it was judged; the Claude Code results are kept out, with one line
 		out, _, _ = run(t, "report", "--include-auto", "--tool", "codex", "--lang", lang, "--out", filepath.Join(t.TempDir(), "r"))
-		other := map[string]string{"en": "This report covers Codex only. 2 judged Claude Code sessions are left out; to see them: agent-leeway report --tool claude",
-			"ko": "이 리포트는 Codex만 다룹니다. 판정한 Claude Code 세션 2개는 뺐습니다. 보려면: agent-leeway report --tool claude"}[lang]
+		other := map[string]string{"en": "This report covers Codex only. 2 Claude Code sessions checked in depth are left out; to see them: agent-leeway report --tool claude",
+			"ko": "이 리포트는 Codex만 다룹니다. 정밀 점검한 Claude Code 세션 2개는 뺐습니다. 보려면: agent-leeway report --tool claude"}[lang]
 		if !strings.Contains(strings.ReplaceAll(out, "\n", " "), other) || strings.Contains(out, "CLAUDE.md") {
 			t.Errorf("%s: --tool codex report:\n%s", lang, out)
 		}
@@ -519,6 +521,9 @@ func TestReportSaysWhatIsNotJudged(t *testing.T) {
 		HTML      string                    `json:"html"`
 		Tools     map[string]map[string]int `json:"tools"`
 		NotJudged string                    `json:"not_judged"`
+	}
+	if strings.Contains(out, "judging_models") || strings.Contains(out, "\"checked\"") {
+		t.Errorf("report --json must stay offline and carry no model check: %s", out)
 	}
 	if err := json.Unmarshal([]byte(out), &v); rc != 0 || err != nil {
 		t.Fatalf("--json: %v %s", err, out)
@@ -537,8 +542,77 @@ func TestMaxSessionsContinuesWithOlder(t *testing.T) {
 	fixtureEnv(t)
 	run(t, "drift", "--include-auto", "--no-current-instructions", "--yes", "--max-sessions", "3")
 	_, errs, rc := run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run", "--max-sessions", "3")
-	if rc != 0 || !strings.Contains(errs, "the 3 most recent not judged yet will be judged") || !strings.Contains(errs, "sessions already judged are skipped") ||
-		!strings.Contains(errs, "Only the 3 most recent of the ") || !strings.Contains(errs, "By project, all 3 sessions to judge: ") {
+	if rc != 0 || !strings.Contains(errs, "the 3 most recent not checked yet will be checked") || !strings.Contains(errs, "sessions already checked are skipped") ||
+		!strings.Contains(errs, "Only the 3 most recent of the ") || !strings.Contains(errs, "By project, all 3 sessions to check: ") {
 		t.Errorf("second run:\n%s", errs)
+	}
+}
+
+// fakeCodexOnPath puts a copy of the test binary named codex first on PATH, speaking the real CLI protocol.
+func fakeCodexOnPath(t *testing.T) {
+	t.Helper()
+	exe, _ := os.Executable()
+	bin := filepath.Join(t.TempDir(), "bin")
+	_ = os.MkdirAll(bin, 0o755)
+	name := "codex"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	src, _ := os.ReadFile(exe)
+	if err := os.WriteFile(filepath.Join(bin, name), src, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("LEEWAY_JUDGE_CMD", "")
+	t.Setenv("LEEWAY_FAKE_MODE", "codex-cli")
+}
+
+// The dry run names the model expected to judge, name only; a missing entry in the account's list is only a
+// hint (the checked model is still tried first); an older CLI keeps the checked model and says what updating
+// gives; a model refused after approval stops with exit code 4 and the dry-run command for the next model, with
+// every option given and without --yes; a model set in settings.json is kept (no automatic choice); when every
+// candidate is refused the dry run says so and exits non-zero.
+func TestExpectedJudgingModel(t *testing.T) {
+	tmp := fixtureEnv(t)
+	fakeCodexOnPath(t)
+	dry := func(extra ...string) (string, int) {
+		drift.ResetPreflight()
+		_, errs, rc := run(t, append([]string{"drift", "--dry-run", "--tool", "codex", "--include-auto", "--no-current-instructions"}, extra...)...)
+		return errs, rc
+	}
+	if e, _ := dry(); !strings.Contains(e, "\nExpected judging model: GPT-6.2 Astra\n") {
+		t.Errorf("the line holds only the name:\n%s", e)
+	}
+	t.Setenv("LEEWAY_FAKE_CATALOG", "no-astra")
+	if e, _ := dry(); !strings.Contains(e, "\nExpected judging model: GPT-6.2 Astra\n") {
+		t.Errorf("a missing catalog entry is only a hint:\n%s", e)
+	}
+	t.Setenv("LEEWAY_FAKE_CATALOG", "")
+	t.Setenv("LEEWAY_FAKE_CODEX_VERSION", "codex-cli 0.169.0")
+	if e, _ := dry(); !strings.Contains(e, "Codex CLI 0.169.0 is older than 0.171.0 and has no catalog entry for GPT-6.2 Astra. It still uses that model, with default settings.") ||
+		!strings.Contains(e, "Expected judging model: GPT-6.2 Astra") {
+		t.Errorf("older CLI:\n%s", e)
+	}
+	t.Setenv("LEEWAY_FAKE_CODEX_VERSION", "")
+	t.Setenv("LEEWAY_FAKE_CODEX", "refuse")
+	drift.ResetPreflight()
+	_, errs, rc := run(t, "drift", "--yes", "--tool", "codex", "--include-auto", "--no-current-instructions", "--max-sessions", "2", "--budget", "5", "--concurrency", "2", "--lang", "en")
+	cmd := "agent-leeway drift --dry-run --budget 5 --concurrency 2 --include-auto --lang en --max-sessions 2 --no-current-instructions --tool codex --model codex=gpt-6.2-sol"
+	if rc != 4 || !strings.Contains(errs, "the judge CLI refused the model GPT-6.2 Astra") || !strings.Contains(errs, "Next model: GPT-6.2 Sol") || !strings.Contains(errs, cmd) {
+		t.Errorf("refused model: rc %d\n%s", rc, errs)
+	}
+	if e, _ := dry(); !strings.Contains(e, "Expected judging model: GPT-6.2 Sol") {
+		t.Errorf("the refusal is remembered for this CLI version:\n%s", e)
+	}
+	// every candidate refused: say so, non-zero, no panic
+	drift.MarkUnavailable(filepath.Join(tmp, "cache"), "codex", "codex-cli 0.171.0", "codex:gpt-6.2-sol")
+	if e, rc := dry(); rc == 0 || !strings.Contains(e, "No judging model is left to try for Codex sessions") {
+		t.Errorf("all refused: rc %d\n%s", rc, e)
+	}
+	// a judge chosen in settings.json is kept, with its own stored results
+	_ = os.MkdirAll(filepath.Join(tmp, "config"), 0o755)
+	_ = os.WriteFile(filepath.Join(tmp, "config", "settings.json"), []byte(`{"judge": {"codex": "codex:gpt-6.1-terra"}}`), 0o644)
+	if e, rc := dry(); rc != 0 || !strings.Contains(e, "Expected judging model: GPT-6.1 Terra") || !strings.Contains(e, "codex:gpt-6.1-terra:") {
+		t.Errorf("settings.json judge not kept: rc %d\n%s", rc, e)
 	}
 }

@@ -1,0 +1,18 @@
+{
+ "about": "Judging models per tool (docs/development.md, 'Judging models'). The rubric is the product; the judging model is a replaceable part. Each tool lists preferred model families in order; 'match' is the exact pattern of a family's model ids (it excludes tier variants such as -mini); 'checked' lists the exact versions that passed the fixed test set, with the date and where the result is written down. The program picks, per tool: the newest checked version that is available, then a newer unchecked version of a preferred family, then the CLI's own default model. --model overrides it. Updated by hand only (no network fetch).",
+ "read": "2026-11-23",
+ "tools": {
+  "claude": {
+   "families": [
+    {"name": "opus", "alias": "opus", "match": "^claude-opus-[0-9]+(-[0-9]+)?$",
+     "checked": [{"model": "claude-opus-5-5", "date": "2026-11-22", "basis": "public/docs/validation.md (rubric v2.1, recheck docs/26)"}]}
+   ]
+  },
+  "codex": {
+   "families": [
+    {"name": "astra", "alias": "", "match": "^gpt-[0-9]+(\\.[0-9]+)?-astra$",
+     "checked": [{"model": "gpt-6.2-astra", "date": "2026-11-22", "basis": "public/docs/validation.md (rubric v2.1, recheck docs/26)"}]}
+   ]
+  }
+ }
+}

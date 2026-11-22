@@ -9,7 +9,7 @@ The experiments were pre-registered: the pass criteria were written down before 
 ## In short
 
 **Public data.** 80 public SpecStory sessions, judged against reference labels from a published study (rubric v2; v2.1 gave P1 recall 0.67 / 0.88 and AUC 0.71 / 0.74 on the same sessions).
-- The drift check found 67% (Opus) and 87% (astra) of the user-visible misalignment episodes, or 91% and 95% when defect reports are included.
+- The in-depth check (`drift`) found 67% (Opus) and 87% (astra) of the user-visible misalignment episodes, or 91% and 95% when defect reports are included.
 - It separated sessions with episodes from presumed-clean ones with AUC 0.72–0.74.
 - 0.1–0.2% of quotes were not found in the transcript.
 
@@ -26,7 +26,7 @@ The experiments were pre-registered: the pass criteria were written down before 
 - **Verdicts depend on the model.** Two models judging the same sessions agreed with weighted κ 0.61, both in rubric v1 (22 sessions) and in rubric v2 (44 developer sessions). On matched events the cause agreed in 0.80 of pairs on four causes and 0.87 on three groups (v2.1, public data). Reports lead with the three groups and always name the model used.
 - **Agreement with the public cause labels fell under v2.1 on the four-cause scale** (Opus 0.57 → 0.49, astra 0.46 → 0.44). On three groups it rose (0.74 / 0.69 → 0.78 / 0.74). "Missing or ambiguous instruction" remains the weakest cause: recall of the public label is 0.33 / 0.23, on only 6 and 13 episodes.
 - **The Codex judge over-calls.** It found events in 55% of presumed-clean public sessions with v2, and in 60% with v2.1, against 36% for Opus with both.
-- **Past Claude Code sessions do not record instruction files.** By default the drift check uses your *current* `CLAUDE.md` files, which may differ from what applied at the time.
+- **Past Claude Code sessions do not record instruction files.** By default the in-depth check uses your *current* `CLAUDE.md` files, which may differ from what applied at the time.
 - **Developer-log figures are under-counted.** During development the compressed Codex logs were not read, so those figures miss part of the Codex activity. The tool reads them.
 - **Rubric v2.1 passes the pre-registered quality criteria** (P1, P2 and P4 on public data; P3 on 15 developer sessions per model). The shift in cause attribution from v2 to v2.1 comes from the wording and cause procedure, not the language (§1.6–§1.8).
 - **The Go program.** Its reproducibility run above made 60 real judge calls. Every call accepted the lock-down flags, stayed one turn with no tool use, and parsed without schema problems. Under the research tool's frozen prices it reproduces that tool's outputs exactly on synthetic fixtures and on the developer's logs, including all 339 cached judgments. Its default prices differ on purpose: they are current list prices, which make Codex amounts several times higher ([development.md](development.md)).
@@ -89,7 +89,7 @@ Brackets are bootstrap 95% intervals (sessions resampled 2,000 times).
 
 These figures are for the top-tier judges above. In the v1 run, lower-tier judges quoted text that was not in the transcript far more often: one model did so in 23% of quotes. So the results here say nothing about lower-tier judges. The tool warns when one is chosen.
 
-**What a drift check uses.** One judge call per session, through the CLI the user is logged in with. On a subscription this counts against the plan's usage. With an API key it costs roughly $0.15 to $0.35 per session at list price. These are approximate figures measured on the validation runs: Claude Opus $0.24 (40 sessions) and $0.32 (15 sessions); gpt-6.2-astra $0.21 (80 sessions) and $0.15 (15 sessions). Judging the same sessions again within the provider's cache lifetime costs much less: $0.05 per session for Opus. Prices come from the providers' price pages; `agent-leeway prices` shows them and `prices --edit` updates them. The tool shows the session count and an estimate and asks before any call; `--max-sessions` and `--budget` limit a run.
+**What an in-depth check uses.** One judge call per session, through the CLI the user is logged in with. On a subscription this counts against the plan's usage. With an API key it costs roughly $0.15 to $0.35 per session at list price. These are approximate figures measured on the validation runs: Claude Opus $0.24 (40 sessions) and $0.32 (15 sessions); gpt-6.2-astra $0.21 (80 sessions) and $0.15 (15 sessions). Judging the same sessions again within the provider's cache lifetime costs much less: $0.05 per session for Opus. Prices come from the providers' price pages; `agent-leeway prices` shows them and `prices --edit` updates them. The tool shows the session count and an estimate and asks before any call; `--max-sessions` and `--budget` limit a run.
 
 ### 1.3 Model differences in verdicts
 - In the v1 cross-check, Opus and astra judged the same 22 sessions. Agreement was weighted κ 0.61 for the verdict and κ 0.52 for the cause.

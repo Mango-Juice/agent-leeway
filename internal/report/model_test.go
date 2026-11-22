@@ -281,14 +281,14 @@ func TestWarningSlots(t *testing.T) {
 	m := NewModel(Input{Records: []py.Value{r}, Advice: advice.Builtin(), Lang: "en", Now: time.Date(2027, 9, 1, 0, 0, 0, 0, time.UTC),
 		Since: time.Date(2027, 8, 1, 0, 0, 0, 0, time.UTC), Until: time.Date(2027, 9, 1, 0, 0, 0, 0, time.UTC), PricesRead: "2026-11-22", BundledRubric: "v-bundled"})
 	md, term := Markdown(m), Terminal(m, "", "")
-	for _, want := range []string{"The price table was last checked 2026-11-22", "The advice catalogue was last checked 2026-11-22", "Judged with your edited rubric v-test",
-		"Judge programs: claude 2.1.329.", "judged with 41,200 characters from the middle omitted", "could not be told apart", "partly judged", "origin unclear",
-		"partly from sessions judged with the middle omitted"} {
+	for _, want := range []string{"The price table was last checked 2026-11-22", "The advice catalogue was last checked 2026-11-22", "Checked with your edited rubric v-test",
+		"Judge programs: claude 2.1.329.", "checked with 41,200 characters from the middle omitted", "could not be told apart", "partly checked", "origin unclear",
+		"partly from sessions checked with the middle omitted"} {
 		if !strings.Contains(md, want) {
 			t.Errorf("Markdown lacks %q", want)
 		}
 	}
-	for _, want := range []string{"! The price table", "! The advice catalogue", "! Judged with your edited rubric"} {
+	for _, want := range []string{"! The price table", "! The advice catalogue", "! Checked with your edited rubric"} {
 		if !strings.Contains(term, want) {
 			t.Errorf("terminal lacks %q", want)
 		}
@@ -303,7 +303,7 @@ func TestKorean(t *testing.T) {
 	m := NewModel(Input{Records: []py.Value{rec(t, "a", "claude", "p", ev{Loc: "U1", Rule: "R6c", Cause: "agent_error", Size: "major", Quote: "q"})},
 		Advice: advice.Builtin(), Lang: "ko", Now: time.Date(2026, 11, 22, 0, 0, 0, 0, time.UTC)})
 	md := Markdown(m)
-	for _, want := range []string{"먼저 고칠 것", "다 됐다고 하면 확인 결과를 보여 달라고 하세요", "확인했다거나 테스트가 통과했다고 말할 때는", "판정자 요약", "찾아보기"} {
+	for _, want := range []string{"먼저 고칠 것", "다 됐다고 하면 확인 결과를 보여 달라고 하세요", "확인했다거나 테스트가 통과했다고 말할 때는", "판정 모델 요약", "찾아보기"} {
 		if !strings.Contains(md, want) {
 			t.Errorf("Korean report lacks %q", want)
 		}

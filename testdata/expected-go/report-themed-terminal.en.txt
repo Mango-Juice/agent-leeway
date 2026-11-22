@@ -1,11 +1,11 @@
-This check-up has two parts. 1) Checking money lost to habits: done. 2) Checking whether the
-agent did what you asked: 9 sessions checked, 2 Claude Code sessions not yet.
+The report's "did the agent do what you asked" result covers only 9 sessions. 2 are not checked yet.
 
 Your AI coding agents, overall: POOR   (2025-12-21 – 2026-01-20)
 
   Did what you asked      good fair [POOR]  Serious misses in 6 of 9 sessions · 6 fewer missed
   sessions to reach Good
   Money wasted by habits  good fair [POOR]  $2.55 of $5.36 · $2.28 less to reach Good
+  Claude Code · judged by Claude Opus 5.5; Codex · judged by GPT-6.2 Astra
 
 Fix first:
   1. Add this rule to CLAUDE.md
@@ -17,9 +17,11 @@ Fix first:
 
 Fixed in-session: 9 / 9 misses
 
-! Judged with your edited rubric v2.1-b636272b+t2; the validation figures in this report were
+! Checked with your edited rubric v2.1-b636272b+t2; the validation figures in this report were
 measured with the bundled rubric v2.1-cf92779d
 
 → <reports>/report-2026-01-20T0900.html
 
-Not judged yet: 2 Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
+Not checked in depth yet: 2 Claude Code sessions in this period. To see what would be checked (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
+
+Run the in-depth check on the remaining sessions too and add them to the report's "did the agent do what you asked" result? It takes longer than the basic report.

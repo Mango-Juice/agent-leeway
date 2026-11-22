@@ -130,7 +130,8 @@ func call(ctx context.Context, tier, system, prompt string, timeout time.Duratio
 	}
 	defer os.RemoveAll(wd) // runs on success, error, timeout and cancel (SIGTERM and SIGHUP cancel too)
 	if fake := os.Getenv("LEEWAY_JUDGE_CMD"); fake != "" {
-		return callFake(ctx, fake, tier, model, system, prompt, wd, timeout)
+		text, u, err := callFake(ctx, fake, tier, model, system, prompt, wd, timeout)
+		return text, u, asModelErr(tier, err, proc.Result{})
 	}
 	sys, err := os.CreateTemp(wd, "system-*.md")
 	if err != nil {
@@ -149,16 +150,21 @@ func call(ctx context.Context, tier, system, prompt string, timeout time.Duratio
 	if err != nil {
 		return "", config.Usage{}, fmt.Errorf("%s CLI not found", prov)
 	}
+	model = CLIModel(tier) // the exact checked id, an alias for "newest", or "" for the CLI's default
 	if prov == "claude" {
 		args := ClaudeArgs(model, sys.Name())
 		if err := checkShimArgs(exe, append(args, wd, exe)); err != nil {
 			return "", config.Usage{}, err
 		}
-		r, err := proc.Run(ctx, exe, args, wd, nil, []byte(Stdin(tier, prompt)), timeout)
+		r, err := proc.Run(ctx, exe, args, wd, judgeEnv(), []byte(Stdin(tier, prompt)), timeout)
 		if err != nil {
+			debugCall(tier, exe, preflightVersion(prov), args, r, nil, err)
 			return "", config.Usage{}, err
 		}
-		return parseClaude(r, config.Prices().JudgeModel(tier))
+		text, u, perr := parseClaude(r, config.Prices().JudgeModel(tier))
+		perr = asModelErr(tier, perr, r)
+		debugCall(tier, exe, preflightVersion(prov), args, r, claudeEvents(r), perr)
+		return text, u, perr
 	}
 	effort := config.CodexEffort[model]
 	if effort == "" {
@@ -168,11 +174,23 @@ func call(ctx context.Context, tier, system, prompt string, timeout time.Duratio
 	if err := checkShimArgs(exe, append(args, wd, exe)); err != nil {
 		return "", config.Usage{}, err
 	}
-	r, err := proc.Run(ctx, exe, args, wd, nil, []byte(Stdin(tier, prompt)), timeout)
+	r, err := proc.Run(ctx, exe, args, wd, judgeEnv(), []byte(Stdin(tier, prompt)), timeout)
 	if err != nil {
+		debugCall(tier, exe, preflightVersion(prov), args, r, nil, err)
 		return "", config.Usage{}, err
 	}
-	return parseCodex(r, model)
+	text, u, notes, perr := parseCodex(r, model)
+	perr = asModelErr(tier, perr, r)
+	for _, n := range notes { // Codex rerouted the request to another model: a model change, never recorded
+		if perr == nil && strings.HasPrefix(strings.ToLower(n), "model rerouted") {
+			perr = &ErrModel{Tier: tier, Msg: n}
+		}
+	}
+	for _, n := range notes {
+		notesOf(ctx).add(n)
+	}
+	debugCall(tier, exe, preflightVersion(prov), args, r, codexEvents(r), perr)
+	return text, u, perr
 }
 
 func num(v py.Value) float64 { f, _ := v.Num(); return f }
@@ -186,10 +204,13 @@ func num(v py.Value) float64 { f, _ := v.Num(); return f }
 //   - --disable-slash-commands; --permission-prompts none: anything that would ask is denied;
 //   - --no-session-persistence: the judge session is not saved.
 //
+// No --fallback-model: the CLI would switch models silently mid-run, and a judge model is only changed with the
+// user's consent (judges.go).
+//
 // Requires Claude Code 2.1.259 or later (--permission-prompts); an older CLI rejects the flags and the run stops.
 func ClaudeArgs(model, systemFile string) []string {
-	return []string{"-p", "--model", model, "--output-format", "json", "--tools", "", "--restricted", "--safe-mode", "--strict-mcp-config",
-		"--disable-slash-commands", "--permission-prompts", "none", "--no-session-persistence", "--system-prompt-file", systemFile}
+	return []string{"-p", "--model", model, "--output-format", "json", "--tools", "", "--restricted", "--safe-mode",
+		"--strict-mcp-config", "--disable-slash-commands", "--permission-prompts", "none", "--no-session-persistence", "--system-prompt-file", systemFile}
 }
 
 // codexDisabled are Codex features that give the model a tool or load outside configuration
@@ -203,15 +224,64 @@ var codexDisabled = []string{"shell_tool", "unified_exec", "view_image", "apps",
 // project is the working root, and it is its own project root so no AGENTS.md is found above it), the sandbox
 // is read-only and approvals are never asked. parseCodex also fails the call if any tool item appears anyway.
 func CodexArgs(model, effort, systemFile, dir string) []string {
-	args := []string{"exec", "-m", model, "-c", "model_reasoning_effort=" + effort, "-c", "model_instructions_file=" + systemFile,
-		"-c", "web_search=disabled", "-c", "approval_policy=never", "-c", "project_root_markers=[]"}
+	args := []string{"exec"}
+	if model != "" { // "" = the CLI's own default model
+		args = append(args, "-m", model)
+	}
+	args = append(args, "-c", "model_reasoning_effort="+effort, "-c", "model_instructions_file="+systemFile,
+		"-c", "web_search=disabled", "-c", "approval_policy=never", "-c", "project_root_markers=[]")
 	for _, f := range codexDisabled {
 		args = append(args, "--disable", f)
 	}
 	return append(args, "--ephemeral", "--skip-git-repo-check", "--ignore-user-config", "--ignore-rules", "-s", "read-only", "--json", "-C", dir, "-")
 }
 
+// verboseEnv are variables that make the judge CLIs log verbosely to stderr (and into the diagnostics file);
+// they are cleared for judge calls.
+var verboseEnv = []string{"RUST_LOG", "RUST_BACKTRACE", "RUST_LIB_BACKTRACE", "ANTHROPIC_LOG", "DEBUG", "CLAUDE_CODE_DEBUG_LOGS_DIR"}
+
+// judgeEnv is the environment of a judge call: the user's, without verbose-logging variables.
+func judgeEnv() []string {
+	var out []string
+	for _, kv := range os.Environ() {
+		k, _, _ := strings.Cut(kv, "=")
+		drop := false
+		for _, v := range verboseEnv {
+			drop = drop || strings.EqualFold(k, v)
+		}
+		if !drop {
+			out = append(out, kv)
+		}
+	}
+	return out
+}
+
 func trimmed(b []byte) string { return strings.TrimSpace(py.DecodeBytes(b)) }
+
+// asModelErr turns a refusal of the model itself (unknown, or not allowed for the account) into ErrModel. The
+// Codex notice "Model metadata for X not found" is not a refusal: the call goes on with that model.
+func asModelErr(tier string, err error, r proc.Result) error {
+	if err == nil {
+		return nil
+	}
+	if me, ok := IsErrModel(err); ok {
+		if me.Tier == "" {
+			me.Tier = tier
+		}
+		return me
+	}
+	var cfg *ErrConfig
+	var lim *ErrLimit
+	if errors.As(err, &cfg) || errors.As(err, &lim) {
+		return err
+	}
+	msg := err.Error()
+	text := msg + "\n" + trimmed(r.Stderr)
+	if modelRefused.MatchString(text) {
+		return &ErrModel{Tier: tier, Msg: NoteText(msg)}
+	}
+	return err
+}
 
 // argError recognizes a CLI that rejected its command line (unknown flag, too old).
 func argError(r proc.Result, name string) error {
@@ -219,6 +289,12 @@ func argError(r proc.Result, name string) error {
 		return &ErrConfig{Msg: name + " rejected its arguments (is it too old?): " + py.Head(trimmed(r.Stderr), 300)}
 	}
 	return nil
+}
+
+// aliasModel says whether a judge model name is an alias the CLI resolves itself ("opus@latest", "default",
+// a bare family name), not an exact model id.
+func aliasModel(m string) bool {
+	return strings.HasSuffix(m, "@latest") || m == "default" || !strings.Contains(m, "-")
 }
 
 // parseClaude reads `claude -p --output-format json`. judgeModel is the price-table id of the chosen judge (e.g.
@@ -262,25 +338,50 @@ func parseClaude(r proc.Result, judgeModel string) (string, config.Usage, error)
 				CacheWrite: num(e.Get("cacheCreationInputTokens")), Output: num(e.Get("outputTokens"))})
 		}
 	}
-	model := strings.Join(models, ",") // no model matched the judge: keep what the CLI reported
-	if len(judgeKeys) > 0 {
-		model = strings.Join(judgeKeys, ",")
-	} else {
+	model := strings.Join(judgeKeys, ",")
+	fallback := false
+	if len(judgeKeys) == 0 && len(models) > 0 {
+		if !aliasModel(judgeModel) { // an exact model was asked for and another answered: a model change
+			return "", config.Usage{}, &ErrModel{Msg: "the Claude CLI answered with " + strings.Join(models, ",") + " instead of " + judgeModel}
+		}
+		// an alias ("opus", "default"): the main model is the one with the most output; the rest are helpers
+		main := models[0]
+		for _, k := range models {
+			if num(d.Get("modelUsage").Get(k).Get("outputTokens")) > num(d.Get("modelUsage").Get(main).Get("outputTokens")) {
+				main = k
+			}
+		}
+		model, fallback = main, true
 		extra = nil
+		for _, k := range models {
+			if k == main {
+				continue
+			}
+			e := d.Get("modelUsage").Get(k)
+			extra = append(extra, config.ModelTokens{Model: k, Input: num(e.Get("inputTokens")), CacheRead: num(e.Get("cacheReadInputTokens")),
+				CacheWrite: num(e.Get("cacheCreationInputTokens")), Output: num(e.Get("outputTokens"))})
+		}
 	}
 	cc := u.Get("cache_creation")
 	return py.PyStr(d.Get("result")), config.Usage{Input: num(u.Get("input_tokens")), CacheRead: num(u.Get("cache_read_input_tokens")),
 		CacheWrite: num(u.Get("cache_creation_input_tokens")), CacheWrite5m: num(cc.Get("ephemeral_5m_input_tokens")),
-		CacheWrite1h: num(cc.Get("ephemeral_1h_input_tokens")), Output: num(u.Get("output_tokens")), Model: model, Extra: extra}, nil
+		CacheWrite1h: num(cc.Get("ephemeral_1h_input_tokens")), Output: num(u.Get("output_tokens")), Model: model, Extra: extra, Fallback: fallback}, nil
 }
 
-// codexAllowedItems are the only items a judge without tools may produce.
+// codexAllowedItems are the only items a judge without tools may produce. An "error" item is the CLI's own
+// non-fatal notice (codex-rs exec_events.rs: "Describes a non-fatal error surfaced as an item"; emitted for
+// config warnings, warnings, deprecation notices and model reroutes, e.g. 0.169.0's "Model metadata for
+// `gpt-6.2-astra` not found ..." or "Falling back from WebSockets to HTTPS transport ..."): it is not a tool
+// call, so it is kept as a note and the turn decides the outcome. Every other item (command_execution,
+// file_change, mcp_tool_call, collab_tool_call, web_search, todo_list, or anything new) stops the run.
 var codexAllowedItems = map[string]bool{"agent_message": true, "reasoning": true}
 
-func parseCodex(r proc.Result, model string) (string, config.Usage, error) {
+// parseCodex reads `codex exec --json`: the answer, the usage, and the CLI's notices (error items).
+func parseCodex(r proc.Result, model string) (string, config.Usage, []string, error) {
 	text := ""
 	var usage *config.Usage
 	var problem string
+	var notes []string
 	for _, line := range strings.Split(py.DecodeBytes(r.Stdout), "\n") {
 		o, err := py.Loads(strings.TrimSuffix(line, "\r"))
 		if err != nil || o.K != py.Obj {
@@ -289,8 +390,14 @@ func parseCodex(r proc.Result, model string) (string, config.Usage, error) {
 		typ := o.Get("type").StrOr("")
 		if strings.HasPrefix(typ, "item.") {
 			it := o.Get("item").Get("type").StrOr("")
+			if it == "error" {
+				if typ == "item.completed" {
+					notes = append(notes, NoteText(o.Get("item").Get("message").StrOr("")))
+				}
+				continue
+			}
 			if !codexAllowedItems[it] {
-				return "", config.Usage{}, &ErrConfig{Msg: "the Codex judge produced a " + it + " item although tools are off; stopped, nothing recorded"}
+				return "", config.Usage{}, notes, &ErrConfig{Msg: "the Codex judge produced a " + it + " item (a tool call) although tools are off; stopped, nothing recorded"}
 			}
 		}
 		if typ == "item.completed" && isStrV(o.Get("item").Get("type"), "agent_message") {
@@ -308,14 +415,66 @@ func parseCodex(r proc.Result, model string) (string, config.Usage, error) {
 	}
 	if usage == nil {
 		if e := argError(r, "codex"); e != nil {
-			return "", config.Usage{}, e
+			return "", config.Usage{}, notes, e
 		}
 		if problem != "" {
-			return "", config.Usage{}, classify("codex failed: " + problem)
+			return "", config.Usage{}, notes, classify("codex failed: " + NoteText(problem))
 		}
-		return "", config.Usage{}, errors.New("codex failed: " + py.Tail(trimmed(r.Stderr), 300))
+		if len(notes) > 0 { // no turn result: the CLI's own last notice is the best explanation
+			return "", config.Usage{}, notes, classify("codex failed: " + notes[len(notes)-1])
+		}
+		if s := trimmed(r.Stderr); s != "" {
+			return "", config.Usage{}, notes, errors.New("codex failed: " + NoteText(py.Tail(s, 300)))
+		}
+		return "", config.Usage{}, notes, fmt.Errorf("codex failed: exit status %d, no message", r.ExitCode)
 	}
-	return text, *usage, nil
+	return text, *usage, notes, nil
+}
+
+// codexEvents lists the output's event types for the diagnostics file, with the messages of errors and
+// error items; never the answer or reasoning text.
+func codexEvents(r proc.Result) []string {
+	var out []string
+	for _, line := range strings.Split(py.DecodeBytes(r.Stdout), "\n") {
+		o, err := py.Loads(strings.TrimSuffix(line, "\r"))
+		if err != nil || o.K != py.Obj {
+			continue
+		}
+		typ := o.Get("type").StrOr("")
+		e := typ
+		if strings.HasPrefix(typ, "item.") {
+			it := o.Get("item").Get("type").StrOr("")
+			e += " " + it
+			if it == "error" {
+				e += ": " + NoteText(o.Get("item").Get("message").StrOr(""))
+			}
+		}
+		if typ == "error" || typ == "turn.failed" {
+			e += ": " + NoteText(py.PyStr(o.Get("message").Or(o.Get("error").Get("message")).Or(o.Get("error"))))
+		}
+		out = append(out, e)
+	}
+	return out
+}
+
+// claudeEvents is the non-content part of `claude -p --output-format json` for the diagnostics file.
+func claudeEvents(r proc.Result) []string {
+	d, err := py.Loads(py.DecodeBytes(r.Stdout))
+	if err != nil || d.K != py.Obj {
+		return []string{"no JSON on stdout"}
+	}
+	e := fmt.Sprintf("type=%s subtype=%s is_error=%v num_turns=%s", d.Get("type").StrOr(""), d.Get("subtype").StrOr(""), d.Get("is_error").Truthy(), py.PyStr(d.Get("num_turns")))
+	if pd := d.Get("permission_denials"); pd.K == py.Arr {
+		e += fmt.Sprintf(" permission_denials=%d", len(pd.A))
+	}
+	if mu := d.Get("modelUsage"); mu.K == py.Obj {
+		e += " models=" + strings.Join(mu.O.Keys, ",")
+	}
+	out := []string{e}
+	if d.Get("is_error").Truthy() {
+		out = append(out, "error: "+NoteText(py.PyStr(d.Get("result"))))
+	}
+	return out
 }
 
 // callFake runs LEEWAY_JUDGE_CMD (split on spaces; no shell).

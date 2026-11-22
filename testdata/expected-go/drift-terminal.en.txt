@@ -2,6 +2,7 @@ Your AI coding agents, overall: POOR   (2025-12-21 – 2026-01-20)
 
   Did what you asked  good fair [POOR]  Serious misses in 6 of 9 sessions · 6 fewer missed
   sessions to reach Good
+  Claude Code · judged by Claude Opus 5.5; Codex · judged by GPT-6.2 Astra
 
 Fix first:
   1. Add what you had to repeat to CLAUDE.md or AGENTS.md
@@ -11,7 +12,7 @@ Fix first:
 
 Fixed in-session: 9 / 9 misses
 
-! Judged with your edited rubric v2.1-b636272b+t2; the validation figures in this report were
+! Checked with your edited rubric v2.1-b636272b+t2; the validation figures in this report were
 measured with the bundled rubric v2.1-cf92779d
 
 More in the report: `agent-leeway report`

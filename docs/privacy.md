@@ -2,7 +2,7 @@
 
 `agent-leeway privacy` prints the exact folders on your computer and the full list of what goes out.
 
-The drift check is the only step that sends session content. Claude Code sessions go to Anthropic through your `claude` CLI and are judged by Claude Opus by default. Codex sessions go to OpenAI through your `codex` CLI and are judged by gpt-6.2-astra by default (`--model` changes this). Each uses the login you already have.
+The in-depth check is the only step that sends session content. Claude Code sessions go to Anthropic through your `claude` CLI and are judged by Claude Opus by default. Codex sessions go to OpenAI through your `codex` CLI and are judged by gpt-6.2-astra by default (`--model` changes this). Each uses the login you already have.
 
 | Step | Reads | Sends |
 |---|---|---|
@@ -15,7 +15,7 @@ The drift check is the only step that sends session content. Claude Code session
 - `self-update --check` asks GitHub for the latest release tag. Prices come from a local table.
 - Every command runs `git rev-parse` (read-only) in project folders found in the logs, to name the projects.
 - The program never reads or stores credentials, and never calls a provider API with its own key.
-- Read your provider's data policy for your plan before you run the drift check.
+- Read your provider's data policy for your plan before you run the in-depth check.
 
 ## What the judge may do
 
@@ -32,4 +32,4 @@ Reports show locations and short excerpts (160 characters by default, `--quote-c
 
 ## Terms of use
 
-The drift check runs only through the official `claude` and `codex` CLIs, under your own login. It does not extract or reuse subscription tokens, and no third-party service calls a provider for you. Your use of those CLIs is governed by your agreement with each provider.
+The in-depth check runs only through the official `claude` and `codex` CLIs, under your own login. It does not extract or reuse subscription tokens, and no third-party service calls a provider for you. Your use of those CLIs is governed by your agreement with each provider.

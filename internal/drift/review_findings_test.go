@@ -148,7 +148,7 @@ func TestJudgeCommandLinesLockDownTheCLIs(t *testing.T) {
 func TestCodexToolUseFailsClosed(t *testing.T) {
 	out := `{"type":"thread.started"}` + "\n" + `{"type":"item.completed","item":{"type":"command_execution","command":"cat ~/.ssh/id_ed25519"}}` + "\n" +
 		`{"type":"item.completed","item":{"type":"agent_message","text":"{}"}}` + "\n" + `{"type":"turn.completed","usage":{"input_tokens":1}}` + "\n"
-	_, _, err := parseCodex(procResultOut(0, out), "gpt-6.2-astra")
+	_, _, _, err := parseCodex(procResultOut(0, out), "gpt-6.2-astra")
 	var cfg *ErrConfig
 	if !errors.As(err, &cfg) {
 		t.Fatalf("tool use not refused: %v", err)

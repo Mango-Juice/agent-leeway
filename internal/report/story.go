@@ -887,18 +887,32 @@ func (s *Story) unjudged() (int, string) {
 	return n, s.join(parts, ", ", ", ")
 }
 
-// PartsLine opens the summary when sessions are unjudged: the check-up has two parts, the cost part is done, and
-// how much of "did the agent do what you asked" is ("" when everything is judged).
+// PartsLine is line ① of the agent's message, printed by the tool so it is relayed word for word: this is the
+// basic report (cost only), or the "did what you asked" result covers only some sessions ("" when all are
+// checked).
 func (s *Story) PartsLine() string {
-	n, list := s.unjudged()
+	n, _ := s.unjudged()
 	if n == 0 {
 		return ""
 	}
-	state := s.T("parts_none", "list", list)
 	if s.M.J > 0 {
-		state = s.T("parts_some", "j", s.M.J, "list", list)
+		return s.T("parts_some", "j", s.M.J, "n", n)
 	}
-	return s.T("parts", "state", state)
+	return s.T("parts")
+}
+
+// AskLine is line ⑤, the last line of the agent's message: whether to run the in-depth check ("" when all are
+// checked).
+func (s *Story) AskLine() string {
+	n, _ := s.unjudged()
+	if n == 0 {
+		return ""
+	}
+	q := s.T("ask_none")
+	if s.M.J > 0 {
+		q = s.T("ask_some")
+	}
+	return q + " " + s.T("ask_time")
 }
 
 // NoneFact is the "did what you asked" fact when nothing is judged: with the unjudged count when known.

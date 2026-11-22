@@ -17,7 +17,7 @@ Leeway reads private data and runs other programs, so these matter most:
   - Reading Claude Code and Codex logs, including compressed Codex logs.
   - The cache and report folders and their permissions.
   - Anything that could expose log content to other local users or write outside the tool's own folders.
-- **What leaves the computer.** The drift check sends each selected session to that session's own provider through the official `claude` or `codex` CLI. Anything that sends data elsewhere, sends more than intended, or sends a session to the wrong provider is in scope.
+- **What leaves the computer.** The in-depth check sends each selected session to that session's own provider through the official `claude` or `codex` CLI. Anything that sends data elsewhere, sends more than intended, or sends a session to the wrong provider is in scope.
 - **Running the judge CLIs.**
   - The judge lock-down is enforced through CLI flags (no tools, no settings, hooks or plugins, read-only sandbox). A way around it is in scope.
   - So are argument injection through `.cmd`/`.bat` shims on Windows, and child processes that outlive a timeout or cancel.

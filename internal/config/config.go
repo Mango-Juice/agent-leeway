@@ -105,6 +105,8 @@ type Usage struct {
 	Input, CacheRead, CacheWrite, Output float64
 	CacheWrite5m, CacheWrite1h           float64
 	Model                                string
+	// Fallback: the CLI answered with another model than the one asked for (Model names it); priced as that model.
+	Fallback bool
 	// Extra is usage the judge CLI reported for other models in the same call (the Claude CLI makes its own
 	// small helper calls, e.g. with a Haiku model). It is priced at each model's own list price.
 	Extra []ModelTokens
@@ -140,6 +142,10 @@ func JudgeUSD(tier string, u Usage) (float64, bool) {
 	}
 	t := Prices()
 	row, ok := t.JudgeRow(tier)
+	if u.Fallback { // priced as the model that answered; no price row, no dollar amount
+		prov, _, _ := strings.Cut(tier, ":")
+		row, ok = t.Lookup(prov, u.Model)
+	}
 	if !ok {
 		return 0, false
 	}

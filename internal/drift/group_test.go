@@ -235,3 +235,15 @@ func TestGroupingDoesNotChangeJudgeText(t *testing.T) {
 		t.Error("the grouping instruction leaked into the judge's system prompt")
 	}
 }
+
+// A model refusal during the grouping call skips grouping for that tool with one line: no other model is used,
+// the run is not stopped and the judged results stay.
+func TestGroupingModelRefused(t *testing.T) {
+	recs := judgedFixture(t)
+	cache := t.TempDir()
+	out, _ := groupWith(t, cache, "refuse", "", recs, Options{})
+	joined := strings.Join(out.Lines, "\n")
+	if out.Stop != "" || !strings.Contains(joined, "grouping skipped (the checked sessions are kept)") || len(LoadGroups(cache)) != 0 {
+		t.Errorf("stop %q, lines:\n%s", out.Stop, joined)
+	}
+}

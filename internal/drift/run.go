@@ -51,7 +51,8 @@ func RunID(key, tier, rubricVer string, st Settings) string {
 func EstimateLines(items []Item, done map[string]bool, rubricVer string, st Settings, budget float64) ([]string, []Item, float64) {
 	var todo []Item
 	for _, it := range items {
-		if !done[RunID(it.Key, it.Tier, rubricVer, st)] {
+		id := RunID(it.Key, it.Tier, rubricVer, st)
+		if !done[id] && !done[anyModelOf(id)] {
 			todo = append(todo, it)
 		}
 	}
@@ -127,7 +128,17 @@ func PlanLines(total, pending, maxSessions int, todo []Item, budget float64) []s
 	for _, it := range todo[:m] {
 		usd += it.EstUSD
 	}
-	lines := []string{fmtMsg(messages.Drift["plan_line"], "n", total, "m", m, "usd", usd)}
+	priced := true
+	for _, it := range todo[:m] {
+		if it.EstUSD <= 0 { // no price row and no measured cost for its model
+			priced = false
+		}
+	}
+	key := "plan_line"
+	if !priced { // no price row for the model: plan-usage wording only, no dollar figure
+		key = "plan_line_unpriced"
+	}
+	lines := []string{fmtMsg(messages.Drift[key], "n", total, "m", m, "usd", usd)}
 	if maxSessions > 0 && pending > maxSessions {
 		lines = append(lines, fmtMsg(messages.Drift["cut_max"], "k", maxSessions, "total", pending))
 	}
@@ -162,7 +173,8 @@ type Outcome struct {
 	Done          int
 	Spent         float64 // list price of finished calls; a failed call without usage counts at its estimate
 	StoppedReason string
-	Failed        bool // stopped by failures, a usage limit, a configuration error or a cancel
+	Failed        bool   // stopped by failures, a usage limit, a configuration error, a refused model or a cancel
+	Refused       string // the tier whose model the CLI refused (unknown or not allowed for the account)
 }
 
 // JudgeAll judges items, Concurrency at a time, appending one record per finished call.
@@ -199,6 +211,7 @@ func JudgeAll(ctx context.Context, cache string, todo []Item, rb *Rubric, o Opti
 	state := make([]int8, len(todo)) // 0 pending, 1 ok, 2 failed
 	stop := ""
 	budgetStop := false
+	seenNote := map[string]bool{} // a CLI notice is shown once per run
 	for idx, it := range todo {
 		mu.Lock()
 		for inFlight >= o.Concurrency && stop == "" && ctx.Err() == nil {
@@ -219,8 +232,15 @@ func JudgeAll(ctx context.Context, cache string, todo []Item, rb *Rubric, o Opti
 		reserved += it.EstUSD
 		mu.Unlock()
 		go func(idx int, it Item) {
-			rec, err := judgeOne(ctx, it, system, rb, o)
+			notes := &Notes{}
+			rec, err := judgeOne(WithNotes(ctx, notes), it, system, rb, o)
 			mu.Lock()
+			for _, n := range notes.List {
+				if !seenNote[n] {
+					seenNote[n] = true
+					o.Log(fmtMsg(messages.Drift["cli_note"], "tool", messages.Tool[it.Tool], "msg", n))
+				}
+			}
 			defer func() {
 				inFlight--
 				reserved -= it.EstUSD
@@ -234,6 +254,13 @@ func JudgeAll(ctx context.Context, cache string, todo []Item, rb *Rubric, o Opti
 			if errors.As(err, &lim) {
 				if stop == "" {
 					stop = fmtMsg(messages.Drift["stop_limit"], "msg", py.Head(lim.Msg, 120))
+				}
+				return
+			}
+			if me, ok := IsErrModel(err); ok { // the model itself was refused: stop, never switch models silently
+				if stop == "" {
+					stop = fmtMsg(messages.Drift["stop_model"], "model", ModelName(me.Tier), "msg", py.Head(me.Msg, 300))
+					out.Refused = me.Tier
 				}
 				return
 			}
@@ -252,9 +279,9 @@ func JudgeAll(ctx context.Context, cache string, todo []Item, rb *Rubric, o Opti
 			}
 			if e := rec.Get("error"); e.Truthy() {
 				state[idx] = 2
-				o.Log(fmtMsg(messages.Drift["failed"], "tier", it.Tier, "err", py.Head(e.S, 80)))
+				o.Log(fmtMsg(messages.Drift["failed"], "tier", it.Tier, "err", py.Head(e.S, 300)))
 				if ((idx > 0 && state[idx-1] == 2) || (idx+1 < len(state) && state[idx+1] == 2)) && stop == "" {
-					stop = messages.Drift["stop_fail"]
+					stop = fmtMsg(messages.Drift["stop_fail"], "err", py.Head(e.S, 300))
 				}
 				return
 			}
@@ -306,7 +333,7 @@ func judgeOne(ctx context.Context, it Item, system string, rb *Rubric, o Options
 	text, u, sec, err := Call(ctx, it.Tier, system, it.Body, o.Timeout)
 	var lim *ErrLimit
 	var cfg *ErrConfig
-	if errors.As(err, &lim) || errors.As(err, &cfg) || errors.Is(err, context.Canceled) {
+	if _, refused := IsErrModel(err); refused || errors.As(err, &lim) || errors.As(err, &cfg) || errors.Is(err, context.Canceled) {
 		return py.Value{}, err
 	}
 	var out py.Value
@@ -337,6 +364,11 @@ func judgeOne(ctx context.Context, it Item, system string, rb *Rubric, o Options
 	set("tool", str(it.Tool))
 	set("project", str(it.Project))
 	set("tier", str(it.Tier))
+	if haveUsage && u.Fallback && u.Model != "" { // the CLI answered with another model: record that one
+		prov, _, _ := strings.Cut(it.Tier, ":")
+		set("tier", str(prov+":"+u.Model))
+		set("requested_tier", str(it.Tier))
+	}
 	usage, usd, model := null, null, null
 	if haveUsage {
 		uo := &py.Object{}
@@ -431,7 +463,24 @@ func judgeOne(ctx context.Context, it Item, system string, rb *Rubric, o Options
 }
 
 // DoneIDs are run ids of successful records (resuming skips them).
+//
+// A session checked under the same rubric and settings by any model of its tool also counts as done (key
+// AnyModelID), so a change of judging model never makes the user pay for the same session twice. --recheck
+// (DoneIDsExact) counts only the same model.
 func DoneIDs(records []py.Value) map[string]bool {
+	m := DoneIDsExact(records)
+	for _, r := range records {
+		if !r.Get("error").Truthy() {
+			if p := strings.Split(r.Get("run_id").S, "|"); len(p) == 4 {
+				m[AnyModelID(p[0], p[2], p[3])] = true
+			}
+		}
+	}
+	return m
+}
+
+// DoneIDsExact counts a session as done only for the same model (run id).
+func DoneIDsExact(records []py.Value) map[string]bool {
 	m := map[string]bool{}
 	for _, r := range records {
 		if !r.Get("error").Truthy() {
@@ -439,6 +488,19 @@ func DoneIDs(records []py.Value) map[string]bool {
 		}
 	}
 	return m
+}
+
+// AnyModelID is the done key of a session under a rubric version and settings hash, whatever model judged it.
+func AnyModelID(key, rubricVer, settingsHash string) string {
+	return "any|" + key + "|" + rubricVer + "|" + settingsHash
+}
+
+func anyModelOf(runID string) string {
+	p := strings.Split(runID, "|")
+	if len(p) != 4 {
+		return ""
+	}
+	return AnyModelID(p[0], p[2], p[3])
 }
 
 // WriteInputs writes, for each session, exactly what its judge would read on stdin, and the system prompt,

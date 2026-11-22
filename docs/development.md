@@ -125,3 +125,14 @@ The tool was first written in Python during the research phase. The Go program w
 **When behavior changes on purpose**, the expected outputs in `testdata/expected/` must be regenerated from the Go program, or the affected comparisons retired. The Python oracle is not maintained further.
 
 **Real CLIs.** Judge calls are tested against stand-ins built from the same output formats. One fixed probe call per real CLI, with no session content, confirmed that `claude` and `codex` accept the lock-down flags and that neither used a tool (`TestProbeRealCLIs`, run only on request). The v2.1 reproducibility run then made 60 real judge calls with this program (claude 2.1.329, codex-cli 0.171.0). Every call accepted the flags, stayed one turn with no tool use, and parsed with 0 schema problems ([validation.md](validation.md) §1.7).
+
+## Judging models
+
+`internal/assets/judges.json` lists, per tool, the preferred model families (with an exact id pattern that excludes tier variants) and the exact versions that passed our fixed test set. It is edited by hand; the program never fetches it.
+
+**When a new model version appears in a supported CLI:**
+1. Run the fixed test set with it: the planted-truth set of the grouping check (`testdata/grouping-check`) and the public validation subset described in [validation.md](validation.md), with `--model <tool>=<new id>`. A pass over the validation subset cost about $7 at list prices in the last recheck; the grouping check adds one grouping call per tool.
+2. If it meets the pass bars in validation.md, add it to `checked` in `judges.json` with the date and where the result is written down, and add one line to validation.md.
+3. Release checklist: check `codex debug models` and the Claude Code model docs for new versions of the preferred families before each release, and run step 1 for any new one.
+
+**Diagnostics.** `drift --debug-log` (or `LEEWAY_DEBUG=1`) writes `<cache>/debug/judge-<time>.log`: per judge call the CLI and its version, the arguments, exit status, stderr (masked) and the event types and error messages of its output, never the prompt, the session or the answer.

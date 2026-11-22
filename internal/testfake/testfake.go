@@ -55,9 +55,52 @@ func Main(mode string) int {
 		fmt.Println(py.Dumps(py.Value{K: py.Obj, O: o}))
 		return 0
 	case "codex-cli": // `codex exec ... -` with the prompt on stdin, JSONL events on stdout
-		fmt.Println(`{"type":"item.completed","item":{"type":"agent_message","text":` + py.Dumps(py.String("PROMPT="+in)) + `}}`)
+		// LEEWAY_FAKE_CODEX: shapes recorded from codex-cli 0.169.0 (`codex exec --json`, 2026-11-23)
+		notice := `{"type":"item.completed","item":{"id":"item_0","type":"error","message":"Model metadata for ` + "`gpt-6.2-astra`" + ` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."}}`
+		switch os.Getenv("LEEWAY_FAKE_CODEX") {
+		case "notice-ok":
+			fmt.Println(`{"type":"thread.started","thread_id":"t"}`)
+			fmt.Println(notice)
+			fmt.Println(`{"type":"turn.started"}`)
+		case "notice-fail":
+			home, _ := os.UserHomeDir()
+			for i := 0; i < 20; i++ { // verbose CLI logging: only the last lines reach the diagnostics file
+				fmt.Fprintf(os.Stderr, "2026-11-23T00:00:%02dZ DEBUG codex_core: verbose line %d\n", i, i)
+			}
+			fmt.Fprintln(os.Stderr, "ERROR codex_api: unauthorized for someone@example.com, config at "+home+"/.codex/config.toml")
+			fmt.Println(`{"type":"thread.started","thread_id":"t"}`)
+			fmt.Println(notice)
+			fmt.Println(`{"type":"turn.started"}`)
+			fmt.Println(`{"type":"error","message":"Reconnecting... 2/5 (unexpected status 401 Unauthorized: Missing bearer or basic authentication in header, url: https://api.openai.com/v1/responses)"}`)
+			fmt.Println(`{"type":"item.completed","item":{"id":"item_1","type":"error","message":"Falling back from WebSockets to HTTPS transport. unexpected status 401 Unauthorized"}}`)
+			fmt.Println(`{"type":"error","message":"unexpected status 401 Unauthorized: Missing bearer or basic authentication in header, url: https://api.openai.com/v1/responses"}`)
+			fmt.Println(`{"type":"turn.failed","error":{"message":"unexpected status 401 Unauthorized: Missing bearer or basic authentication in header, url: https://api.openai.com/v1/responses"}}`)
+			return 1
+		case "refuse":
+			fmt.Println(`{"type":"turn.started"}`)
+			fmt.Println(`{"type":"error","message":"The 'gpt-6.2-astra' model is not supported when using Codex with a ChatGPT account."}`)
+			fmt.Println(`{"type":"turn.failed","error":{"message":"The 'gpt-6.2-astra' model is not supported when using Codex with a ChatGPT account."}}`)
+			return 1
+		case "reroute": // the request was rerouted to another model (an error item, ModelRerouted in codex-rs)
+			fmt.Println(`{"type":"item.completed","item":{"id":"item_0","type":"error","message":"model rerouted: gpt-6.2-astra -> gpt-6.2-sol (HighRiskCyberActivity)"}}`)
+		case "unauthorized-dotless": // an unrelated failure for a dot-less model id: not a model refusal
+			fmt.Println(`{"type":"item.completed","item":{"id":"item_0","type":"error","message":"Model metadata for ` + "`gpt-7-astra`" + ` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."}}`)
+			fmt.Println(`{"type":"turn.failed","error":{"message":"unexpected status 401 Unauthorized: Missing bearer or basic authentication in header"}}`)
+			fmt.Fprintln(os.Stderr, "Model metadata for `gpt-7-astra` not found")
+			return 1
+		case "tool":
+			fmt.Println(`{"type":"item.started","item":{"id":"item_0","type":"command_execution","command":"ls","status":"in_progress"}}`)
+		}
+		answer := "PROMPT=" + in
+		if a := os.Getenv("LEEWAY_FAKE_TEXT"); a != "" {
+			answer = a
+		}
+		fmt.Println(`{"type":"item.completed","item":{"type":"agent_message","text":` + py.Dumps(py.String(answer)) + `}}`)
 		fmt.Println(`{"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":40,"output_tokens":7,"reasoning_output_tokens":3}}`)
 		return 0
+	case "refuse": // the judge CLI refuses the model (codex-cli 0.171.0 wording, 2026-11-23)
+		fmt.Fprintln(os.Stderr, "The 'gpt-6.2-astra' model is not supported when using Codex with a ChatGPT account.")
+		return 1
 	case "limit":
 		fmt.Fprintln(os.Stderr, "Error: rate limit reached (429)")
 		return 1
@@ -148,6 +191,9 @@ func cliInfo(mode string, args []string) (string, bool) {
 		if mode == "claude-cli" {
 			return "2.1.329 (Claude Code)\n", true
 		}
+		if v := os.Getenv("LEEWAY_FAKE_CODEX_VERSION"); v != "" {
+			return v + "\n", true
+		}
 		return "codex-cli 0.171.0\n", true
 	case mode == "claude-cli" && strings.Contains(a, "--help"):
 		return keep("  -p, --print", "  --model <model>", "  --output-format <format>", "  --tools <tools...>", "  --restricted", "  --safe-mode",
@@ -156,6 +202,21 @@ func cliInfo(mode string, args []string) (string, bool) {
 	case mode == "codex-cli" && strings.Contains(a, "exec --help"):
 		return keep("  -m, --model <MODEL>", "  -c, --config <key=value>", "      --disable <FEATURE>", "      --ephemeral", "      --skip-git-repo-check",
 			"      --ignore-user-config", "      --ignore-rules", "  -s, --sandbox <SANDBOX_MODE>", "      --json", "  -C, --cd <DIR>"), true
+	case mode == "codex-cli" && strings.Contains(a, "debug models") && os.Getenv("LEEWAY_FAKE_CATALOG") == "offline":
+		if strings.Contains(a, "--bundled") { // no account list, but the bundled list names the default
+			return `{"models":[{"slug":"gpt-6.1-terra","display_name":"GPT-6.1 Terra","visibility":"list","priority":1}]}` + "\n", true
+		}
+		return "Error: could not refresh the model list\n", true
+	case mode == "codex-cli" && strings.Contains(a, "debug models"):
+		// the shape of `codex debug models` (codex-cli 0.171.0, 2026-11-23), cut to the fields read;
+		// LEEWAY_FAKE_CATALOG=no-astra leaves GPT-6.2-Astra out (an account without access)
+		models := []string{`{"slug":"gpt-6.2-sol","display_name":"GPT-6.2-Sol","visibility":"list","priority":1}`,
+			`{"slug":"gpt-6.2-astra","display_name":"GPT-6.2-Astra","visibility":"list","priority":2}`,
+			`{"slug":"gpt-reserve","display_name":"GPT-Reserve","visibility":"hide","priority":4}`}
+		if os.Getenv("LEEWAY_FAKE_CATALOG") == "no-astra" {
+			models = append(models[:1], models[2:]...)
+		}
+		return `{"models":[` + strings.Join(models, ",") + `]}` + "\n", true
 	case mode == "codex-cli" && strings.Contains(a, "features list"):
 		var lines []string
 		for _, f := range []string{"shell_tool", "unified_exec", "view_image", "apps", "plugins", "remote_plugin", "hooks", "memories", "multi_agent",

@@ -4,6 +4,20 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-23
+
+### Fixed
+- A Codex "error" item (a non-fatal notice such as codex-cli 0.169.0's "Model metadata for `gpt-6.2-astra` not found") no longer stops the in-depth check as if it were a tool call. The notice is shown once (masked, capped); the session is judged when the turn completes and fails normally when the turn fails. Real tool calls still stop the run.
+- Judge failure lines name the underlying error text for both CLIs, and two failed calls in a row name the last error.
+
+### Added
+- `drift --debug-log` (or `LEEWAY_DEBUG=1`) writes a diagnostics file without session text; a failed run points to it. The bug-report form asks for it.
+- The judging model is chosen per tool from `judges.json` (checked versions first, then a newer version of the same family, then the CLI's default). The dry run names the expected judging model; a model refused during a run stops it and asks before another model judges (exit code 4 with `--yes`). The report names the model and marks versions not yet tested. A session checked by any model under the same rubric is not checked again (`--recheck` does).
+- A one-line note when a judge CLI is older than the tested version; for Codex below 0.171.0 it says what updating gives.
+
+### Changed
+- The summary and report now use two names: the basic report (cost only) and the in-depth check (whether the agent did what you asked). `report` opens with what the basic report covers and ends by asking whether to run the in-depth check.
+
 ## [0.1.3] - 2026-11-23
 
 ### Changed
@@ -18,7 +32,7 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 
 ### Fixed
 - A fix built on a repeated request now gives the size of its problem first and the repeated request second ("In 12 of 50 sessions it ignored what you had already said. Of those, 2 had the same request: ..."), so fixes ranked by problem size no longer look out of order when a smaller problem has a larger repeated request.
-- Asking an agent for a report now leads to an offer to run the drift check. `report` ends its summary with the sessions in the period that were never judged and the dry-run command to see them, and `report --json` gives the counts per tool. The skill runs the report for its own tool, shows the dry run, and asks before judging. With `--tool`, the report leaves out the other tool's drift results and says how to see them.
+- Asking an agent for a report now leads to an offer to run the in-depth check. `report` ends its summary with the sessions in the period that were never judged and the dry-run command to see them, and `report --json` gives the counts per tool. The skill runs the report for its own tool, shows the dry run, and asks before judging. With `--tool`, the report leaves out the other tool's drift results and says how to see them.
 - The short source label and the one-line reason under each piece of advice follow the finding's tool: a Codex finding cites the Codex or OpenAI docs (or our own measurement, labelled so) instead of the Claude Code docs; a cost finding from both tools says "Official docs" and lists both in its panel.
 - The drift dry run ends with how to judge fewer or other sessions (`--max-sessions`, `--since`, `--project`), and the skill offers a smaller run when it asks for approval.
 
@@ -39,7 +53,7 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 - The READMEs are shorter. Install details, commands and settings, how the checks work, and privacy moved to `docs/install.md`, `docs/commands.md`, `docs/how-it-works.md` and `docs/privacy.md`. The validation summary moved to `docs/validation.md`.
 
 ### Fixed
-- With no drift results in the period, the report and the terminal summary no longer say "0 of 0 sessions". They say that the drift check has not been run, give the command to run it, and say that the rating rests on cost only.
+- With no drift results in the period, the report and the terminal summary no longer say "0 of 0 sessions". They say that the in-depth check has not been run, give the command to run it, and say that the rating rests on cost only.
 - `drift` and `report` follow `--lang` (and the detected language) for every interface line, including the pre-run text, progress, folder notes and the privacy line.
 
 ## [0.1.0] - 2026-11-22

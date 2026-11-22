@@ -2,14 +2,12 @@
 
 2025-12-21 – 2026-01-20
 
-**This check-up has two parts. 1) Checking money lost to habits: done. 2) Checking whether the agent did what you asked: 9 sessions checked, 2 Claude Code sessions not yet.**
-
 | | Rating (good · fair · poor) | Details |
 |:--|:--|:--|
 | Did what you asked | **Poor** | Serious misses in 6 of 9 sessions · 6 fewer missed sessions to reach Good |
 | Money wasted by habits | **Poor** | $2.55 of $5.36 (48%) · $2.28 less to reach Good |
 
-> **!** Judged with your edited rubric v2.1-b636272b+t2; the validation figures in this report were measured with the bundled rubric v2.1-cf92779d
+> **!** Checked with your edited rubric v2.1-b636272b+t2; the validation figures in this report were measured with the bundled rubric v2.1-cf92779d
 
 ### Fix first: Add what you had to repeat to CLAUDE.md or AGENTS.md
 
@@ -98,7 +96,7 @@ Most often: Ignored something you had said, in 4 of 9 sessions.
 | Broke a rule in your instruction file | 1 of 9 |
 | A mistake you had to point out | 1 of 9 |
 
-_Each bar counts the judged sessions that had this problem at least once, big or small. One session can have several problems, so the bars add up to more than the number of sessions._
+_Each bar counts the checked sessions that had this problem at least once, big or small. One session can have several problems, so the bars add up to more than the number of sessions._
 
 "A mistake you had to point out" (1 sessions) is not one of the three fixes at the top of this report, because its advice is general. You can find it under Look things up.
 
@@ -118,12 +116,12 @@ _Each bar is a share of the $2.55 lost to habits. Other is cost whose cause the 
 
 ### How each tool's judge rated its sessions
 
-- Claude Code · judged by opus: Serious miss 4 · Could not judge 2
-- Codex · judged by gpt-6.2-astra: Serious miss 2 · As asked 1
+- Claude Code · judged by Claude Opus 5.5: Serious miss 4 · Could not check 2
+- Codex · judged by GPT-6.2 Astra: Serious miss 2 · As asked 1
 
 _The two judges are calibrated differently. Read each bar on its own._
 
-Not judged yet: 2 Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
+Not checked in depth yet: 2 Claude Code sessions in this period. To see what would be checked (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
 
 ## Look things up
 
@@ -200,7 +198,7 @@ _How sure: Check this · judges detect this cause least; there are probably more
 
 ### Sessions with problems
 
-7 of 9 judged sessions had at least one problem. The worst come first.
+7 of 9 checked sessions had at least one problem. The worst come first.
 
 #### Serious miss · 데모 프로젝트 · `000000000104` · Claude Code
 
@@ -236,7 +234,7 @@ _How sure: Check this · judges detect this cause least; there are probably more
 - U2 · you corrected it · undone or redone: “표는 그대로 두라고 했잖아”
   - Judge's summary: The agent removed a table the user asked to keep.
 
-#### Could not judge · panel · `000000000107` · Claude Code · origin unclear
+#### Could not check · panel · `000000000107` · Claude Code · origin unclear
 
 - U1 · you corrected it · undone or redone: “Rename the helper”
   - Judge's summary: x
@@ -244,13 +242,13 @@ _How sure: Check this · judges detect this cause least; there are probably more
 ### How we checked
 
 - **What we read**: Claude Code and Codex logs on this computer, 2025-12-21 to 2026-01-20. 13 sessions.
-- **How sessions were judged**: Each tool's own model read each session against a fixed rubric (v2.1-b636272b+t2). The two judges are calibrated differently, so their results are kept apart.
+- **How sessions were checked**: Each tool's own model read each session against a fixed rubric (v2.1-b636272b+t2). The two judges are calibrated differently, so their results are kept apart.
 - **Where the dollars come from**: API list prices, checked 2026-11-22. A subscription is not billed this way.
 - **Privacy**: This page was made on this computer. Nothing was sent anywhere to build it.
-- Judged with your edited rubric v2.1-b636272b+t2; the validation figures in this report were measured with the bundled rubric v2.1-cf92779d
+- Checked with your edited rubric v2.1-b636272b+t2; the validation figures in this report were measured with the bundled rubric v2.1-cf92779d
 - 2 session(s) could not be told apart as your own conversation or an automation; they are counted as your own.
 - Judge programs: LEEWAY_JUDGE_CMD.
 - Citation check: 17 quotes checked, 1 not found; 1 event(s) dropped because none of their quotes was found.
-- Not judged yet: 2 Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
+- Not checked in depth yet: 2 Claude Code sessions in this period. To see what would be checked (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
 
 [Full method and known limits](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)

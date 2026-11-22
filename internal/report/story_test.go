@@ -218,7 +218,7 @@ func TestJudgesAndLeftOut(t *testing.T) {
 	}
 	m := NewModel(Input{Records: judged(t, 5, 1), Advice: advice.Builtin(), Lang: "en", LeftOut: map[string]int{"codex": 7}})
 	for name, out := range map[string]string{"html": NewStory(m).HTML(), "md": Markdown(m), "term": Terminal(m, "", "")} {
-		if !strings.Contains(out, "7 Codex sessions were not judged") || !strings.Contains(out, "--tool all") {
+		if !strings.Contains(out, "7 Codex sessions were not checked in depth") || !strings.Contains(out, "--tool all") {
 			t.Errorf("%s lacks the left-out line", name)
 		}
 	}

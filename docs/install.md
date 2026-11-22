@@ -1,6 +1,6 @@
 # Install
 
-Leeway is one executable. It needs nothing else installed: no Go, Python or Node. For the drift check you also need the official `claude` or `codex` CLI, installed and logged in.
+Leeway is one executable. It needs nothing else installed: no Go, Python or Node. For the in-depth check you also need the official `claude` or `codex` CLI, installed and logged in.
 
 ## One-line installer
 

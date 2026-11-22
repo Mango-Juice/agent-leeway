@@ -158,7 +158,7 @@ func TestReplayMatchesReference(t *testing.T) {
 	// compared above (docs/17 section 4).
 	// resuming: a second run finds nothing to do
 	lines, todo, _ := EstimateLines(items, DoneIDs(got), rb.Version, rb.Settings, 0)
-	if len(todo) != 2 || !strings.Contains(lines[0], "9 sessions already judged") { // the two parse errors are judged again
+	if len(todo) != 2 || !strings.Contains(lines[0], "9 sessions already checked") { // the two parse errors are judged again
 		t.Errorf("resume: %d to do, %q", len(todo), lines)
 	}
 	wantEst := strings.TrimRight(expected(t, "drift_estimate.txt"), "\n")

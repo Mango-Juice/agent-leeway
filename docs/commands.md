@@ -38,12 +38,14 @@ Every command prints its options with `-h`.
 |---|---|
 | `--dry-run` | Show which sessions would be judged and the estimate. Sends nothing |
 | `--write-inputs DIR` | Write the exact judge input of each session, and the system prompt, to read before agreeing |
+| `--recheck` | Check sessions again with the current model even if another model already checked them under the same rubric (by default a session is checked once, whatever model) |
+| `--debug-log` | Write a diagnostics file of the judge calls under the cache folder (`debug/judge-<time>.log`): the CLI and its version, the exact arguments, exit status, the last lines of stderr, and the type of each output event with any error message. It holds no prompt, no session text and no answer; the home folder is shown as `~`, and e-mail addresses and secrets are replaced, so it is safe to attach to an issue. Verbose-logging variables such as `RUST_LOG` are cleared for judge calls. The path is printed. `LEEWAY_DEBUG=1` does the same. When a run fails without it, the last line suggests it |
 | `--yes` | Skip the confirmation (needed when there is no terminal) |
 | `--max-sessions 50` | Judge at most this many sessions not judged yet, most recent first. `0` = all in the window |
 | `--budget USD` | Optional limit in API list-price dollars, checked before each call. No default |
 | `--project TEXT` | Only projects whose name contains this text |
 | `--include-auto` | Also judge automated sessions |
-| `--model claude=opus,codex=gpt-6.2-astra` | Judging models. A session is judged only by its own provider |
+| `--model claude=opus,codex=gpt-6.2-astra` | Judging models, overriding the automatic choice (see [how-it-works.md](how-it-works.md#judging-models)). A session is judged only by its own provider |
 | `--concurrency 3` | Judge calls at the same time |
 | `--timeout 30m` | Time limit per call. The call and everything it started are ended |
 | `--rubric FILE`, `--settings FILE` | Another rubric file, or a JSON file that overrides S1–S10 |
@@ -85,3 +87,5 @@ The judge follows [rubric.md](rubric.md). To change it:
 - Part C gives each rule's evidence grade and sources. Rules marked "design choice" or "maintainer default" have no literature behind them.
 
 Results judged with your own rubric are marked "custom rubric".
+
+**Exit codes of `drift`.** 0: done (or nothing to judge). 1: a run that stopped on failures, a usage limit or a setup problem. 2: a usage error. 4: the judge CLI refused the expected judging model (unknown to it, or not allowed for your account). Nothing more was judged with another model; the output names the next model and the exact command to judge with it after you agree.

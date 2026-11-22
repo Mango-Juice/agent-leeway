@@ -8,6 +8,7 @@ import (
 	"golang.org/x/text/width"
 
 	"github.com/Mango-Juice/agent-leeway/internal/advice"
+	"github.com/Mango-Juice/agent-leeway/internal/drift"
 	"github.com/Mango-Juice/agent-leeway/internal/messages"
 	"github.com/Mango-Juice/agent-leeway/internal/py"
 )
@@ -141,6 +142,10 @@ func (x Text) Judge(v JudgeVerdicts) string {
 	j := v.Tier
 	if _, m, ok := strings.Cut(v.Tier, ":"); ok {
 		j = m
+	}
+	j = drift.ModelName(v.Tier)
+	if !drift.Checked(v.Tier) {
+		j += x.T["not_validated"]
 	}
 	return x.Tr("judged_by", "tool", x.Tool(v.Tool), "judge", j)
 }
