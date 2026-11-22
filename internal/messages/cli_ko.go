@@ -59,6 +59,7 @@ var driftKO = map[string]string{
 	"left_out":              "이 기간의 {tool} 세션 {n}개는 이번에 판정하지 않습니다(--tool all이면 포함).",
 	"grouping_plan":         "판정 뒤 묶기 호출 {n}번({tools}), 합계 약 ${usd:.2f}: 제공사마다 자기 세션에서 판정한 문제(판정자가 이미 본 인용과 요약)만 받아 뜻으로 묶습니다. --no-grouping이면 건너뜁니다.",
 	"dry_run":               "--dry-run: 예상만 보여 주고 아무것도 판정하지 않았습니다.",
+	"scope_change":          "범위를 바꾸려면: --max-sessions N(최근 몇 개), --since 7d(기간), --project <이름>(한 프로젝트만).",
 	"need_yes":              "확인이 필요합니다. 대화형 터미널에서 실행하거나 --yes를 붙이세요.",
 	"ask":                   "진행할까요? [y/N] ",
 	"cancelled":             "취소했습니다.",

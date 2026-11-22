@@ -8,33 +8,46 @@ import (
 	"testing"
 )
 
-// The committed Formula/ and bucket/ files are exactly what the generator writes for the current release's
-// published checksums (testdata/packaging/checksums-<tag>.txt, downloaded from the release and verified).
+// The committed Formula/ and bucket/ files are exactly what the generator writes for the release they name, from
+// that release's published checksums (testdata/packaging/checksums-v<version>.txt, downloaded from the release and
+// verified). The packages workflow commits the three files together, so this holds after each release.
 func TestCommittedPackagesMatchTheRelease(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join("..", "..", "testdata", "packaging", "checksums-v0.1.0.txt"))
+	mb, err := os.ReadFile(filepath.Join("..", "..", "bucket", "agent-leeway.json"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	var cur struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(mb, &cur); err != nil || cur.Version == "" {
+		t.Fatalf("bucket/agent-leeway.json has no version: %v", err)
+	}
+	v := cur.Version
+	sumsFile := "testdata/packaging/checksums-v" + v + ".txt"
+	b, err := os.ReadFile(filepath.Join("..", "..", sumsFile))
+	if err != nil {
+		t.Fatalf("%v (the packages workflow commits it with the formula and the manifest)", err)
 	}
 	sums, err := ParseChecksums(string(b))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for path, want := range map[string]string{"Formula/agent-leeway.rb": Formula("0.1.0", sums), "bucket/agent-leeway.json": Manifest("0.1.0", sums)} {
+	for path, want := range map[string]string{"Formula/agent-leeway.rb": Formula(v, sums), "bucket/agent-leeway.json": Manifest(v, sums)} {
 		got, err := os.ReadFile(filepath.Join("..", "..", path))
 		if err != nil {
 			t.Fatal(err)
 		}
 		if string(got) != want {
-			t.Errorf("%s differs from the generator output; run go run ./cmd/genpackages -version v0.1.0 -checksums testdata/packaging/checksums-v0.1.0.txt", path)
+			t.Errorf("%s differs from the generator output; run go run ./cmd/genpackages -version v%s -checksums %s", path, v, sumsFile)
 		}
 	}
 	var m map[string]any
-	if err := json.Unmarshal([]byte(Manifest("0.1.0", sums)), &m); err != nil {
+	if err := json.Unmarshal([]byte(Manifest(v, sums)), &m); err != nil {
 		t.Fatalf("manifest is not JSON: %v", err)
 	}
-	f := Formula("0.1.0", sums)
+	f := Formula(v, sums)
 	for _, h := range sums {
-		if !strings.Contains(f, h) && !strings.Contains(Manifest("0.1.0", sums), h) {
+		if !strings.Contains(f, h) && !strings.Contains(Manifest(v, sums), h) {
 			t.Errorf("hash %s used nowhere", h)
 		}
 	}
@@ -58,7 +71,7 @@ func TestPackagesWorkflow(t *testing.T) {
 	}
 	w := string(b)
 	for _, s := range []string{"types: [published]", "permissions: {}", "contents: write", "sha256sum -c checksums.txt", "go run ./cmd/genpackages",
-		`git config user.name "github-actions[bot]"`, "41898282+github-actions[bot]@users.noreply.github.com", "if git diff --quiet -- Formula bucket"} {
+		`git config user.name "github-actions[bot]"`, "41898282+github-actions[bot]@users.noreply.github.com", "if git diff --cached --quiet; then"} {
 		if !strings.Contains(w, s) {
 			t.Errorf("packages.yml lacks %q", s)
 		}

@@ -135,10 +135,10 @@ func TestThemesFromGrouping(t *testing.T) {
 	if len(th.Quotes) != 2 || th.Quotes[0] != "숫자는 원문에서만 가져와" || th.Quotes[1] != "근거 없는 수치는 쓰지 마" {
 		t.Errorf("quotes not the stored words: %q", th.Quotes)
 	}
-	if act, why, _ := s.FirstAction(); !strings.Contains(act, "수치는 출처에서만") || !strings.Contains(why, "2") {
-		t.Errorf("first screen in theme mode: %q / %q", act, why)
+	if act, why, label, _ := s.FirstAction(); label != "수치는 출처에서만" || !strings.Contains(why, "Of those, 2 had the same request:") || strings.Contains(act, label) {
+		t.Errorf("first screen in theme mode: %q / %q / %q", act, why, label)
 	}
-	if term := Terminal(s.M, "", ""); !strings.Contains(term, "In 2 sessions: 수치는 출처에서만") || strings.Contains(term, "“수치는 출처에서만”") {
+	if term := Terminal(s.M, "", ""); !strings.Contains(term, "Of those, 2 had the same request: 수치는 출처에서만") || strings.Contains(term, "“수치는 출처에서만”") {
 		t.Errorf("terminal theme line:\n%s", term)
 	}
 	if h := s.HTML(); !strings.Contains(h, `class="bq theme"`) || !strings.Contains(h, s.T("th_by", "tool", "Claude Code", "draft", s.T("th_by_draft"))) {

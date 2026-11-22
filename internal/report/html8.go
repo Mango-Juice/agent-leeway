@@ -128,7 +128,7 @@ func (s *Story) pictureSection() string {
 		fmt.Fprintf(&b, `<p class="jnote8">%s</p>`, E(nc))
 	}
 	for _, l := range s.LeftOutLines() {
-		fmt.Fprintf(&b, `<p class="jnote8">%s</p>`, strings.Replace(E(l), "agent-leeway drift --tool all", `<code>agent-leeway drift --tool all</code>`, 1))
+		fmt.Fprintf(&b, `<p class="jnote8">%s</p>`, CmdHTML(l))
 	}
 	b.WriteString(`</div>`)
 	return b.String()

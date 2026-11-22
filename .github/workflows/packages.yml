@@ -4,7 +4,8 @@
 #   scoop bucket add agent-leeway https://github.com/Mango-Juice/agent-leeway
 # Runs when a release is published (the release workflow makes a draft; publishing it makes the download URLs
 # public), or by hand for a tag. It downloads that release's checksums.txt and archives, checks every archive
-# against checksums.txt, regenerates both files with cmd/genpackages and commits them to the default branch as
+# against checksums.txt, regenerates both files with cmd/genpackages and commits them, with that checksums.txt
+# (testdata/packaging/checksums-<tag>.txt, which the tests check them against), to the default branch as
 # github-actions[bot] with the workflow's own GITHUB_TOKEN (no personal token). A re-run for the same release
 # finds nothing to change and makes no commit. Commits pushed with GITHUB_TOKEN do not start other workflows.
 name: packages
@@ -44,13 +45,17 @@ jobs:
           gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p checksums.txt -p '*.tar.gz' -p '*.zip'
           sha256sum -c checksums.txt
       - name: regenerate Formula/ and bucket/
-        run: go run ./cmd/genpackages -version "$TAG" -checksums "$RUNNER_TEMP/rel/checksums.txt" -out .
+        # the release's checksums.txt goes in too: the test in cmd/genpackages checks the committed files against it
+        run: |
+          set -euo pipefail
+          go run ./cmd/genpackages -version "$TAG" -checksums "$RUNNER_TEMP/rel/checksums.txt" -out .
+          cp "$RUNNER_TEMP/rel/checksums.txt" "testdata/packaging/checksums-$TAG.txt"
       - name: commit if changed
         run: |
           set -euo pipefail
-          if git diff --quiet -- Formula bucket; then echo "Formula and manifest already match $TAG"; exit 0; fi
+          git add Formula/agent-leeway.rb bucket/agent-leeway.json "testdata/packaging/checksums-$TAG.txt"
+          if git diff --cached --quiet; then echo "Formula and manifest already match $TAG"; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Formula/agent-leeway.rb bucket/agent-leeway.json
           git commit -m "Homebrew formula and Scoop manifest for $TAG"
           git push origin "HEAD:${{ github.event.repository.default_branch }}"

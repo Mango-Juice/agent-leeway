@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -357,6 +358,7 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 		say(errw, T["nothing"])
 	case o.dryRun:
 		say(errw, T["dry_run"])
+		say(errw, T["scope_change"])
 		return 0
 	default:
 		if !o.yes {
@@ -465,6 +467,7 @@ func cmdReport(args []string, out, errw io.Writer) int {
 	runDriftFirst := fs.Bool("run-drift", false, "run the drift check first (default: use results already judged)")
 	dir := fs.String("out", "", "report folder (default: "+config.ReportDir()+")")
 	quoteChars := fs.Int("quote-chars", 160, "maximum length of evidence excerpts")
+	asJSON := fs.Bool("json", false, "print the report paths and, per tool, the sessions in the window, judged and not judged, as JSON instead of the summary")
 	if err := fs.Parse(args); err != nil {
 		return helpRC(err)
 	}
@@ -506,18 +509,34 @@ func cmdReport(args []string, out, errw io.Writer) int {
 			recs = append(recs, r)
 		}
 	}
-	// sessions left out: the other tool's with --tool; without it, a tool none of whose sessions was judged
-	leftOut := map[string]int{}
-	judgedTool := map[string]bool{}
-	for _, r := range recs {
-		judgedTool[r.Get("tool").S] = true
-	}
+	// Per tool: sessions in the window, and how many have a judged result. A report asked for one tool shows
+	// only that tool's drift results and says how many of the other tool's are kept out; the summary ends with
+	// the asked-for tools' sessions that were never judged (an agent offers the drift check from it).
+	all := drift.LoadResults(o.cacheDir())
+	inWin, judged := map[string]int{}, map[string]int{}
 	for _, t := range []string{"claude", "codex"} {
-		if (o.tool != "" && t == o.tool) || (o.tool == "" && judgedTool[t]) || (o.tool == "" && len(recs) == 0) {
-			continue
+		ks := map[string]bool{}
+		for _, s := range drift.Select(tb, since, now.Add(time.Minute), []string{t}, o.project, o.includeAuto, 0) {
+			ks[s.Key] = true
 		}
-		if n := len(drift.Select(tb, since, now.Add(time.Minute), []string{t}, o.project, o.includeAuto, 0)); n > 0 {
-			leftOut[t] = n
+		inWin[t] = len(ks)
+		var rs []py.Value
+		for _, r := range all {
+			if ks[r.Get("key").S] {
+				rs = append(rs, r)
+			}
+		}
+		recsT, _ := report.Records(rs, 0)
+		judged[t] = len(recsT)
+	}
+	unjudged, otherJudged := map[string]int{}, map[string]int{}
+	for _, t := range []string{"claude", "codex"} {
+		if o.tool == "" || t == o.tool {
+			if n := inWin[t] - judged[t]; n > 0 {
+				unjudged[t] = n
+			}
+		} else if judged[t] > 0 {
+			otherJudged[t] = judged[t]
 		}
 	}
 	groupOn, err := groupingState(&o)
@@ -525,7 +544,8 @@ func cmdReport(args []string, out, errw io.Writer) int {
 		say(errw, err.Error())
 		return 2
 	}
-	m := newModel(x.R, recs, config.Language(o.lang), now, since, *quoteChars, shownGroups(drift.LoadGroups(o.cacheDir()), groupOn), leftOut, errw)
+	m := newModel(x.R, recs, config.Language(o.lang), now, since, *quoteChars, shownGroups(drift.LoadGroups(o.cacheDir()), groupOn), nil, errw)
+	m.Tool, m.Unjudged, m.OtherJudged = o.tool, unjudged, otherJudged
 	md, html, err := report.Build(m)
 	if err != nil {
 		say(errw, err.Error())
@@ -536,7 +556,37 @@ func cmdReport(args []string, out, errw io.Writer) int {
 		say(errw, err.Error())
 		return 1
 	}
+	if *asJSON {
+		return reportJSON(out, o.tool, pm, ph, m.From, m.To, inWin, judged, report.NewStory(m).NotJudgedLine())
+	}
 	fmt.Fprint(out, py.ReplaceSurrogates(report.Terminal(m, pm, ph), "�"))
+	return 0
+}
+
+// reportJSON is `report --json`: the report files and, per asked-for tool, the sessions in the window, judged and
+// not judged, so an agent can tell "nothing judged for this tool" from "judged" without reading the summary.
+func reportJSON(out io.Writer, tool, md, html, from, to string, inWin, judged map[string]int, next string) int {
+	type counts struct {
+		Sessions int `json:"sessions"`
+		Judged   int `json:"judged"`
+		Unjudged int `json:"unjudged"`
+	}
+	tools := map[string]counts{}
+	for _, t := range []string{"claude", "codex"} {
+		if tool == "" || t == tool {
+			tools[t] = counts{inWin[t], judged[t], inWin[t] - judged[t]}
+		}
+	}
+	v := struct {
+		Markdown  string            `json:"markdown"`
+		HTML      string            `json:"html"`
+		From      string            `json:"from"`
+		To        string            `json:"to"`
+		Tools     map[string]counts `json:"tools"`
+		NotJudged string            `json:"not_judged,omitempty"`
+	}{md, html, from, to, tools, next}
+	b, _ := json.MarshalIndent(v, "", "  ")
+	fmt.Fprintln(out, string(b))
 	return 0
 }
 

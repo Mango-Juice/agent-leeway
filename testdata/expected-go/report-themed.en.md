@@ -11,7 +11,7 @@
 
 ### Fix first: Add this rule to CLAUDE.md
 
-In 3 sessions: **Keep existing tables as they are**
+In 4 of 9 sessions it ignored what you had already said. Of those, 3 had the same request: **Keep existing tables as they are**
 
 [Source](https://code.claude.com/docs/en/memory.md) · **→ [Show what happened](#f-drift-broke-chat)**
 
@@ -22,8 +22,9 @@ Then: [Keep long logs out](#f-leak-big-output) · [Make broken rules checkable](
 <a id="f-drift-broke-chat"></a>
 ## Fix 1 of 3: Add this rule to CLAUDE.md
 
-**You had to say this in 3 sessions.**
+**In 4 of 9 sessions it ignored what you had already said.**
 
+> Of those, 3 had the same request:  
 > **Keep existing tables as they are**  
 > In your words:  
 > “keep the table as it is”  
@@ -126,6 +127,8 @@ _Each bar is a share of the $2.55 lost to habits. Other is cost whose cause the 
 
 _The two judges are calibrated differently. Read each bar on its own._
 
+Not judged yet: 2 Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
+
 ## Look things up
 
 The rest of the report, in full.
@@ -135,7 +138,7 @@ The rest of the report, in full.
 <a id="f-drift-mistake"></a>
 #### Stop it early, and start over after two failed fixes
 
-**You had to fix its own mistakes in 1 sessions.** After two failed corrections, a fresh start works better than a third. [Claude Code docs](https://code.claude.com/docs/en/best-practices.md)
+**You had to fix its own mistakes in 1 sessions.** In Codex you can press Enter while it works to steer the current turn. [Codex docs](https://learn.chatgpt.com/docs/prompting)
 
 _How sure: Check this · found only by the Codex judge, which flags more_
 
@@ -156,7 +159,7 @@ _How sure: Measured_
 <a id="f-leak-mid-switch"></a>
 #### Pick the model before you start
 
-**Switching mid-session cost $0.58, 5 times. One session alone cost $0.44.** Each model has its own cache, so a switch rereads the whole chat. [Claude Code docs](https://code.claude.com/docs/en/prompt-caching.md)
+**Switching mid-session cost $0.58, 5 times. One session alone cost $0.44.** Each model has its own cache, so a switch rereads the whole chat. [Several sources](https://code.claude.com/docs/en/prompt-caching.md)
 
 _How sure: Measured_
 
@@ -253,5 +256,6 @@ _How sure: Check this · judges detect this cause least; there are probably more
 - Judge programs: LEEWAY_JUDGE_CMD.
 - Citation check: 17 quotes checked, 1 not found; 1 event(s) dropped because none of their quotes was found.
 - 1 theme(s) come from the grouping step: after judging, one call per tool grouped the problems by meaning; the quotes shown are your own words from the logs.
+- Not judged yet: 2 Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
 
 [Full method and known limits](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)

@@ -121,6 +121,8 @@ _막대는 습관으로 샌 $2.55 중 비중입니다. 기타는 로그에 원�
 
 _두 판정자는 기준이 조금 다릅니다. 막대를 서로 비교하지 말고 따로 보세요._
 
+아직 판정하지 않음: 이 기간의 Claude Code 세션 2개. 무엇을 판정할지 보려면(아무것도 보내지 않음): agent-leeway drift --dry-run --tool claude --since 30d
+
 ## 찾아보기
 
 리포트의 나머지 내용을 모두 담았습니다.
@@ -130,7 +132,7 @@ _두 판정자는 기준이 조금 다릅니다. 막대를 서로 비교하지 �
 <a id="f-drift-mistake"></a>
 #### 일찍 멈추고, 두 번 고쳐도 안 되면 새로 시작하세요
 
-**세션 1개에서 에이전트의 실수를 바로잡았습니다.** 두 번 고쳐도 안 되면 세 번째보다 새로 시작하는 편이 낫습니다. [Claude Code docs](https://code.claude.com/docs/en/best-practices.md)
+**세션 1개에서 에이전트의 실수를 바로잡았습니다.** Codex에서는 작업 중에 Enter를 눌러 지금 차례의 방향을 바로잡을 수 있습니다. [Codex docs](https://learn.chatgpt.com/docs/prompting)
 
 _확실성: 확인 필요 · Codex 판정자만 찾음, 이 판정자는 더 많이 짚는 편_
 
@@ -151,7 +153,7 @@ _확실성: 측정값_
 <a id="f-leak-mid-switch"></a>
 #### 모델은 시작할 때 정하세요
 
-**세션 중간에 바꾸느라 5번, $0.58가 나갔습니다. 한 세션에서만 $0.44이 나갔습니다.** 모델마다 캐시가 따로라서, 바꾸면 대화 전체를 다시 읽습니다. [Claude Code docs](https://code.claude.com/docs/en/prompt-caching.md)
+**세션 중간에 바꾸느라 5번, $0.58가 나갔습니다. 한 세션에서만 $0.44이 나갔습니다.** 모델마다 캐시가 따로라서, 바꾸면 대화 전체를 다시 읽습니다. [여러 출처](https://code.claude.com/docs/en/prompt-caching.md)
 
 _확실성: 측정값_
 
@@ -247,5 +249,6 @@ _확실성: 확인 필요 · 판정자가 가장 덜 찾는 원인이라 실제�
 - 세션 2개는 직접 대화인지 자동화인지 가릴 수 없어 직접 대화로 셌습니다.
 - 판정 프로그램: LEEWAY_JUDGE_CMD.
 - 인용 검사: 인용 17개 중 1개를 원문에서 못 찾음, 인용을 하나도 못 찾아 버린 사건 1건.
+- 아직 판정하지 않음: 이 기간의 Claude Code 세션 2개. 무엇을 판정할지 보려면(아무것도 보내지 않음): agent-leeway drift --dry-run --tool claude --since 30d
 
 [방법과 알려진 한계 전체 보기](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)

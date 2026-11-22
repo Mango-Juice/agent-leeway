@@ -406,7 +406,8 @@ func (s *Story) Notes() []string {
 	return append(out, s.LeftOutLines()...)
 }
 
-// LeftOutLines say which sessions of another tool were not judged, with the flag that includes them.
+// LeftOutLines say which sessions of another tool were not judged, with the flag that includes them, and, in a
+// report asked for one tool, that the other tool's judged results are kept out of it and how to see them.
 func (s *Story) LeftOutLines() []string {
 	var out []string
 	for _, t := range []string{"claude", "codex"} {
@@ -414,7 +415,45 @@ func (s *Story) LeftOutLines() []string {
 			out = append(out, s.T("unjudged", "n", n, "tool", s.X.Tool(t), "flag", "agent-leeway drift --tool all"))
 		}
 	}
+	for _, t := range []string{"claude", "codex"} {
+		if n := s.M.OtherJudged[t]; n > 0 && s.M.Tool != "" {
+			out = append(out, s.T("other_judged", "this", s.X.Tool(s.M.Tool), "n", n, "tool", s.X.Tool(t), "cmd", "agent-leeway report --tool "+t))
+		}
+	}
+	if l := s.NotJudgedLine(); l != "" {
+		out = append(out, l)
+	}
 	return out
+}
+
+// NotJudgedLine counts the asked-for tools' sessions in the period that have no judged result, with the dry run
+// that shows what would be judged (nothing is sent). It ends the terminal summary so an agent sees it.
+func (s *Story) NotJudgedLine() string {
+	var parts, tools []string
+	for _, t := range []string{"claude", "codex"} {
+		if n := s.M.Unjudged[t]; n > 0 {
+			parts = append(parts, s.T("nj_one", "n", n, "tool", s.X.Tool(t)))
+			tools = append(tools, t)
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	cmd := "agent-leeway drift --dry-run"
+	if s.M.Tool != "" {
+		cmd += " --tool " + s.M.Tool
+	} else if len(tools) == 1 {
+		cmd += " --tool " + tools[0]
+	}
+	return s.T("not_judged", "list", s.join(parts, ", ", ", "), "cmd", fmt.Sprintf("%s --since %dd", cmd, s.days()))
+}
+
+// CmdHTML puts the agent-leeway command at the end of a line in <code>.
+func CmdHTML(l string) string {
+	if i := strings.Index(l, "agent-leeway "); i >= 0 {
+		return E(l[:i]) + "<code>" + E(l[i:]) + "</code>"
+	}
+	return E(l)
 }
 
 // mistakeNotOnTop is the agent-mistake finding when it is not one of the fixes (it gets a one-line note).
@@ -432,31 +471,33 @@ func (s *Story) mistakeNotOnTop() *Finding {
 	return nil
 }
 
-// FirstAction is the first screen's action and its one line of why: in theme mode the theme label, named as a
-// rule for the theme's tool's file (unless it already lived in a file), and "You had to say this in N sessions."
-func (s *Story) FirstAction() (action, why string, p Plain) {
+// FirstAction is the first screen's action and its one line of why. In theme mode the why gives the finding's
+// size first and then the theme inside it ("In 12 of 50 sessions ... Of those, the same request came up in 2
+// sessions:"), and label is the theme label that follows it; label is "" otherwise.
+func (s *Story) FirstAction() (action, why, label string, p Plain) {
 	f := s.Top[0]
 	p = s.Plain(f)
 	th := s.Thing(f)
 	action, why = p.Action, p.Why
 	if th != nil && th.Mode == "theme" {
-		why = s.T("th_said", "gs", th.GS)
-		if !th.Theme.InFile {
-			action = s.T("verdict_th", "label", th.Theme.Label, "file", fileOf[th.Theme.Tool])
-		}
+		why, label = s.SizeLine(f)+" "+s.WithinLine(th), th.Theme.Label
 	}
-	return action, why, p
+	return action, why, label, p
 }
 
 // firstPanel is the dark "Fix first" panel on the first screen.
 func (s *Story) firstPanel() string {
-	act, why, p := s.FirstAction()
+	act, why, label, p := s.FirstAction()
 	src := E(s.T("source"))
 	if strings.HasPrefix(p.SrcURL, "https://") {
 		src = fmt.Sprintf(`<a href="%s" rel="noreferrer" title="%s">%s</a>`, E(p.SrcURL), E(p.SrcName), E(s.T("source")))
 	}
+	whyH := E(why)
+	if label != "" {
+		whyH += ` <strong>` + E(label) + `</strong>`
+	}
 	return fmt.Sprintf(`<div class="panel7"><div><p class="lab">%s</p><p class="act">%s</p><p class="why">%s %s</p></div><a class="btn5" href="#s-fix1">%s <span aria-hidden="true">↓</span></a></div>`,
-		E(s.T("first_fix")), E(act), E(why), src, E(s.T("see_fix")))
+		E(s.T("first_fix")), E(act), whyH, src, E(s.T("see_fix")))
 }
 
 // noCompare says the judges are not to be compared; only with two judges.
@@ -546,10 +587,7 @@ func (s *Story) HTML() string {
 		th := s.Thing(f)
 		var viz string
 		if f.Side == "drift" {
-			nn, capKey := f.Sessions, "sess_cap"
-			if th != nil && th.Mode == "theme" {
-				nn, capKey = th.GS, "th_cap"
-			}
+			nn, capKey := f.Sessions, "sess_cap" // theme mode too: the finding's size; the theme count is under it
 			viz = dots(nn, m.J, "f-agent_drift", 15, 6, 4) + `<p class="cap">` + E(s.T(capKey, "n", nn, "j", m.J)) + `</p>`
 		} else {
 			kh := max(int(math.Round(f.USD/math.Max(m.TotalUSD, 1e-9)*100)), 1)
@@ -563,7 +601,12 @@ func (s *Story) HTML() string {
 			for _, x := range th.Quotes {
 				fmt.Fprintf(&qs, `<p class="tq">“%s”</p>`, E(x))
 			}
-			qhtml = fmt.Sprintf(`<figure class="bq theme"><p class="tlabel">%s</p><figcaption class="ql">%s</figcaption>%s<p class="tby">%s</p></figure>`, E(th.Theme.Label), E(s.T("th_words")), qs.String(), E(by))
+			more := ""
+			if ml := s.MoreLine(th); ml != "" {
+				more = `<p class="tmore">` + E(ml) + `</p>`
+			}
+			qhtml = fmt.Sprintf(`<figure class="bq theme"><p class="tin">%s</p><p class="tlabel">%s</p><figcaption class="ql">%s</figcaption>%s<p class="tby">%s</p>%s</figure>`,
+				E(s.WithinLine(th)), E(th.Theme.Label), E(s.T("th_words")), qs.String(), E(by), more)
 		} else if th != nil {
 			lab, ctx = s.ThingText(f, th)
 			then := th.E.Quote

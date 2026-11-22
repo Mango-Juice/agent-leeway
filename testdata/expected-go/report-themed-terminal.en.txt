@@ -6,7 +6,8 @@ Your AI coding agents, overall: POOR   (2025-12-21 – 2026-01-20)
 
 Fix first:
   1. Add this rule to CLAUDE.md
-     In 3 sessions: Keep existing tables as they are
+     In 4 of 9 sessions it ignored what you had already said.
+     Of those, 3 had the same request: Keep existing tables as they are
      Source: https://code.claude.com/docs/en/memory.md
   2. Keep long logs out · $1.33 lost
   3. Make broken rules checkable · 1 of 9 sessions
@@ -17,3 +18,5 @@ Fixed in-session: 9 / 9 misses
 measured with the bundled rubric v2.1-cf92779d
 
 → <reports>/report-2026-01-20T0900.html
+
+Not judged yet: 2 Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d

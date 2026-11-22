@@ -12,9 +12,10 @@ Run the commands exactly as written; they work the same in bash, zsh and PowerSh
 
 - `agent-leeway leak` - cost leaks in the last 30 days, by habit and by cause, direct conversations vs
   automations. Reads local logs only; no model calls. Options: `--since 2w`, `--tool claude`, `--json`.
-- `agent-leeway report --lang <en|ko>` - leak check plus the drift results already judged, written as Markdown
-  and HTML files on this computer, with a short summary printed. Pass the language the user writes to you in
-  (`ko` for Korean, otherwise `en`). `leak` and `drift` take `--lang` too.
+- `agent-leeway report --tool claude --lang <en|ko>` - leak check plus the drift results already judged for
+  Claude Code sessions, written as Markdown and HTML files on this computer, with a short summary printed.
+  Pass the language the user writes to you in (`ko` for Korean, otherwise `en`). `leak` and `drift` take
+  `--lang` too. The cost side always covers both tools.
 - `agent-leeway drift --dry-run --tool claude` - how many Claude Code sessions are in the window and which
   of them would be judged (the 50 most recent by default; one judge call each). Nothing is sent. If you are Codex, use `--tool codex` instead of `--tool claude` in these commands.
 - `agent-leeway drift --yes --tool claude` - judges those sessions with the official Claude Code CLI
@@ -31,15 +32,32 @@ Run the commands exactly as written; they work the same in bash, zsh and PowerSh
   other provider's plan. If the user asks for both tools, use `--tool all` (it runs the other provider's CLI too,
   which needs that CLI installed and logged in). The cost check (`leak`) and the report's cost side always read
   both tools' logs.
-- To judge and report in one step: `agent-leeway report --run-drift --yes --tool claude --lang <en|ko>`, with
-  the same approval as `drift --yes`.
 - `agent-leeway idle` - recent sessions whose prompt cache has probably expired, and what resuming costs.
 - `agent-leeway privacy` - where data lives and what leaves the computer.
+
+## When the user asks for a report
+
+1. Run `agent-leeway report --tool claude --lang <en|ko>`. If you are Codex, use `--tool codex` instead of `--tool claude` in these commands.
+2. If the summary ends with a line starting "Not judged yet" (Korean: "아직 판정하지 않음"), some Claude Code
+   sessions in the period were never judged, so the report does not yet show where the agent went off for them.
+   Tell the user how many, then run the `agent-leeway drift --dry-run ...` command from that line and show its
+   session count and list (shortened if long; say so if it judges fewer sessions than are unjudged). Ask whether
+   to judge them now, in one short message that also says: each session is
+   one call to the Claude Code CLI on their account (plan usage on a subscription, roughly the estimated
+   dollars with an API key); they can judge fewer or other sessions with `--max-sessions N`, `--since 7d` or
+   `--project <name>`, for example only the 10 most recent, only the last week, or one project by name.
+3. If they answer with a different scope, run the dry run again with it and ask again. Run
+   `agent-leeway drift --yes --tool claude` with the same `--since`, `--max-sessions` and `--project` as the
+   dry run they approved, only after a clear yes in this conversation, then run the report command again and
+   present it. If they decline, present the report as it is.
+4. If there is no such line, everything in the period is already judged: say so and present the report without
+   asking.
 
 ## Presenting the report
 
 After `agent-leeway report`, present the "What to fix first" findings in your own words or as printed,
-whichever reads better in the conversation, then give the two file paths. Answer follow-up questions from the
+whichever reads better in the conversation, then give the report's file path (the HTML; the Markdown copy is in
+the same folder). Answer follow-up questions from the
 report files. Keep these rules:
 
 - Name the tool (Claude Code or Codex) whenever a piece of advice is specific to one tool.
@@ -64,4 +82,4 @@ against the release's checksums, installs the program and adds this skill for Cl
 your command again, with the full path the installer printed if `agent-leeway` is still not found (a new
 terminal picks up the PATH change).
 
-<!-- agent-leeway skill repository copy sha256:2d10bdca40fc9488b1053955e1ae54e86a545facd9674807243f2f3c77246bc2 (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->
+<!-- agent-leeway skill repository copy sha256:7016e85847510f294bd5f1ce2b0a890ce53585d38487f09b0e1e5c42ce950a27 (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->

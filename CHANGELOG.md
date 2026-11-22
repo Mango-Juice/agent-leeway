@@ -4,6 +4,14 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-23
+
+### Fixed
+- A fix built on a repeated request now gives the size of its problem first and the repeated request second ("In 12 of 50 sessions it ignored what you had already said. Of those, 2 had the same request: ..."), so fixes ranked by problem size no longer look out of order when a smaller problem has a larger repeated request.
+- Asking an agent for a report now leads to an offer to run the drift check. `report` ends its summary with the sessions in the period that were never judged and the dry-run command to see them, and `report --json` gives the counts per tool. The skill runs the report for its own tool, shows the dry run, and asks before judging. With `--tool`, the report leaves out the other tool's drift results and says how to see them.
+- The short source label and the one-line reason under each piece of advice follow the finding's tool: a Codex finding cites the Codex or OpenAI docs (or our own measurement, labelled so) instead of the Claude Code docs; a cost finding from both tools says "Official docs" and lists both in its panel.
+- The drift dry run ends with how to judge fewer or other sessions (`--max-sessions`, `--since`, `--project`), and the skill offers a smaller run when it asks for approval.
+
 ## [0.1.1] - 2026-11-23
 
 ### Added

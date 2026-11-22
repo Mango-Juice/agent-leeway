@@ -2,6 +2,7 @@ package report
 
 import (
 	"fmt"
+	"github.com/Mango-Juice/agent-leeway/internal/advice"
 	"math"
 	"regexp"
 	"sort"
@@ -53,7 +54,15 @@ type Thing struct {
 	Quote      string // theme mode: the label
 	GS, GE, NG int    // sessions and events of the group; number of different things
 	Theme      *Theme
-	Quotes     []string // theme mode: up to 3 distinct user quotes from the member events
+	Quotes     []string   // theme mode: up to 3 distinct user quotes from the member events
+	Others     []ThemeRef // theme mode: the finding's other themes (2+ of its sessions), in the same order
+}
+
+// ThemeRef is a theme as counted inside one finding: its label and the finding's sessions and events it covers.
+type ThemeRef struct {
+	Theme  *Theme
+	S, E   int
+	Events []*Event
 }
 
 // Plain is a finding's plain copy.
@@ -325,7 +334,7 @@ func (s *Story) Plain(f *Finding) Plain {
 		t1 = f.Tools[0]
 	}
 	if th != nil && th.Mode == "theme" {
-		sv, t1 = th.GS, th.Theme.Tool
+		t1 = th.Theme.Tool // sv stays the finding's sessions: the size sentence is about the finding
 	}
 	kv := []any{"s", sv, "e", f.NEvents, "j", s.M.J, "usd", Money(f.USD), "n", n, "file", fn, "tools", s.join(tools, " and ", "와 "),
 		"file1", fileOf[t1], "tool1", s.X.Tool(t1)}
@@ -337,12 +346,78 @@ func (s *Story) Plain(f *Finding) Plain {
 	} else {
 		x.SrcName, x.SrcURL = s.T("src_ours"), docsURL()
 	}
+	switch {
+	case len(f.Tools) == 1 && f.Tools[0] == "codex":
+		// a Codex finding: the why line and the short label come from the Codex sources in the advice catalogue
+		// (the ones the detail panel lists), never from the Claude Code docs
+		if _, ok := s.S["pl."+k+".why.codex"]; ok {
+			x.Why = s.T("pl."+k+".why.codex", kv...)
+		}
+		x.SrcName, x.SrcURL = s.codexSource(f, k)
+	case len(f.Tools) > 1 && src != "ours":
+		// both tools contributed: a neutral label ("Official docs" only when both tools' advice rests on official
+		// docs); the detail panel lists each tool's sources
+		x.SrcName = s.T("src_both")
+		for _, a := range f.Advice {
+			if a.A.Basis != "official" {
+				x.SrcName = s.T("src_mixed")
+			}
+		}
+	}
 	if f.Side == "leak" {
 		if top := s.leakTop(f); f.USD > 0 && top/f.USD >= 0.3 {
 			x.Hook += " " + s.T("one_sess", "top", Money(top))
 		}
 	}
 	return x
+}
+
+// codexSrc names, per plain key, the Codex source the Codex why line rests on (a part of its title in the advice
+// catalogue); "ours" is our own measurement or rule of thumb.
+var codexSrc = map[string]string{
+	"ASKED_ONLY": "Prompting", "BROKE_CHAT": "AGENTS.md", "BROKE_CHAT_TH": "AGENTS.md", "BROKE_SAID": "AGENTS.md",
+	"BROKE_FILE": "AGENTS.md", "PROMPT": "AGENTS.md", "BROKE_CHAT_EX": "ours", "FALSE_DONE": "Prompting",
+	"MISTAKE": "Prompting", "RESERVED": "Rules", "automation": "Prompt caching", "long_break": "Prompt caching",
+	"mid_switch": "ours", "big_output": "Context Rot", "let_repeat": "ours", "no_map": "Pricing",
+}
+
+// codexSource is the short name and link of the Codex source behind a Codex finding's why line: "Codex docs",
+// "OpenAI docs", a study's name, or our own measurement.
+func (s *Story) codexSource(f *Finding, k string) (string, string) {
+	want := codexSrc[k]
+	var srcs []advice.Source
+	for _, a := range f.Advice {
+		if a.Tool == "codex" {
+			srcs = a.A.Sources
+		}
+	}
+	if want != "ours" {
+		for _, x := range srcs {
+			if strings.Contains(x.Title, want) {
+				return s.shortSource(x.Title), x.URL
+			}
+		}
+		if len(srcs) > 0 {
+			return s.shortSource(srcs[0].Title), srcs[0].URL
+		}
+	}
+	return s.T("src_ours"), docsURL()
+}
+
+// shortSource is "Codex docs" for "Codex docs: Prompting", the study's name for a study, and "Leeway measurement"
+// for our own.
+func (s *Story) shortSource(title string) string {
+	if strings.HasPrefix(title, "Leeway") {
+		return s.T("src_ours")
+	}
+	head, tail, ok := strings.Cut(title, ": ")
+	if !ok {
+		return title
+	}
+	if strings.HasSuffix(head, "docs") {
+		return head
+	}
+	return tail
 }
 
 // leakTop is the habit's dollars in its single most expensive session.
@@ -436,9 +511,10 @@ func (s *Story) Thing(f *Finding) *Thing {
 	for _, e := range f.Events {
 		in[e] = true
 	}
-	// 1. a theme whose kept events overlap the finding's events in 2+ sessions (ties: the theme with more sessions)
-	var bt *Theme
-	var bevs []*Event
+	// 1. themes whose kept events overlap the finding's events in 2+ sessions. The fix shows the one covering
+	// the most of the finding's sessions (ties: more events, then label order); the others are listed under it.
+	// GS and GE count inside the finding, so "of those" never exceeds the finding's own sessions.
+	var refs []ThemeRef
 	for _, th := range s.M.Themes {
 		var evs []*Event
 		ss := map[string]bool{}
@@ -448,12 +524,22 @@ func (s *Story) Thing(f *Finding) *Thing {
 				ss[e.Rec.Key] = true
 			}
 		}
-		if len(ss) >= 2 && (bt == nil || th.Sessions > bt.Sessions) {
-			bt, bevs = th, evs
+		if len(ss) >= 2 {
+			refs = append(refs, ThemeRef{Theme: th, S: len(ss), E: len(evs), Events: evs})
 		}
 	}
+	sort.SliceStable(refs, func(a, b int) bool {
+		if refs[a].S != refs[b].S {
+			return refs[a].S > refs[b].S
+		}
+		if refs[a].E != refs[b].E {
+			return refs[a].E > refs[b].E
+		}
+		return refs[a].Theme.Label < refs[b].Theme.Label
+	})
 	k := Key(f)
-	if bt != nil {
+	if len(refs) > 0 {
+		bt, bevs := refs[0].Theme, refs[0].Events
 		seen := map[string]bool{}
 		var quotes []string
 		for _, e := range bevs {
@@ -469,7 +555,7 @@ func (s *Story) Thing(f *Finding) *Thing {
 		if len(quotes) > 3 {
 			quotes = quotes[:3]
 		}
-		return &Thing{Mode: "theme", E: bevs[0], Quote: bt.Label, GS: bt.Sessions, GE: len(bt.Events), NG: 1, Theme: bt, Quotes: quotes}
+		return &Thing{Mode: "theme", E: bevs[0], Quote: bt.Label, GS: refs[0].S, GE: refs[0].E, NG: 1, Theme: bt, Quotes: quotes, Others: refs[1:]}
 	}
 	groups := map[string][]*Event{}
 	var order []string
@@ -525,11 +611,41 @@ func (s *Story) ThingText(f *Finding, th *Thing) (string, string) {
 	lab := s.T("th_lab."+kk, "file", fn)
 	switch th.Mode {
 	case "theme":
-		return th.Theme.Label, s.T("th_said", "gs", th.GS)
+		return th.Theme.Label, s.SizeLine(f)
 	case "repeat":
 		return lab, s.T("th_rep."+kk, "gs", th.GS, "ge", th.GE)
 	}
 	return lab, s.T("th_ex."+kk, "ng", th.NG, "s", f.Sessions, "hook", s.Plain(f).Hook)
+}
+
+// SizeLine is the size of a drift finding in plain words: "In 12 of 50 sessions it went against something you
+// had already said." In theme mode it comes before the theme, so the order of the fixes (by finding) is visible.
+func (s *Story) SizeLine(f *Finding) string {
+	k := "sz." + Key(f)
+	if _, ok := s.S[k]; !ok {
+		k = "sz.other"
+	}
+	return s.T(k, "s", f.Sessions, "j", s.M.J)
+}
+
+// WithinLine introduces the theme inside its finding: "Of those, the same request came up in 2 sessions:".
+func (s *Story) WithinLine(th *Thing) string {
+	if th.Theme.InFile {
+		return s.T("th_within_rule", "gs", th.GS)
+	}
+	return s.T("th_within", "gs", th.GS)
+}
+
+// MoreLine lists the finding's other themes briefly ("" when there are none).
+func (s *Story) MoreLine(th *Thing) string {
+	if th == nil || len(th.Others) == 0 {
+		return ""
+	}
+	var xs []string
+	for _, o := range th.Others {
+		xs = append(xs, s.T("th_more_one", "label", o.Theme.Label, "gs", o.S))
+	}
+	return s.T("th_more", "list", s.join(xs, " · ", " · "))
 }
 
 // Draft is a ready line from the theme's rule, the judge's suggested sentence or the user's repeated words. A rule
@@ -570,10 +686,7 @@ func (s *Story) BigNum(f *Finding) string {
 	if f.Side == "leak" {
 		return Money(f.USD)
 	}
-	if th := s.Thing(f); th != nil && th.Mode == "theme" {
-		return fmt.Sprintf("%d / %d", th.GS, s.M.J)
-	}
-	return fmt.Sprintf("%d / %d", f.Sessions, s.M.J)
+	return fmt.Sprintf("%d / %d", f.Sessions, s.M.J) // theme mode too: the finding's size comes first
 }
 
 // goingWell is only measured, true statements (§17.4); empty means the section is left out.
@@ -735,9 +848,16 @@ func (s *Story) DriftRun() bool { return s.M.J > 0 }
 
 // DriftCmd is the command that runs the drift check for this report's period.
 func (s *Story) DriftCmd() string {
-	d := s.M.Days
-	if d <= 0 {
-		d = 30
+	if s.M.Tool != "" {
+		return fmt.Sprintf("agent-leeway drift --tool %s --since %dd", s.M.Tool, s.days())
 	}
-	return fmt.Sprintf("agent-leeway drift --since %dd", d)
+	return fmt.Sprintf("agent-leeway drift --since %dd", s.days())
+}
+
+// days is the period in days (30 when unknown).
+func (s *Story) days() int {
+	if s.M.Days <= 0 {
+		return 30
+	}
+	return s.M.Days
 }

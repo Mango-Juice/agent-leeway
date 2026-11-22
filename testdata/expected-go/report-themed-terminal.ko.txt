@@ -5,7 +5,8 @@ AI 코딩 에이전트 활용 종합: 나쁨   (2025-12-21 – 2026-01-20)
 
 먼저 고칠 것:
   1. 이 규칙을 CLAUDE.md에 적어 두세요
-     세션 3개에서 반복: Keep existing tables as they are
+     세션 9개 중 4개에서 이미 한 말을 어겼습니다.
+     그중 같은 요청이 세션 3개에서 반복됐습니다: Keep existing tables as they are
      출처: https://code.claude.com/docs/en/memory.md
   2. 긴 로그 붙이지 않기 · $1.33 낭비
   3. 어긴 규칙 구체화하기 · 세션 9개 중 1개
@@ -16,3 +17,5 @@ AI 코딩 에이전트 활용 종합: 나쁨   (2025-12-21 – 2026-01-20)
 v2.1-cf92779d로 잰 것입니다
 
 → <reports>/report-2026-01-20T0900.html
+
+아직 판정하지 않음: 이 기간의 Claude Code 세션 2개. 무엇을 판정할지 보려면(아무것도 보내지 않음): agent-leeway drift --dry-run --tool claude --since 30d

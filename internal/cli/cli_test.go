@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/Mango-Juice/agent-leeway/internal/config"
@@ -458,5 +459,73 @@ func TestDriftDryRunFollowsLang(t *testing.T) {
 	_, errs, _ = run(t, "drift", "--dry-run", "--lang", "en", "--include-auto", "--no-current-instructions")
 	if !strings.Contains(errs, "Drift check ·") || strings.Contains(errs, "이탈 점검") {
 		t.Errorf("English after Korean:\n%s", errs)
+	}
+}
+
+// The dry run ends with how to change the scope (count, period, project), in the user's language; the part from
+// the estimate down is a golden file per language.
+func TestDryRunEndsWithScopeLine(t *testing.T) {
+	fixtureEnv(t)
+	for lang, want := range map[string]string{
+		"en": "To judge fewer or other sessions: --max-sessions N (how many, most recent first), --since 7d (the period), --project <name> (one project).",
+		"ko": "범위를 바꾸려면: --max-sessions N(최근 몇 개), --since 7d(기간), --project <이름>(한 프로젝트만).",
+	} {
+		_, errs, rc := run(t, "drift", "--dry-run", "--lang", lang, "--include-auto", "--no-current-instructions")
+		lines := strings.Split(strings.TrimRight(errs, "\n"), "\n")
+		if rc != 0 || lines[len(lines)-1] != want {
+			t.Errorf("%s: last line %q\n%s", lang, lines[len(lines)-1], errs)
+		}
+		head := map[string]string{"en": "Drift check ·", "ko": "이탈 점검 ·"}[lang]
+		if i := strings.Index(errs, head); i < 0 {
+			t.Errorf("%s: no estimate in\n%s", lang, errs)
+		} else {
+			golden(t, "drift-dryrun."+lang+".txt", errs[i:])
+		}
+	}
+}
+
+// report: the summary ends with the asked-for tool's sessions that were never judged and the dry run to see them;
+// with --tool the other tool's judged results are left out with one line saying how to see them; --json gives the
+// counts per tool so an agent can tell "nothing judged" from "judged".
+func TestReportSaysWhatIsNotJudged(t *testing.T) {
+	fixtureEnv(t)
+	config.Legacy = false
+	// 3 sessions sent; the fixture judge's answer for one of them does not parse, so 2 are judged (rc 1)
+	run(t, "drift", "--include-auto", "--no-current-instructions", "--yes", "--tool", "claude", "--max-sessions", "3")
+	for _, lang := range []string{"en", "ko"} {
+		want := map[string][2]string{
+			"en": {"Not judged yet: ", " Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d"},
+			"ko": {"아직 판정하지 않음: 이 기간의 Claude Code 세션 ", "개. 무엇을 판정할지 보려면(아무것도 보내지 않음): agent-leeway drift --dry-run --tool claude --since 30d"},
+		}[lang]
+		out, errs, rc := run(t, "report", "--include-auto", "--tool", "claude", "--lang", lang, "--out", filepath.Join(t.TempDir(), "r"))
+		lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
+		last := lines[len(lines)-1]
+		if rc != 0 || !strings.HasPrefix(last, want[0]) || !strings.HasSuffix(last, want[1]) {
+			t.Errorf("%s: the summary must end with the not-judged line, got %q\n%s%s", lang, last, out, errs)
+		}
+		// codex asked for: nothing of it was judged; the Claude Code results are kept out, with one line
+		out, _, _ = run(t, "report", "--include-auto", "--tool", "codex", "--lang", lang, "--out", filepath.Join(t.TempDir(), "r"))
+		other := map[string]string{"en": "This report covers Codex only. 2 judged Claude Code sessions are left out; to see them: agent-leeway report --tool claude",
+			"ko": "이 리포트는 Codex만 다룹니다. 판정한 Claude Code 세션 2개는 뺐습니다. 보려면: agent-leeway report --tool claude"}[lang]
+		if !strings.Contains(strings.ReplaceAll(out, "\n", " "), other) || strings.Contains(out, "CLAUDE.md") {
+			t.Errorf("%s: --tool codex report:\n%s", lang, out)
+		}
+		if !strings.Contains(out, "agent-leeway drift --dry-run --tool codex --since 30d") {
+			t.Errorf("%s: codex sessions not judged must be offered:\n%s", lang, out)
+		}
+	}
+	out, _, rc := run(t, "report", "--include-auto", "--json", "--out", filepath.Join(t.TempDir(), "r"))
+	var v struct {
+		HTML      string                    `json:"html"`
+		Tools     map[string]map[string]int `json:"tools"`
+		NotJudged string                    `json:"not_judged"`
+	}
+	if err := json.Unmarshal([]byte(out), &v); rc != 0 || err != nil {
+		t.Fatalf("--json: %v %s", err, out)
+	}
+	c, x := v.Tools["claude"], v.Tools["codex"]
+	if v.HTML == "" || c["judged"] != 2 || c["unjudged"] != c["sessions"]-2 || x["judged"] != 0 || x["unjudged"] != x["sessions"] || x["sessions"] == 0 ||
+		!strings.Contains(v.NotJudged, "agent-leeway drift --dry-run --since 30d") {
+		t.Errorf("--json counts: %+v", v)
 	}
 }

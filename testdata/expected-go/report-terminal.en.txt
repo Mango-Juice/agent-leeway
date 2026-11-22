@@ -17,3 +17,5 @@ Fixed in-session: 9 / 9 misses
 measured with the bundled rubric v2.1-cf92779d
 
 → <reports>/report-2026-01-20T0900.html
+
+Not judged yet: 2 Claude Code sessions in this period. To see what would be judged (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d

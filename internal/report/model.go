@@ -176,6 +176,9 @@ type Input struct {
 	QuoteChars    int
 	Groups        []py.Value     // stored grouping records (drift.LoadGroups); empty = none
 	LeftOut       map[string]int // sessions of a tool in the window that were not selected for judging (tool -> count)
+	Tool          string         // the tool the report was asked for (--tool); "" = both
+	Unjudged      map[string]int // the asked-for tools' sessions in the window with no judged result (tool -> count)
+	OtherJudged   map[string]int // with Tool set: the other tool's judged sessions, left out of this report
 }
 
 // Model is everything the renderers show.
@@ -190,6 +193,8 @@ type Model struct {
 	Advice                    *advice.Catalogue
 	Themes                    []*Theme
 	LeftOut                   map[string]int
+	Tool                      string
+	Unjudged, OtherJudged     map[string]int
 	Records                   []*Record
 	J                         int // judged sessions (records)
 	Verdicts                  []JudgeVerdicts
@@ -890,7 +895,7 @@ func NewModel(in Input) *Model {
 	}
 	m.RubricVersions, m.Custom, m.CLIs = sortedKeys(vers), sortedKeys(custom), sortedKeys(clis)
 	m.Themes = Themes(in.Groups, m.Records)
-	m.LeftOut = in.LeftOut
+	m.LeftOut, m.Tool, m.Unjudged, m.OtherJudged = in.LeftOut, in.Tool, in.Unjudged, in.OtherJudged
 	m.Findings, m.Leftovers = Findings(m.Records)
 	m.Leak = LeakFindings(in.Leak)
 	m.Top = Top(m.Findings, m.Leak)

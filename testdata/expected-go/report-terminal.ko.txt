@@ -16,3 +16,5 @@ AI 코딩 에이전트 활용 종합: 나쁨   (2025-12-21 – 2026-01-20)
 v2.1-cf92779d로 잰 것입니다
 
 → <reports>/report-2026-01-20T0900.html
+
+아직 판정하지 않음: 이 기간의 Claude Code 세션 2개. 무엇을 판정할지 보려면(아무것도 보내지 않음): agent-leeway drift --dry-run --tool claude --since 30d

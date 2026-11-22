@@ -77,7 +77,9 @@ func Terminal(m *Model, md, html string) string {
 		out = append(out, Wrap("1. "+q.Action, TermWidth, "  ")...)
 		switch th := s.Thing(s.Top[0]); {
 		case th != nil && th.Mode == "theme": // the model's label, not the user's words: no quote marks
-			out = append(out, Wrap(s.T("rep_short", "gs", th.GS)+" "+Clip(th.Quote, 44), TermWidth, "     ")...)
+			// the finding's size first, then the theme inside it
+			out = append(out, Wrap(s.SizeLine(s.Top[0]), TermWidth, "     ")...)
+			out = append(out, Wrap(s.WithinLine(th)+" "+Clip(th.Quote, 44), TermWidth, "     ")...)
 		case th != nil:
 			lead := s.T("eg")
 			if th.Mode == "repeat" {
@@ -95,7 +97,14 @@ func Terminal(m *Model, md, html string) string {
 	if len(s.Good) > 0 {
 		out = append(out, "", s.T("t_good."+s.Good[0].Key, "v", s.Good[0].Value))
 	}
-	extra := append(s.X.Warnings(m), s.LeftOutLines()...)
+	var lo []string
+	nj := s.NotJudgedLine()
+	for _, l := range s.LeftOutLines() {
+		if l != nj {
+			lo = append(lo, l)
+		}
+	}
+	extra := append(s.X.Warnings(m), lo...)
 	if len(extra) > 0 {
 		out = append(out, "")
 		for _, x := range extra {
@@ -110,6 +119,9 @@ func Terminal(m *Model, md, html string) string {
 		out = append(out, s.X.T["no_drift"])
 	default:
 		out = append(out, s.X.T["scope_more"])
+	}
+	if nj != "" { // last, so an agent reading the summary sees it
+		out = append(out, "", nj)
 	}
 	return strings.Join(out, "\n") + "\n"
 }
@@ -147,7 +159,7 @@ func Markdown(m *Model) string {
 		md = append(md, "### "+s.T("first_fix")+": "+x.Action, "")
 		switch th := s.Thing(f0); {
 		case th != nil && th.Mode == "theme":
-			md = append(md, s.T("rep_short", "gs", th.GS)+" **"+mq(th.Quote)+"**", "")
+			md = append(md, s.SizeLine(f0)+" "+s.WithinLine(th)+" **"+mq(th.Quote)+"**", "")
 		case th != nil:
 			lead := s.T("eg")
 			if th.Mode == "repeat" {
@@ -173,11 +185,14 @@ func Markdown(m *Model) string {
 		r := []string{`<a id="` + f.ID + `"></a>`, head + " " + s.T("fix_n", "i", i+1, "n", len(s.Top)) + ": " + x.Action, ""}
 		if th != nil && th.Mode == "theme" {
 			_, ctx := s.ThingText(f, th)
-			r = append(r, "**"+ctx+"**", "", "> **"+mq(th.Theme.Label)+"**  ", "> "+s.T("th_words")+":  ")
+			r = append(r, "**"+ctx+"**", "", "> "+s.WithinLine(th)+"  ", "> **"+mq(th.Theme.Label)+"**  ", "> "+s.T("th_words")+":  ")
 			for _, q := range th.Quotes {
 				r = append(r, "> “"+mq(q)+"”  ")
 			}
 			r = append(r, "> _"+s.T("th_by", "tool", s.X.Tool(th.Theme.Tool), "draft", map[bool]string{true: s.T("th_by_draft")}[s.Draft(f, th) != nil])+"_", "")
+			if ml := s.MoreLine(th); ml != "" {
+				r = append(r, mq(ml), "")
+			}
 		} else if th != nil {
 			lab, ctx := s.ThingText(f, th)
 			r = append(r, "**"+ctx+"**", "", "> "+mq(lab)+": “"+mq(th.Quote)+"”", "")

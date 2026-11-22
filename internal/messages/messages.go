@@ -154,6 +154,7 @@ var Drift = map[string]string{
 	"left_out":              "{n} {tool} session(s) in the window are not judged in this run (--tool all includes them).",
 	"grouping_plan":         "After judging, {n} grouping call(s) ({tools}), about ${usd:.2f} in total: each provider gets only its own sessions' judged problems (the quotes and summaries the judge already saw) and groups them by meaning. --no-grouping skips this.",
 	"dry_run":               "--dry-run: estimate only, nothing judged.",
+	"scope_change":          "To judge fewer or other sessions: --max-sessions N (how many, most recent first), --since 7d (the period), --project <name> (one project).",
 	"need_yes":              "Confirmation needed: run in an interactive terminal or add --yes.",
 	"ask":                   "Proceed? [y/N] ",
 	"cancelled":             "Cancelled.",
