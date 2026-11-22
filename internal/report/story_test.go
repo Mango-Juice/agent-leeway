@@ -310,3 +310,32 @@ func TestFirstScreenBudget(t *testing.T) {
 		}
 	}
 }
+
+// No drift results in the period: every surface says the drift check has not been run, how to run it, and that
+// the rating rests on cost only; nothing reads "0 of 0".
+func TestDriftNotRunState(t *testing.T) {
+	for _, lang := range []string{"en", "ko"} {
+		m := NewModel(Input{Leak: leakReport(100, leak.Habit{Habit: "long_break", Causes: []string{"expiry"}, USD: 20, Count: 3}), Advice: advice.Builtin(), Lang: lang,
+			Since: time.Date(2026, 10, 23, 0, 0, 0, 0, time.UTC), Until: time.Date(2026, 11, 22, 0, 0, 0, 0, time.UTC)})
+		s := NewStory(m)
+		cmd := s.DriftCmd()
+		for name, out := range map[string]string{"html": s.HTML(), "md": Markdown(m), "term": Terminal(m, "", "/tmp/r.html")} {
+			for _, want := range []string{s.T("drift_none_fact"), cmd, s.T("rating_cost_only")} {
+				if name == "html" {
+					want = E(want)
+				}
+				if !strings.Contains(out, want) {
+					t.Errorf("%s %s lacks %q", lang, name, want)
+				}
+			}
+			for _, bad := range []string{"0 of 0", "0개 중 0개", s.T("rating.na")} {
+				if strings.Contains(out, bad) {
+					t.Errorf("%s %s still says %q", lang, name, bad)
+				}
+			}
+		}
+		if len(s.Good) != 0 {
+			t.Errorf("%s: going well claims something without judged sessions", lang)
+		}
+	}
+}

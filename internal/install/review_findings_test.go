@@ -54,3 +54,42 @@ func TestEditedSkillIsKeptAndBackupRestored(t *testing.T) {
 		t.Fatal("uninstall removed a file the user changed")
 	}
 }
+
+// The skills CLI (npx skills add -g) puts one copy in ~/.agents/skills and links the Claude Code folder to it.
+// install-skills gives Claude Code a folder of its own (the link only is removed), so each agent keeps its own
+// copy; a link to a skill agent-leeway did not write is left alone.
+func TestLinkedSkillFolder(t *testing.T) {
+	root := t.TempDir()
+	shared := filepath.Join(root, ".agents", "skills", "agent-leeway")
+	_ = os.MkdirAll(shared, 0o755)
+	_ = os.WriteFile(filepath.Join(shared, "SKILL.md"), SkillFor(RepoCopy, ""), 0o644)
+	link := filepath.Join(root, ".claude", "skills", "agent-leeway")
+	_ = os.MkdirAll(filepath.Dir(link), 0o755)
+	if err := os.Symlink(shared, link); err != nil {
+		t.Skip("no symlinks here:", err)
+	}
+	tg := []Target{{Agent: "claude", Dir: link, Root: filepath.Join(root, ".claude")}, {Agent: "codex", Dir: shared, Root: root}}
+	log, err := Install(tg, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Lstat(link); err != nil || fi.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("Claude Code folder is still a link: %v %q", err, log)
+	}
+	cb, _ := os.ReadFile(filepath.Join(link, "SKILL.md"))
+	xb, _ := os.ReadFile(filepath.Join(shared, "SKILL.md"))
+	if string(cb) != string(SkillForAgent("claude")) || string(xb) != string(SkillForAgent("codex")) {
+		t.Errorf("each agent should have its own copy: %q", log)
+	}
+	// a link to someone else's skill is not touched
+	other := filepath.Join(root, "theirs")
+	_ = os.MkdirAll(other, 0o755)
+	_ = os.WriteFile(filepath.Join(other, "SKILL.md"), []byte("their skill"), 0o644)
+	link2 := filepath.Join(root, "c2", "agent-leeway")
+	_ = os.MkdirAll(filepath.Dir(link2), 0o755)
+	_ = os.Symlink(other, link2)
+	log, err = Install([]Target{{Agent: "claude", Dir: link2, Root: root}}, false)
+	if b, _ := os.ReadFile(filepath.Join(other, "SKILL.md")); err != nil || string(b) != "their skill" || !strings.Contains(strings.Join(log, "\n"), "left as is") {
+		t.Errorf("foreign linked skill changed: %v %q", err, log)
+	}
+}

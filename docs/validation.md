@@ -6,6 +6,34 @@ This page summarizes how Leeway was checked before release. It has two parts:
 
 The experiments were pre-registered: the pass criteria were written down before the diagnoser's outputs were seen. None of the checks below compares the tool against **human** labels directly.
 
+## In short
+
+**Public data.** 80 public SpecStory sessions, judged against reference labels from a published study (rubric v2; v2.1 gave P1 recall 0.67 / 0.88 and AUC 0.71 / 0.74 on the same sessions).
+- The drift check found 67% (Opus) and 87% (astra) of the user-visible misalignment episodes, or 91% and 95% when defect reports are included.
+- It separated sessions with episodes from presumed-clean ones with AUC 0.72–0.74.
+- 0.1–0.2% of quotes were not found in the transcript.
+
+**Reproducibility (rubric v2.1, the Go program, real CLIs).** 15 developer sessions per model, each judged twice. The verdict was the same in 13 of 15 sessions for Opus (0.87, 95% interval [0.62, 0.96]) and 15 of 15 for gpt-6.2-astra (1.00, [0.80, 1.00]). Event-location Jaccard was 0.84 and 0.91. With n = 15 the Opus interval is wide.
+
+**Rubric language.** a Korean translation of v2.1 and the English text gave the same verdict in 0.875 of 40 public sessions with Opus, as often as one run of the same rubric agrees with another (0.87).
+
+**Summaries in your language.** after the judge was asked to write its summaries in the user's language, the same developer sessions were judged again (15 with Opus, 13 with astra). Verdict agreement with the earlier run was 0.80 and 0.92, and event-location Jaccard 0.71 and 0.91, within the pre-set tolerance of run-to-run noise; no quote was invented and no answer broke the schema. In Korean sessions every summary came out in Korean; some sessions made up mostly of pasted English text got Korean summaries too. Both Opus figures went down a little, which 15 sessions cannot rule in or out as an effect of the wording.
+
+**Grouping.** checked on planted themes and on real sessions, in two rounds. In the first round one of the two Claude Code themes on real sessions was wrong (four unrelated agent mistakes joined under a rule the person never stated). After the prompt and a code check were changed, the second round found 16 of 16 planted themes with no false theme for both models in English and Korean, and the wrong real theme was gone. The real-session sample is small: one Claude Code theme and four Codex themes (one earlier Codex theme was no longer proposed). Grouping is on by default for both tools (§1.10).
+
+### Limits
+- **No direct validation against human labels.** The public reference labels were produced by a model and audited by humans (extraction precision 0.93, cause accuracy 0.72). The developer-log comparison used agent proxy labels.
+- **Verdicts depend on the model.** Two models judging the same sessions agreed with weighted κ 0.61, both in rubric v1 (22 sessions) and in rubric v2 (44 developer sessions). On matched events the cause agreed in 0.80 of pairs on four causes and 0.87 on three groups (v2.1, public data). Reports lead with the three groups and always name the model used.
+- **Agreement with the public cause labels fell under v2.1 on the four-cause scale** (Opus 0.57 → 0.49, astra 0.46 → 0.44). On three groups it rose (0.74 / 0.69 → 0.78 / 0.74). "Missing or ambiguous instruction" remains the weakest cause: recall of the public label is 0.33 / 0.23, on only 6 and 13 episodes.
+- **The Codex judge over-calls.** It found events in 55% of presumed-clean public sessions with v2, and in 60% with v2.1, against 36% for Opus with both.
+- **Past Claude Code sessions do not record instruction files.** By default the drift check uses your *current* `CLAUDE.md` files, which may differ from what applied at the time.
+- **Developer-log figures are under-counted.** During development the compressed Codex logs were not read, so those figures miss part of the Codex activity. The tool reads them.
+- **Rubric v2.1 passes the pre-registered quality criteria** (P1, P2 and P4 on public data; P3 on 15 developer sessions per model). The shift in cause attribution from v2 to v2.1 comes from the wording and cause procedure, not the language (§1.6–§1.8).
+- **The Go program.** Its reproducibility run above made 60 real judge calls. Every call accepted the lock-down flags, stayed one turn with no tool use, and parsed without schema problems. Under the research tool's frozen prices it reproduces that tool's outputs exactly on synthetic fixtures and on the developer's logs, including all 339 cached judgments. Its default prices differ on purpose: they are current list prices, which make Codex amounts several times higher ([development.md](development.md)).
+- **Built on one developer's logs.** Public-data results take priority, and more outside validation is needed.
+
+## Details
+
 > **Which rubric.** §1.1–§1.5 report runs with **rubric v2, written in Korean**. The canonical rubric is now **v2.1 in English** ([rubric.md](rubric.md)). It differs from v2 in three ways at once: language, wording, and a fixed cause procedure. On public data, v2.1 passes P1, P2 and P4 (§1.6). With the Go tool it passes P3 reproducibility on 15 sessions per model (§1.7). Every pre-registered quality criterion of the publication rule (P1, P3, P4) has passed for v2.1. A Korean translation of v2.1 judges like the English text at the level of run-to-run noise (§1.8). The judge's summaries are now written in the user's language; that change was re-checked against run-to-run noise (§1.9). The grouping step that runs after judging is checked in §1.10.
 
 > **Rubric version ids.** The judge sees only Part B of the rubric and the settings rows S1–S10. The id shown by `agent-leeway rubric` is a hash of the whole file, so it changes when the explanatory parts change.

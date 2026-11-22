@@ -30,40 +30,7 @@ release:
     owner: Mango-Juice
     name: agent-leeway
   draft: true
-# Homebrew and Scoop: the tap and bucket repositories do not exist, so nothing is published to them.
-# The formula and manifest are only written to dist/ (skip_upload); nothing is pushed anywhere.
-brews:
-  - repository:
-      owner: Mango-Juice
-      name: homebrew-tap
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"   # a token limited to the tap repo (GITHUB_TOKEN cannot write there)
-    # the formula is written to dist/ only; it is published after the draft release is reviewed and promoted
-    skip_upload: true
-    # commits in the tap/bucket repos are made by automation: a bot identity, never the owner's name/email
-    # (the owner's own commits are signed; an unsigned commit under their identity would show as Unverified)
-    commit_author:
-      name: github-actions[bot]
-      email: 41898282+github-actions[bot]@users.noreply.github.com
-    directory: Formula
-    homepage: https://github.com/Mango-Juice/agent-leeway
-    description: Occasional check-up of Claude Code and Codex logs (cost leaks and intent drift)
-    license: MIT
-    install: |
-      bin.install "agent-leeway"
-      prefix.install "LICENSE", "NOTICE.md", "THIRD_PARTY_LICENSES.txt"
-    test: |
-      system "#{bin}/agent-leeway", "--version"
-scoops:
-  - repository:
-      owner: Mango-Juice
-      name: scoop-bucket
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"   # a token limited to the bucket repo
-    skip_upload: true                        # written to dist/ only, published after the draft is promoted
-    # commits in the tap/bucket repos are made by automation: a bot identity, never the owner's name/email
-    # (the owner's own commits are signed; an unsigned commit under their identity would show as Unverified)
-    commit_author:
-      name: github-actions[bot]
-      email: 41898282+github-actions[bot]@users.noreply.github.com
-    homepage: https://github.com/Mango-Juice/agent-leeway
-    description: Occasional check-up of Claude Code and Codex logs (cost leaks and intent drift)
-    license: MIT
+# Homebrew and Scoop: this repository is the tap (Formula/) and the bucket (bucket/). The two files are
+# regenerated from the published release's checksums.txt by .github/workflows/packages.yml (cmd/genpackages),
+# so GoReleaser publishes nothing there (its formula publisher is deprecated since v2.10 and would need a token
+# for another repository).

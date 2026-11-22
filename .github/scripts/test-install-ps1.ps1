@@ -6,6 +6,8 @@
 #      does not add it twice
 #   3. a checksum mismatch fails and installs nothing
 #   4. install-skills / uninstall-skills write and remove only their own files (temporary home)
+#   4b. the installer adds the skill itself (both agents, re-run, LEEWAY_NO_SKILLS, no agent present)
+#   4c. the same with a release from before install-skills --auto (a v0.1.0 stand-in)
 #   5. uninstall as documented (delete the folder, remove it from the user Path) leaves nothing behind
 # install.ps1 runs in this script's scope (irm | iex), so its variables ($Exe, $Dest, $Tmp, ...) land here too;
 # this script uses other names ($LeewayExe, $GoodDest, $BadInstallDir) and only shares ones with equal values ($Name, $Arch, $Archive).
@@ -31,7 +33,20 @@ foreach ($f in @('LICENSE', 'NOTICE.md', 'THIRD_PARTY_LICENSES.txt')) {
   $src = Join-Path $Repo $f
   if (Test-Path $src) { Copy-Item $src $Build } else { Set-Content -Path (Join-Path $Build $f) -Value "text of $f" }
 }
+# a stand-in for the v0.1.0 release: install-skills without --auto (internal/install/testdata/v010stub)
+$OldBuild = Join-Path $Work 'build old'
+New-Item -ItemType Directory -Path $OldBuild | Out-Null
+Push-Location $Repo
+& go build -trimpath -o (Join-Path $OldBuild "$Name.exe") ./internal/install/testdata/v010stub
+if ($LASTEXITCODE -ne 0) { throw 'go build of the v0.1.0 stand-in failed' }
+Pop-Location
+Get-ChildItem -Path $Build -Exclude "$Name.exe" | Copy-Item -Destination $OldBuild
 $Serve = Join-Path $Work 'serve'
+$d = Join-Path $Serve 'old'
+New-Item -ItemType Directory -Force -Path $d | Out-Null
+Compress-Archive -Path (Join-Path $OldBuild '*') -DestinationPath (Join-Path $d $Archive)
+$h = (Get-FileHash -Algorithm SHA256 (Join-Path $d $Archive)).Hash.ToLower()
+Set-Content -Path (Join-Path $d 'checksums.txt') -Value "$h  $Archive" -Encoding ascii
 foreach ($kind in @('good', 'bad')) {
   $d = Join-Path $Serve $kind
   New-Item -ItemType Directory -Force -Path $d | Out-Null
@@ -70,6 +85,7 @@ try {
   # --- 1, 2: install as users do ---------------------------------------------------------------------------------
   $GoodDest = Join-Path $Work 'install dir'
   $env:LEEWAY_RELEASE_BASE = "$Url/good"; $env:LEEWAY_INSTALL_DIR = $GoodDest
+  $env:LEEWAY_NO_SKILLS = '1'   # sections 1-3 leave the runner's own profile alone; 4b tests the skill step
   irm "$Url/install.ps1" | iex
   $LeewayExe = Join-Path $GoodDest "$Name.exe"
   Check (Test-Path $LeewayExe) 'program installed'
@@ -109,6 +125,60 @@ try {
     foreach ($k in $saved.Keys) { Set-Item -Path "env:$k" -Value $saved[$k] -ErrorAction SilentlyContinue }
   }
 
+  # --- 4b: the installer's skill step, in temporary homes -----------------------------------------------------
+  $env:LEEWAY_RELEASE_BASE = "$Url/good"; $env:LEEWAY_INSTALL_DIR = $GoodDest
+  $saved = @{ USERPROFILE = $env:USERPROFILE; HOME = $env:HOME; CLAUDE_CONFIG_DIR = $env:CLAUDE_CONFIG_DIR; CODEX_HOME = $env:CODEX_HOME; LEEWAY_NO_SKILLS = $env:LEEWAY_NO_SKILLS }
+  function InstallInto($h, $optOut) {
+    $env:USERPROFILE = $h; $env:HOME = $h
+    Remove-Item env:CLAUDE_CONFIG_DIR, env:CODEX_HOME -ErrorAction SilentlyContinue
+    if ($optOut) { $env:LEEWAY_NO_SKILLS = '1' } else { Remove-Item env:LEEWAY_NO_SKILLS -ErrorAction SilentlyContinue }
+    # join the records as they are: Out-String would wrap long lines at the host width
+    $o = (& { irm "$Url/install.ps1" | iex } 6>&1 | ForEach-Object { "$_" }) -join "`n"
+    Write-Host $o
+    return $o
+  }
+  try {
+    $H1 = Join-Path $Work 'home both'
+    New-Item -ItemType Directory -Force -Path (Join-Path $H1 '.claude'), (Join-Path $H1 '.codex') | Out-Null
+    $own = Join-Path $H1 '.agents\skills\agent-leeway\SKILL.md'
+    New-Item -ItemType Directory -Force -Path (Split-Path $own) | Out-Null
+    Set-Content -Path $own -Value 'my own skill'
+    $o = InstallInto $H1 $false
+    $c1 = Join-Path $H1 '.claude\skills\agent-leeway\SKILL.md'
+    Check ((Test-Path $c1) -and ((Get-Content -Raw $own) -like '*--tool codex*')) 'installer added both skills'
+    Check ($o -like '*Claude Code: added the skill:*(undo: agent-leeway uninstall-skills --claude)*') 'installer says what it wrote and how to undo it'
+    Check ($o -like '*Next: ask Claude Code or Codex for a "leeway report"*') 'closing line is the next action'
+    Check (@(Get-ChildItem -Path (Split-Path $own) -Filter 'SKILL.md.bak-*').Count -eq 1) "the user's own skill was backed up"
+    $o = InstallInto $H1 $false
+    Check (([regex]::Matches($o, 'the skill is already up to date')).Count -eq 2) 're-run leaves the skills as they are'
+    Check (@(Get-ChildItem -Path (Split-Path $own) -Filter 'SKILL.md.bak-*').Count -eq 1) 're-run makes no second backup'
+    $H2 = Join-Path $Work 'home optout'
+    New-Item -ItemType Directory -Force -Path (Join-Path $H2 '.claude') | Out-Null
+    $o = InstallInto $H2 $true
+    Check (($o -like '*Skills: not added (LEEWAY_NO_SKILLS is set).*') -and -not (Test-Path (Join-Path $H2 '.claude\skills'))) 'LEEWAY_NO_SKILLS skips the skill'
+    $H3 = Join-Path $Work 'home none'
+    New-Item -ItemType Directory -Force -Path $H3 | Out-Null
+    $o = InstallInto $H3 $false
+    Check (($o -like '*Skills: not added. No Claude Code or Codex found*') -and ($o -notlike '*see the message above*') -and (Test-Path $LeewayExe)) 'no agent: one line, install still done'
+    Check ($LASTEXITCODE -eq 0) 'the installer leaves $LASTEXITCODE at 0'
+
+    # --- 4c: a release from before --auto ---------------------------------------------------------------------
+    $env:LEEWAY_RELEASE_BASE = "$Url/old"
+    $H4 = Join-Path $Work 'home old both'
+    New-Item -ItemType Directory -Force -Path (Join-Path $H4 '.claude'), (Join-Path $H4 '.codex') | Out-Null
+    $o = InstallInto $H4 $false
+    Check ((Test-Path (Join-Path $H4 '.claude\skills\agent-leeway\SKILL.md')) -and (Test-Path (Join-Path $H4 '.agents\skills\agent-leeway\SKILL.md'))) 'older release: installer added both skills'
+    Check (($o -like '*Next: ask Claude Code or Codex for a "leeway report"*') -and ($o -notlike '*flag provided but not defined*') -and ($o -notlike '*see the message above*')) 'older release: no flag error, next action shown'
+    $H5 = Join-Path $Work 'home old none'
+    New-Item -ItemType Directory -Force -Path $H5 | Out-Null
+    $o = InstallInto $H5 $false
+    Check (($o -like '*Skills: not added. No Claude Code or Codex found*') -and ($o -notlike '*Neither Claude Code*') -and ($o -notlike '*see the message above*')) 'older release, no agent: one line'
+    Check ($LASTEXITCODE -eq 0) 'older release: $LASTEXITCODE left at 0'
+    $env:LEEWAY_RELEASE_BASE = "$Url/good"
+  } finally {
+    foreach ($k in $saved.Keys) { if ($null -eq $saved[$k]) { Remove-Item "env:$k" -ErrorAction SilentlyContinue } else { Set-Item -Path "env:$k" -Value $saved[$k] } }
+  }
+
   # --- 5: uninstall as documented --------------------------------------------------------------------------------
   Remove-Item -Recurse -Force $GoodDest
   $keep = @([Environment]::GetEnvironmentVariable('Path', 'User') -split ';' | Where-Object { $_ -ne '' -and $_.TrimEnd('\') -ine $GoodDest.TrimEnd('\') })
@@ -122,3 +192,4 @@ try {
 }
 if ($fail -gt 0) { Write-Host "$fail check(s) failed"; exit 1 }
 Write-Host 'all install.ps1 checks passed'
+exit 0   # the runner's wrapper exits with $LASTEXITCODE otherwise

@@ -436,3 +436,27 @@ func TestGroupingOnlyForJudgedTools(t *testing.T) {
 		t.Errorf("grouping records: %d", len(g))
 	}
 }
+
+// drift and report follow --lang: the Korean dry run has no English interface line left.
+func TestDriftDryRunFollowsLang(t *testing.T) {
+	fixtureEnv(t)
+	_, errs, rc := run(t, "drift", "--dry-run", "--lang", "ko", "--include-auto", "--no-current-instructions")
+	if rc != 0 {
+		t.Fatalf("rc %d %s", rc, errs)
+	}
+	for _, want := range []string{"이탈 점검 ·", "이 기간 세션:", "판정 뒤 뜻으로 묶기: Claude Code 켬, Codex 켬", "개인정보:", "--dry-run: 예상만"} {
+		if !strings.Contains(errs, want) {
+			t.Errorf("Korean dry run lacks %q:\n%s", want, errs)
+		}
+	}
+	for _, bad := range []string{"Drift check", "Privacy:", "Sessions in the window", "Grouping by meaning", "estimate only", "Read Claude Code logs"} {
+		if strings.Contains(errs, bad) {
+			t.Errorf("English line %q in the Korean dry run", bad)
+		}
+	}
+	// and the next command in English is English again
+	_, errs, _ = run(t, "drift", "--dry-run", "--lang", "en", "--include-auto", "--no-current-instructions")
+	if !strings.Contains(errs, "Drift check ·") || strings.Contains(errs, "이탈 점검") {
+		t.Errorf("English after Korean:\n%s", errs)
+	}
+}

@@ -2,8 +2,10 @@
 #   irm https://raw.githubusercontent.com/Mango-Juice/agent-leeway/main/install/install.ps1 | iex
 # Downloads the release zip for this system from GitHub Releases, checks it against checksums.txt, puts
 # agent-leeway.exe and its license texts in %LOCALAPPDATA%\Programs\agent-leeway and adds that folder to the USER Path only.
-# No administrator rights; the machine Path is never changed.
-# Optional: $env:LEEWAY_VERSION = 'v0.1.0' (default: latest), $env:LEEWAY_RELEASE_BASE = '<url>'.
+# No administrator rights; the machine Path is never changed. Then runs `agent-leeway install-skills --auto`, which
+# adds the skill for Claude Code and Codex if their folders exist (a SKILL.md it did not write is backed up first).
+# Optional: $env:LEEWAY_VERSION = 'v0.1.0' (default: latest), $env:LEEWAY_RELEASE_BASE = '<url>',
+# $env:LEEWAY_NO_SKILLS = '1' (install the program only).
 # Everything runs inside a script block, so nothing (variables, $ErrorActionPreference) is left in the caller's
 # session when it is run as `irm ... | iex`.
 & {
@@ -67,7 +69,42 @@
     } finally {
       $Key.Close()
     }
-    Write-Host "Next: $Name install-skills   (adds the skill to Claude Code and Codex), then ask your agent for a leeway report."
+    # The skill for Claude Code and Codex. Never fails the install: the program is in place either way.
+    # install-skills --auto: 0 = written or up to date, 3 = no agent folder found (it says so), else an error.
+    $Installed = Join-Path $Dest "$Name.exe"
+    $Skills = $false
+    if ($env:LEEWAY_NO_SKILLS -and $env:LEEWAY_NO_SKILLS -ne '0') {
+      Write-Host 'Skills: not added (LEEWAY_NO_SKILLS is set).'
+    } else {
+      $Rc = 1
+      $Eap = $ErrorActionPreference
+      try {
+        # stderr of a native program must not stop the script here (Windows PowerShell 5.1 turns it into errors)
+        $ErrorActionPreference = 'Continue'
+        $Help = (& $Installed install-skills -h 2>&1 | ForEach-Object { "$_" }) -join "`n"
+        if ($Help -match '-auto') {
+          & $Installed install-skills --auto | ForEach-Object { Write-Host $_ }; $Rc = $LASTEXITCODE
+        } else {
+          # a release from before --auto (v0.1.0): plain install-skills, whose "none found" message means 3 here
+          $Out = @(& $Installed install-skills 2>&1 | ForEach-Object { "$_" }); $Rc = $LASTEXITCODE
+          if (($Out -join "`n") -like '*Neither Claude Code nor Codex was found*') {
+            $Rc = 3
+            Write-Host 'Skills: not added. No Claude Code or Codex found on this computer (no .claude or .codex folder in your user folder).'
+          } else {
+            $Out | Where-Object { $_ -notlike 'Ask your agent for a*' } | ForEach-Object { Write-Host $_ }
+          }
+        }
+      } catch { Write-Host "$_" } finally { $ErrorActionPreference = $Eap }
+      # the install itself succeeded: do not leave install-skills' exit code (3 = no agent) in the caller's session
+      $global:LASTEXITCODE = 0
+      if ($Rc -eq 0) { $Skills = $true }
+      elseif ($Rc -ne 3) { Write-Host "Skills: not added (see the message above). The program is installed; run ``$Name install-skills`` to try again." }
+    }
+    if ($Skills) {
+      Write-Host "Next: ask Claude Code or Codex for a `"leeway report`". In a terminal instead: $Name report"
+    } else {
+      Write-Host "Next: run ``$Name install-skills`` once (after installing Claude Code or Codex, if neither is here), then ask Claude Code or Codex for a `"leeway report`". In a terminal instead: $Name report"
+    }
   } finally {
     Remove-Item -Recurse -Force $Tmp -ErrorAction SilentlyContinue
   }

@@ -90,12 +90,12 @@ func TestSkillHasNoShellSpecificSyntax(t *testing.T) {
 
 // The published skill folder (for `npx skills add`) is the rendered template.
 func TestRepoSkillIsRendered(t *testing.T) {
-	b, err := os.ReadFile(repo("skill", "agent-leeway", "SKILL.md"))
+	b, err := os.ReadFile(repo("skills", "agent-leeway", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(b) != string(install.SkillFor(install.RepoCopy, "")) {
-		t.Error("skill/agent-leeway/SKILL.md is stale: run `go run ./cmd/agent-leeway debug-write-skill`")
+		t.Error("skills/agent-leeway/SKILL.md is stale: run `go run ./cmd/agent-leeway debug-write-skill`")
 	}
 }
 
@@ -122,5 +122,23 @@ func TestSelfUpdateCheck(t *testing.T) {
 	if !newer("v0.1.0", "0.1.0-dev") || newer("v0.1.0", "0.1.0") || newer("v0.0.9", "0.1.0-dev") ||
 		!newer("v0.2.0", "0.2.0-dev") || newer("v0.1.9", "0.2.0-dev") || newer("v0.2.0", "v0.2.0") || !newer("1.2.3.4", "1.2.3") {
 		t.Error("version order")
+	}
+}
+
+// install-skills --auto (run by the installers): exit 3 with one line when no agent is found, not combined with
+// --claude/--codex.
+func TestInstallSkillsAuto(t *testing.T) {
+	home := skillHome(t)
+	out, _, rc := run(t, "install-skills", "--auto")
+	if rc != 3 || !strings.HasPrefix(out, "Skills: not added. No Claude Code or Codex found") || strings.Count(out, "\n") != 1 {
+		t.Errorf("no agent: rc %d %q", rc, out)
+	}
+	if _, _, rc = run(t, "install-skills", "--auto", "--claude"); rc != 2 {
+		t.Errorf("--auto with --claude: rc %d", rc)
+	}
+	_ = os.MkdirAll(filepath.Join(home, ".codex"), 0o755)
+	out, _, rc = run(t, "install-skills", "--auto")
+	if rc != 0 || !strings.HasPrefix(out, "Codex: added the skill: ") || strings.Contains(out, "Claude Code") || strings.Contains(out, "Ask your agent") {
+		t.Errorf("codex only: rc %d %q", rc, out)
 	}
 }

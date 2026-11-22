@@ -47,7 +47,7 @@ func TestReleaseLocationAgrees(t *testing.T) {
 // No file that ships may still carry the old placeholder (the export check scans for it too).
 func TestNoReleasePlaceholderLeft(t *testing.T) {
 	root := repoRoot(t)
-	roots := []string{"cmd", "internal", "install", "skill", "testdata", ".github", ".goreleaser.yaml", "go.mod"}
+	roots := []string{"cmd", "internal", "install", "skills", "testdata", ".github", ".goreleaser.yaml", "go.mod"}
 	if _, err := os.Stat(filepath.Join(root, "public")); err == nil {
 		roots = append(roots, "public") // research repository: the public docs live here
 	} else {

@@ -44,3 +44,65 @@ jobs:
             GOOS=${t%/*} GOARCH=${t#*/} CGO_ENABLED=0 go build -trimpath -o /tmp/agent-leeway-${t%/*}-${t#*/} ./cmd/agent-leeway
           done
           ls -l /tmp/agent-leeway-*
+  packages:
+    # The repository is the Homebrew tap and the Scoop bucket: install the released binary from this checkout's
+    # Formula/ (macOS, Linux) or bucket/ (Windows), run it and uninstall it.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel, windows-2025, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Homebrew (tap this checkout, install, test, uninstall)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+          HOMEBREW_NO_ANALYTICS: "1"
+        run: |
+          set -euxo pipefail
+          # Linux runners have no brew on PATH; the installer puts it in <parent of $HOME>/linuxbrew/.linuxbrew.
+          linuxbrew="$(dirname "$HOME")/linuxbrew/.linuxbrew/bin/brew"
+          if ! command -v brew >/dev/null; then
+            for b in "$linuxbrew" /opt/homebrew/bin/brew /usr/local/bin/brew; do
+              if [ -x "$b" ]; then eval "$("$b" shellenv)"; break; fi
+            done
+          fi
+          if ! command -v brew >/dev/null; then
+            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            eval "$("$linuxbrew" shellenv)"
+          fi
+          brew tap leeway/agent-leeway "$GITHUB_WORKSPACE"
+          brew install leeway/agent-leeway/agent-leeway
+          "$(brew --prefix)/bin/agent-leeway" --version
+          brew test leeway/agent-leeway/agent-leeway
+          brew audit --strict --formula leeway/agent-leeway/agent-leeway
+          brew uninstall leeway/agent-leeway/agent-leeway
+          brew untap leeway/agent-leeway
+      - name: Scoop (install from the manifest and from the bucket, run, uninstall)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-RestMethod -Uri https://get.scoop.sh -OutFile "$env:RUNNER_TEMP\install-scoop.ps1"
+          & "$env:RUNNER_TEMP\install-scoop.ps1" -RunAsAdmin
+          $env:PATH = "$env:USERPROFILE\scoop\shims;$env:PATH"
+          scoop install "$env:GITHUB_WORKSPACE\bucket\agent-leeway.json"
+          agent-leeway --version
+          if ($LASTEXITCODE -ne 0) { throw 'agent-leeway --version failed' }
+          scoop uninstall agent-leeway
+          # Scoop accepts only Git URLs for a bucket, so the checkout is added as file:///D:/...; a named branch
+          # gives the clone a HEAD to check out (the PR checkout is a detached merge commit).
+          git -C "$env:GITHUB_WORKSPACE" switch -c scoop-bucket-test
+          scoop bucket add agent-leeway ("file:///" + ($env:GITHUB_WORKSPACE -replace '\\', '/'))
+          if (-not (Test-Path "$env:USERPROFILE\scoop\buckets\agent-leeway\bucket\agent-leeway.json")) { throw "bucket not added" }
+          scoop install agent-leeway/agent-leeway
+          agent-leeway --version
+          if ($LASTEXITCODE -ne 0) { throw 'agent-leeway --version failed (bucket)' }
+          & "$(scoop prefix scoop)\bin\checkver.ps1" -App agent-leeway -Dir "$env:GITHUB_WORKSPACE\bucket"
+          scoop uninstall agent-leeway
+          scoop bucket rm agent-leeway

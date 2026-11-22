@@ -6,6 +6,10 @@ package messages
 // flattened with dots ("th_lab.BROKE_FILE", "m_rows.0.1"); "pl.<finding>.<field>" is the plain copy per finding.
 var Story = map[string]map[string]string{
 	"en": {
+		"drift_none_fact":         "The drift check has not been run for this period.",
+		"drift_none_cmd":          "To run it: {cmd}",
+		"drift_none_word":         "not checked",
+		"rating_cost_only":        "Rated on cost only, because the drift check has not been run.",
 		"pic8_drift_h":            "Where the agent went off",
 		"pic8_drift_lead":         "Most often: {a}, in {n} of {j} sessions.",
 		"pic8_drift_val":          "{n} of {j}",
@@ -272,6 +276,10 @@ var Story = map[string]map[string]string{
 		"you_before":              "You, earlier",
 	},
 	"ko": {
+		"drift_none_fact":         "이 기간에는 이탈 점검을 아직 하지 않았습니다.",
+		"drift_none_cmd":          "실행하려면: {cmd}",
+		"drift_none_word":         "점검 안 함",
+		"rating_cost_only":        "이탈 점검을 하지 않아 비용만으로 매긴 등급입니다.",
 		"pic8_drift_h":            "에이전트가 엇나간 곳",
 		"pic8_drift_lead":         "가장 잦은 문제는 '{a}'입니다. 세션 {j}개 중 {n}개에서 있었습니다.",
 		"pic8_drift_val":          "{j}개 중 {n}개",

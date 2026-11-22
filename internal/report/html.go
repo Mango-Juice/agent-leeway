@@ -508,12 +508,21 @@ func (s *Story) HTML() string {
 	// 1 overall: what is rated, the rating, two cards; the hint names the first fix
 	title := fmt.Sprintf(`<div class="title"><p class="kicker" id="s-verdict-h">%s</p><p class="period">%s</p><h1 class="r-%s">%s</h1></div>`,
 		E(s.T("kicker")), E(s.T("period", "a", m.From, "b", m.To)), st.Overall, E(s.T("rating."+st.Overall)))
-	c1 := fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p>%s<p class="dist">%s</p>`, E(s.T("c_drift")), E(s.T("f_drift", "n", st.Serious, "j", m.J)),
-		dots(st.Serious, m.J, "f-agent_drift", 15, 5, 4), E(st.DDrift))
-	if st.Drift != "na" {
-		c1 += track(float64(st.Serious)/math.Max(float64(m.J), 1), DriftCuts, 0.4, scale, st.Drift)
+	var c1 string
+	if s.DriftRun() {
+		c1 = fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p>%s<p class="dist">%s</p>`, E(s.T("c_drift")), E(s.T("f_drift", "n", st.Serious, "j", m.J)),
+			dots(st.Serious, m.J, "f-agent_drift", 15, 5, 4), E(st.DDrift))
+		if st.Drift != "na" {
+			c1 += track(float64(st.Serious)/math.Max(float64(m.J), 1), DriftCuts, 0.4, scale, st.Drift)
+		}
+	} else { // nothing judged in this period: say so, and how to run it
+		c1 = fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p><p class="dist">%s</p>`, E(s.T("c_drift")), E(s.T("drift_none_fact")),
+			strings.Replace(E(s.T("drift_none_cmd", "cmd", s.DriftCmd())), E(s.DriftCmd()), "<code>"+E(s.DriftCmd())+"</code>", 1))
 	}
 	c1 += `</div>`
+	if !s.DriftRun() && st.Cost != "na" {
+		title = strings.Replace(title, `</h1></div>`, `</h1><p class="period">`+E(s.T("rating_cost_only"))+`</p></div>`, 1)
+	}
 	cards := c1
 	kLeak := int(math.Round(st.Share * 100))
 	if m.HasLeak {

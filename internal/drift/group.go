@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Mango-Juice/agent-leeway/internal/config"
+	"github.com/Mango-Juice/agent-leeway/internal/messages"
 	"github.com/Mango-Juice/agent-leeway/internal/proc"
 	"github.com/Mango-Juice/agent-leeway/internal/py"
 )
@@ -373,9 +374,9 @@ func GroupAll(ctx context.Context, cache string, records []py.Value, tiers map[s
 			continue
 		}
 		evs := GroupInput(records, tool)
-		name := map[string]string{"claude": "Claude Code", "codex": "Codex"}[tool]
+		name := messages.Tool[tool]
 		if !Groupable(evs) {
-			out.Lines = append(out.Lines, "Grouping, "+name+": nothing to group (fewer than two sessions with problems); no call.")
+			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_nothing"], "tool", name))
 			continue
 		}
 		prompt := GroupPrompt(evs)
@@ -387,7 +388,7 @@ func GroupAll(ctx context.Context, cache string, records []py.Value, tiers map[s
 			}
 		}
 		if cached {
-			out.Lines = append(out.Lines, "Grouping, "+name+": the judged problems are unchanged since the last grouping; no call.")
+			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_unchanged"], "tool", name))
 			continue
 		}
 		sessions := map[string]bool{}
@@ -396,7 +397,7 @@ func GroupAll(ctx context.Context, cache string, records []py.Value, tiers map[s
 		}
 		est := GroupEstimateUSD(tier, len(sessions))
 		if o.Budget > 0 && spent+out.Spent+est > o.Budget {
-			out.Lines = append(out.Lines, "Grouping, "+name+": skipped, it would go over the budget of $"+py.PyStr(py.Value{K: py.Float, F: o.Budget})+".")
+			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_budget"], "tool", name, "b", o.Budget))
 			continue
 		}
 		text, u, sec, err := Call(ctx, tier, GroupSystem, prompt, o.Timeout)
@@ -408,11 +409,11 @@ func GroupAll(ctx context.Context, cache string, records []py.Value, tiers map[s
 			return out
 		case errors.As(err, &lim):
 			out.Stop = "usage limit: " + py.Head(lim.Msg, 120)
-			out.Lines = append(out.Lines, "Grouping, "+name+": stopped by a usage limit; the report uses the problems one by one.")
+			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_limit"], "tool", name))
 			return out
 		case errors.As(err, &cfg):
 			out.Stop = py.Head(cfg.Msg, 300)
-			out.Lines = append(out.Lines, "Grouping, "+name+": not run ("+out.Stop+").")
+			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_not_run"], "tool", name, "msg", out.Stop))
 			return out
 		}
 		rec := &py.Object{}
@@ -484,13 +485,13 @@ func GroupAll(ctx context.Context, cache string, records []py.Value, tiers map[s
 		appendGroup(cache, py.Value{K: py.Obj, O: rec})
 		switch {
 		case errText != "":
-			out.Lines = append(out.Lines, "Grouping, "+name+": failed ("+py.Head(errText, 80)+"); the report uses the problems one by one.")
+			out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_failed"], "tool", name, "msg", py.Head(errText, 80)))
 		default:
-			l := "Grouping, " + name + ": " + itoa(len(themes)) + " theme(s) across sessions"
 			if len(dropped) > 0 {
-				l += ", " + itoa(len(dropped)) + " dropped by the checks"
+				out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_done_dropped"], "tool", name, "n", len(themes), "d", len(dropped)))
+			} else {
+				out.Lines = append(out.Lines, fmtMsg(messages.Drift["group_done"], "tool", name, "n", len(themes)))
 			}
-			out.Lines = append(out.Lines, l+".")
 		}
 	}
 	return out

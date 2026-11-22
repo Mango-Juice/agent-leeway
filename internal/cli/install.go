@@ -35,12 +35,23 @@ func skillFlags(name string, errw io.Writer) (*flag.FlagSet, *bool, *bool, *bool
 
 func cmdInstallSkills(args []string, out, errw io.Writer) int {
 	fs, claude, codex, dry := skillFlags("install-skills", errw)
+	auto := fs.Bool("auto", false, "for the installers: every agent found here; exit 3 (not 1) when none is found")
 	if err := fs.Parse(args); err != nil {
 		return helpRC(err)
 	}
+	if *auto && (*claude || *codex) {
+		fmt.Fprintln(errw, "--auto picks the agents itself; leave out --claude and --codex")
+		return 2
+	}
 	targets := install.Pick(*claude, *codex)
 	if len(targets) == 0 {
-		fmt.Fprintln(errw, "Neither Claude Code nor Codex was found on this computer; pass --claude or --codex to install anyway.")
+		all := install.Targets()
+		msg := fmt.Sprintf("No Claude Code or Codex found on this computer (no %s or %s folder)", all[0].Root, all[1].Root)
+		if *auto {
+			fmt.Fprintf(out, "Skills: not added. %s.\n", msg)
+			return 3 // the installers tell this apart from an error
+		}
+		fmt.Fprintf(errw, "%s; pass --claude or --codex to install anyway.\n", msg)
 		return 1
 	}
 	log, err := install.Install(targets, *dry)
@@ -51,7 +62,7 @@ func cmdInstallSkills(args []string, out, errw io.Writer) int {
 		fmt.Fprintln(errw, err)
 		return 1
 	}
-	if !*dry {
+	if !*dry && !*auto {
 		fmt.Fprintf(out, "Ask your agent for a \"leeway report\" (or a leak check). Remove with `%s uninstall-skills`.\n", config.Name)
 	}
 	return 0

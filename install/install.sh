@@ -3,8 +3,10 @@
 #   curl -fsSL https://raw.githubusercontent.com/Mango-Juice/agent-leeway/main/install/install.sh | sh
 # Downloads the release archive for this system from GitHub Releases, checks it against checksums.txt and
 # installs the single executable into ~/.local/bin (or $LEEWAY_INSTALL_DIR) and its license texts into
-# ~/.local/share/agent-leeway. No sudo, nothing else changes.
-# Optional: LEEWAY_VERSION=v0.1.0 (default: latest), LEEWAY_RELEASE_BASE=<url> (another release location).
+# ~/.local/share/agent-leeway, then runs `agent-leeway install-skills --auto`, which adds the skill for Claude Code
+# and Codex if their folders exist (a SKILL.md it did not write is backed up first). No sudo, nothing else changes.
+# Optional: LEEWAY_VERSION=v0.1.0 (default: latest), LEEWAY_RELEASE_BASE=<url> (another release location),
+# LEEWAY_NO_SKILLS=1 (install the program only).
 set -eu
 
 # The whole script is a function called on the last line: a truncated download (curl | sh) runs nothing.
@@ -80,12 +82,46 @@ main() {
   done
   echo "License texts: $DOCS"
 
+  ONPATH=1
   case ":$PATH:" in
     *":$DEST:"*) ;;
-    *) echo "Note: $DEST is not on your PATH. Add this line to your shell profile:"
+    *) ONPATH=0
+       echo "Note: $DEST is not on your PATH. Add this line to your shell profile:"
        echo "  export PATH=\"$DEST:\$PATH\"" ;;
   esac
-  echo "Next: $NAME install-skills   (adds the skill to Claude Code and Codex), then ask your agent for a leeway report."
+
+  # The skill for Claude Code and Codex. Never fails the install: the program is in place either way.
+  # install-skills --auto: 0 = written or up to date, 3 = no agent folder found (it says so), else an error.
+  SKILLS=0
+  if [ -n "${LEEWAY_NO_SKILLS:-}" ] && [ "${LEEWAY_NO_SKILLS}" != "0" ]; then
+    echo "Skills: not added (LEEWAY_NO_SKILLS is set)."
+  else
+    RC=0
+    if "$DEST/$NAME" install-skills -h 2>&1 | grep -q -e '-auto'; then
+      "$DEST/$NAME" install-skills --auto || RC=$?
+    else
+      # a release from before --auto (v0.1.0): plain install-skills, whose "none found" message means 3 here
+      OUT=$("$DEST/$NAME" install-skills 2>&1) || RC=$?
+      case "$OUT" in
+        *"Neither Claude Code nor Codex was found"*)
+          RC=3
+          echo "Skills: not added. No Claude Code or Codex found on this computer (no ~/.claude or ~/.codex folder)." ;;
+        *) [ -z "$OUT" ] || printf '%s\n' "$OUT" | grep -v '^Ask your agent for a' || true ;;
+      esac
+    fi
+    if [ "$RC" = 0 ]; then SKILLS=1
+    elif [ "$RC" != 3 ]; then
+      echo "Skills: not added (see the message above). The program is installed; run \`$NAME install-skills\` to try again."
+    fi
+  fi
+
+  CMD="$NAME"
+  [ "$ONPATH" = 1 ] || CMD="$DEST/$NAME"
+  if [ "$SKILLS" = 1 ]; then
+    echo "Next: ask Claude Code or Codex for a \"leeway report\". In a terminal instead: $CMD report"
+  else
+    echo "Next: run \`$CMD install-skills\` once (after installing Claude Code or Codex, if neither is here), then ask Claude Code or Codex for a \"leeway report\". In a terminal instead: $CMD report"
+  fi
 }
 
 main "$@"

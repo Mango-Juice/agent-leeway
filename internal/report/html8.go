@@ -99,6 +99,11 @@ func (s *Story) pictureSection() string {
 	if len(m.Verdicts) < 2 {
 		head = s.T("pic_judge1")
 	}
+	if !s.DriftRun() {
+		fmt.Fprintf(&b, `<div class="blk8 judges8"><h3>%s</h3><p class="lead8">%s</p><p class="jnote8">%s</p></div>`, E(s.T("pic8_drift_h")), E(s.T("drift_none_fact")),
+			strings.Replace(E(s.T("drift_none_cmd", "cmd", s.DriftCmd())), E(s.DriftCmd()), "<code>"+E(s.DriftCmd())+"</code>", 1))
+		return b.String()
+	}
 	fmt.Fprintf(&b, `<div class="blk8 judges8"><h3>%s</h3>`, E(head))
 	for _, v := range m.Verdicts {
 		fmt.Fprintf(&b, `<div class="jrow"><p class="jname">%s <span>· %s</span></p><div class="stack8" role="img" aria-label="%s">`,

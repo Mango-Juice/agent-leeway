@@ -2,6 +2,28 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [0.1.1] - 2026-11-23
+
+### Added
+- Homebrew and Scoop installs from this repository, which is also the tap (`Formula/`) and the bucket (`bucket/`):
+  - `brew tap mango-juice/agent-leeway https://github.com/Mango-Juice/agent-leeway`, then `brew install mango-juice/agent-leeway/agent-leeway`.
+  - `scoop bucket add agent-leeway https://github.com/Mango-Juice/agent-leeway`, then `scoop install agent-leeway`.
+  - Both install the released binaries, checked against the release's SHA-256 sums.
+  - Publishing a release updates both files from that release's `checksums.txt` (a workflow commit by github-actions[bot], no personal token).
+- The one-line installers (`install.sh`, `install.ps1`) finish by adding the skill for Claude Code and Codex when their folders exist (`agent-leeway install-skills --auto`), print what they wrote and how to undo it, and end with the next step: ask your agent for a "leeway report". `LEEWAY_NO_SKILLS=1` skips the skill. A failure of this step leaves the program installed. Homebrew and Scoop print a note to run `agent-leeway install-skills` once.
+- `npx skills add Mango-Juice/agent-leeway` finds the skill: the repository copy moved from `skill/` to `skills/agent-leeway/`, where the skills CLI looks.
+
+### Changed
+- `install-skills` prints one line per agent with the file it wrote and the command that undoes it. When a skill folder is a link to another copy of this skill (as `npx skills add -g` makes for Claude Code), the link is replaced by a folder of its own, so each agent keeps its own copy. A link to any other skill is left alone.
+- When agent-leeway is not installed, the skill tells the agent to show the install line and ask before running it.
+- The READMEs are shorter. Install details, commands and settings, how the checks work, and privacy moved to `docs/install.md`, `docs/commands.md`, `docs/how-it-works.md` and `docs/privacy.md`. The validation summary moved to `docs/validation.md`.
+
+### Fixed
+- With no drift results in the period, the report and the terminal summary no longer say "0 of 0 sessions". They say that the drift check has not been run, give the command to run it, and say that the rating rests on cost only.
+- `drift` and `report` follow `--lang` (and the detected language) for every interface line, including the pre-run text, progress, folder notes and the privacy line.
+
 ## [0.1.0] - 2026-11-22
 
 ### Added

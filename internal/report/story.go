@@ -729,3 +729,15 @@ func (s *Story) CasesFor(f *Finding, th *Thing) []*Event {
 	}
 	return out
 }
+
+// DriftRun says whether any session in the period was judged; without it the rating rests on cost only.
+func (s *Story) DriftRun() bool { return s.M.J > 0 }
+
+// DriftCmd is the command that runs the drift check for this report's period.
+func (s *Story) DriftCmd() string {
+	d := s.M.Days
+	if d <= 0 {
+		d = 30
+	}
+	return fmt.Sprintf("agent-leeway drift --since %dd", d)
+}

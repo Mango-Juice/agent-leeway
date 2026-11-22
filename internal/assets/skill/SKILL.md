@@ -53,10 +53,15 @@ bill).
 
 ## If agent-leeway is not installed
 
-If running `agent-leeway` fails because the command is not found, do not download or install anything
-yourself. Tell the user to install it with the line for their system, then stop:
+If running `agent-leeway` fails because the command is not found, do not download or install anything on your
+own. Show the user the install line for their system and ask whether you should run it:
 
 - macOS or Linux: `{{INSTALL_SH}}`
 - Windows (PowerShell): `{{INSTALL_PS1}}`
+
+Run it only after the user says yes in this conversation. It downloads the release from GitHub, checks it
+against the release's checksums, installs the program and adds this skill for Claude Code and Codex. Then run
+your command again, with the full path the installer printed if `agent-leeway` is still not found (a new
+terminal picks up the PATH change).
 
 <!-- agent-leeway skill {{VERSION}} sha256:{{HASH}} (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->

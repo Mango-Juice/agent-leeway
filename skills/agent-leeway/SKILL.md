@@ -53,10 +53,15 @@ bill).
 
 ## If agent-leeway is not installed
 
-If running `agent-leeway` fails because the command is not found, do not download or install anything
-yourself. Tell the user to install it with the line for their system, then stop:
+If running `agent-leeway` fails because the command is not found, do not download or install anything on your
+own. Show the user the install line for their system and ask whether you should run it:
 
 - macOS or Linux: `curl -fsSL https://raw.githubusercontent.com/Mango-Juice/agent-leeway/main/install/install.sh | sh`
 - Windows (PowerShell): `irm https://raw.githubusercontent.com/Mango-Juice/agent-leeway/main/install/install.ps1 | iex`
 
-<!-- agent-leeway skill repository copy sha256:3df61a9bd1709e593dfa97e54e4953b7420b84276f91597698416930d840e1b8 (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->
+Run it only after the user says yes in this conversation. It downloads the release from GitHub, checks it
+against the release's checksums, installs the program and adds this skill for Claude Code and Codex. Then run
+your command again, with the full path the installer printed if `agent-leeway` is still not found (a new
+terminal picks up the PATH change).
+
+<!-- agent-leeway skill repository copy sha256:2d10bdca40fc9488b1053955e1ae54e86a545facd9674807243f2f3c77246bc2 (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->

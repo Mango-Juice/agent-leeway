@@ -33,7 +33,7 @@ func Skill() []byte { return SkillFor(meta.Version, "claude") }
 // SkillForAgent is the copy installed for one agent (claude or codex): it judges that agent's sessions by default.
 func SkillForAgent(agent string) []byte { return SkillFor(meta.Version, agent) }
 
-// RepoCopy is the version-independent copy published in the repository (skill/agent-leeway/SKILL.md),
+// RepoCopy is the version-independent copy published in the repository (skills/agent-leeway/SKILL.md, where the skills CLI looks),
 // for people who install skills with `npx skills add`.
 const RepoCopy = "repository copy"
 
@@ -101,28 +101,57 @@ func ours(b []byte) bool {
 	return line[j+7:j+7+64] == hex.EncodeToString(sum[:])
 }
 
-// Install writes SKILL.md for each target. dryRun only reports. Returns one line per action.
+// AgentName is "Claude Code" or "Codex".
+func AgentName(agent string) string {
+	return map[string]string{"claude": "Claude Code", "codex": "Codex"}[agent]
+}
+
+// Install writes SKILL.md for each target. dryRun only reports. Returns one line per action: what was written
+// and where, and how to undo it.
+//
+// A target folder that is a symbolic link (the skills CLI links ~/.claude/skills/agent-leeway to its copy in
+// ~/.agents/skills) would make both agents share one file, so: a link to a copy of this skill is replaced by a
+// folder of its own (the link only; what it points to stays), and a link to anything else is left alone.
+// A copy of this skill is any SKILL.md that carries its own valid marker line, including the repository copy.
 func Install(targets []Target, dryRun bool) ([]string, error) {
 	var log []string
 	for _, t := range targets {
+		name := AgentName(t.Agent)
+		undo := fmt.Sprintf("undo: %s uninstall-skills --%s", config.Name, t.Agent)
 		body := SkillForAgent(t.Agent)
 		p := filepath.Join(t.Dir, "SKILL.md")
+		if fi, err := os.Lstat(t.Dir); err == nil && fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 { // a Windows junction is ModeIrregular
+			dest, _ := os.Readlink(t.Dir)
+			if b, err := os.ReadFile(p); err != nil || !ours(b) {
+				log = append(log, fmt.Sprintf("%s: %s is a link to %s, which holds a skill %s did not write; left as is", name, t.Dir, dest, config.Name))
+				continue
+			}
+			log = append(log, fmt.Sprintf("%s: %s was a link to %s (another copy of this skill); it gets a folder of its own", name, t.Dir, dest))
+			if !dryRun {
+				if err := os.Remove(t.Dir); err != nil {
+					return log, err
+				}
+			}
+		}
 		old, err := os.ReadFile(p)
+		verb := "added"
 		switch {
 		case err == nil && bytes.Equal(old, body):
-			log = append(log, fmt.Sprintf("%s: already up to date (%s)", t.Agent, p))
+			log = append(log, fmt.Sprintf("%s: the skill is already up to date: %s (%s)", name, p, undo))
 			continue
 		case err == nil && !ours(old):
 			bak := p + ".bak-" + time.Now().Format("20060102-150405")
-			log = append(log, fmt.Sprintf("%s: existing %s was not written by %s; backed up to %s", t.Agent, p, config.Name, bak))
+			log = append(log, fmt.Sprintf("%s: your own %s was not written by %s; backed up to %s", name, p, config.Name, bak))
 			if !dryRun {
 				if err := os.Rename(p, bak); err != nil {
 					return log, err
 				}
 			}
+		case err == nil:
+			verb = "updated"
 		}
-		log = append(log, fmt.Sprintf("%s: write %s", t.Agent, p))
 		if dryRun {
+			log = append(log, fmt.Sprintf("%s: would write the skill to %s", name, p))
 			continue
 		}
 		if err := os.MkdirAll(t.Dir, 0o755); err != nil {
@@ -130,11 +159,14 @@ func Install(targets []Target, dryRun bool) ([]string, error) {
 		}
 		tmp := p + ".tmp"
 		if err := os.WriteFile(tmp, body, 0o644); err != nil {
+			_ = os.Remove(tmp)
 			return log, err
 		}
 		if err := os.Rename(tmp, p); err != nil {
+			_ = os.Remove(tmp)
 			return log, err
 		}
+		log = append(log, fmt.Sprintf("%s: %s the skill: %s (%s)", name, verb, p, undo))
 	}
 	return log, nil
 }

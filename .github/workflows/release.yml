@@ -2,8 +2,8 @@
 # A pushed version tag (v*) runs three jobs:
 #   test     go vet, go test and the license check, with no secrets and read-only permissions;
 #   build    GoReleaser (pinned version) builds the six targets into a draft GitHub Release with checksums.txt;
-#            it gets only GITHUB_TOKEN (contents: write). The Homebrew formula and Scoop manifest are written
-#            to dist/ and NOT pushed (skip_upload): publish them after the draft is reviewed and promoted.
+#            it gets only GITHUB_TOKEN (contents: write). Publishing the reviewed draft starts packages.yml,
+#            which updates Formula/ and bucket/ in this repository from the release's checksums.txt.
 #   attest   attests build provenance for every archive listed in checksums.txt; only this job can mint an
 #            OIDC token (id-token: write), and it runs no project code.
 # Users verify a download with:  gh attestation verify <archive> -R Mango-Juice/agent-leeway

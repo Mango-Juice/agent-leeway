@@ -7,6 +7,9 @@ import (
 // The terminal summary and the Markdown report follow the HTML's section order (docs/24 §17.8).
 
 func (s *Story) scale(lv string) string {
+	if lv == "none" {
+		return s.T("drift_none_word")
+	}
 	if lv == "na" {
 		return s.T("rating.na")
 	}
@@ -27,6 +30,9 @@ type axisRow struct{ label, lv, fact, dist string }
 func (s *Story) axisRows() []axisRow {
 	m, st := s.M, s.St
 	rows := []axisRow{{s.T("c_drift"), st.Drift, s.T("f_drift", "n", st.Serious, "j", m.J), st.DDrift}}
+	if !s.DriftRun() {
+		rows[0] = axisRow{s.T("c_drift"), "none", s.T("drift_none_fact"), s.T("drift_none_cmd", "cmd", s.DriftCmd())}
+	}
 	if m.HasLeak {
 		rows = append(rows, axisRow{s.T("c_cost"), st.Cost, s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD)), st.DCost})
 	}
@@ -61,6 +67,9 @@ func Terminal(m *Model, md, html string) string {
 	}
 	for _, r := range rows {
 		out = append(out, Wrap(r.label+strings.Repeat(" ", w-Width(r.label))+"  "+s.scale(r.lv)+"  "+joinDot(r.fact, r.dist), TermWidth, "  ")...)
+	}
+	if !s.DriftRun() && st.Cost != "na" {
+		out = append(out, Wrap(s.T("rating_cost_only"), TermWidth, "  ")...)
 	}
 	if len(s.Top) > 0 {
 		q := s.Plain(s.Top[0])
@@ -119,10 +128,16 @@ func Markdown(m *Model) string {
 	md := []string{"# " + s.T("kicker") + ": " + s.T("rating."+st.Overall), "", s.T("period", "a", m.From, "b", m.To), "",
 		"| | " + s.T("md_rating") + " | " + s.T("md_detail") + " |", "|:--|:--|:--|",
 		"| " + s.T("c_drift") + " | " + scl(st.Drift) + " | " + joinDot(s.T("f_drift", "n", st.Serious, "j", m.J), st.DDrift) + " |"}
+	if !s.DriftRun() {
+		md[len(md)-1] = "| " + s.T("c_drift") + " | " + s.T("drift_none_word") + " | " + s.T("drift_none_fact") + " " + strings.Replace(s.T("drift_none_cmd", "cmd", s.DriftCmd()), s.DriftCmd(), code(s.DriftCmd()), 1) + " |"
+	}
 	if m.HasLeak {
 		md = append(md, "| "+s.T("c_cost")+" | "+scl(st.Cost)+" | "+joinDot(s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD))+" ("+Pct(st.Share)+")", st.DCost)+" |")
 	}
 	md = append(md, "")
+	if !s.DriftRun() && st.Cost != "na" {
+		md = append(md, "_"+s.T("rating_cost_only")+"_", "")
+	}
 	for _, w := range s.X.Warnings(m) {
 		md = append(md, "> **!** "+w, "")
 	}
@@ -242,7 +257,11 @@ func Markdown(m *Model) string {
 		}
 		md = append(md, "", "_"+s.T("pic8_cost_cap", "total", Money(m.LeakUSD))+"_", "")
 	}
-	md = append(md, "### "+map[bool]string{true: s.T("pic_judge"), false: s.T("pic_judge1")}[len(m.Verdicts) > 1], "")
+	if !s.DriftRun() {
+		md = append(md, "### "+s.T("pic8_drift_h"), "", s.T("drift_none_fact")+" "+strings.Replace(s.T("drift_none_cmd", "cmd", s.DriftCmd()), s.DriftCmd(), code(s.DriftCmd()), 1), "")
+	} else {
+		md = append(md, "### "+map[bool]string{true: s.T("pic_judge"), false: s.T("pic_judge1")}[len(m.Verdicts) > 1], "")
+	}
 	for _, v := range m.Verdicts {
 		var parts []string
 		for _, k := range Verdicts {
@@ -268,7 +287,9 @@ func Markdown(m *Model) string {
 			md = append(md, evMD(f)...)
 		}
 	}
-	md = append(md, "### "+s.T("look_sess"), "", s.T("look8_sess_lead", "n", len(sessionsWorstFirst(m)), "j", m.J), "")
+	if len(sessionsWorstFirst(m)) > 0 {
+		md = append(md, "### "+s.T("look_sess"), "", s.T("look8_sess_lead", "n", len(sessionsWorstFirst(m)), "j", m.J), "")
+	}
 	for _, r := range sessionsWorstFirst(m) {
 		tags := ""
 		if r.Partial {

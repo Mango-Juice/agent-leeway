@@ -79,7 +79,7 @@ func TestReleaseShipsLicenseFiles(t *testing.T) {
 				t.Errorf("%s does not install %s", s, f)
 			}
 		}
-		if !strings.Contains(gr, `"`+f+`"`) {
+		if !strings.Contains(read(t, filepath.Join("Formula", "agent-leeway.rb")), `"`+f+`"`) {
 			t.Errorf("Homebrew formula does not install %s", f)
 		}
 	}
@@ -89,21 +89,19 @@ func TestReleaseShipsLicenseFiles(t *testing.T) {
 	}
 }
 
-// Tap and bucket commits use a bot identity, never the owner's.
+// Formula and manifest commits (packages.yml) use a bot identity, never the owner's, and the release run
+// itself publishes nothing to a tap or bucket.
 func TestPublisherCommitsUseBotIdentity(t *testing.T) {
-	gr := read(t, ".goreleaser.yaml")
-	authors := regexp.MustCompile(`(?m)commit_author:\s*\n\s+name: (.+)\n\s+email: (.+)`).FindAllStringSubmatch(gr, -1)
-	if len(authors) != 2 {
-		t.Fatalf("expected commit_author on both publishers, found %d", len(authors))
+	w := read(t, filepath.Join(".github", "workflows", "packages.yml"))
+	name := regexp.MustCompile(`git config user.name "(.+)"`).FindStringSubmatch(w)
+	email := regexp.MustCompile(`git config user.email "(.+)"`).FindStringSubmatch(w)
+	if name == nil || email == nil || !strings.Contains(name[1], "[bot]") || !strings.HasSuffix(email[1], "[bot]@users.noreply.github.com") {
+		t.Errorf("packages.yml commit author is not a bot identity: %v %v", name, email)
 	}
-	for _, a := range authors {
-		if !strings.Contains(a[1], "[bot]") || !strings.HasSuffix(strings.TrimSpace(a[2]), "[bot]@users.noreply.github.com") {
-			t.Errorf("commit author %q <%s> is not a bot identity", a[1], a[2])
-		}
+	if gr := read(t, ".goreleaser.yaml"); regexp.MustCompile(`(?m)^(brews|scoops|homebrew_casks):`).MatchString(gr) {
+		t.Error(".goreleaser.yaml must not publish to a tap or bucket (packages.yml updates Formula/ and bucket/)")
 	}
 }
-
-func fileExists(p string) bool { _, err := os.Stat(p); return err == nil }
 
 // The release workflow keeps secrets and the OIDC token away from tests and project code.
 func TestReleaseWorkflowAttests(t *testing.T) {
@@ -130,8 +128,8 @@ func TestReleaseWorkflowAttests(t *testing.T) {
 		t.Error("release.yml asks for more permissions than it needs")
 	}
 	gr := read(t, ".goreleaser.yaml")
-	if strings.Count(gr, "skip_upload: true") != 2 || strings.Contains(gr, "go test") {
-		t.Error("goreleaser: tap and bucket must not be pushed from the release run; tests do not run inside it")
+	if strings.Contains(gr, "go test") {
+		t.Error("goreleaser: tests do not run inside the release run")
 	}
 }
 
@@ -197,3 +195,5 @@ func TestWorkflowActionsPinnedToSHA(t *testing.T) {
 		}
 	}
 }
+
+func fileExists(p string) bool { _, err := os.Stat(p); return err == nil }

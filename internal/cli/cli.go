@@ -14,6 +14,7 @@ import (
 	"github.com/Mango-Juice/agent-leeway/internal/config"
 	"github.com/Mango-Juice/agent-leeway/internal/install"
 	"github.com/Mango-Juice/agent-leeway/internal/logs"
+	"github.com/Mango-Juice/agent-leeway/internal/messages"
 	"github.com/Mango-Juice/agent-leeway/internal/meta"
 	"github.com/Mango-Juice/agent-leeway/internal/pipeline"
 )
@@ -30,6 +31,7 @@ func register(c command) { commands = append(commands, c) }
 
 // Main runs one command and returns the exit code.
 func Main(args []string, out, errw io.Writer) int {
+	messages.SetLang("en") // drift and report switch to their --lang after parsing flags
 	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
 		usage(out)
 		return 0
@@ -61,8 +63,8 @@ func usage(w io.Writer) {
 }
 
 func init() {
-	register(command{name: "debug-write-skill", hidden: true, help: "write skill/agent-leeway/SKILL.md (the repository copy)", run: func(args []string, out, errw io.Writer) int {
-		p := filepath.Join("skill", config.Name, "SKILL.md")
+	register(command{name: "debug-write-skill", hidden: true, help: "write skills/agent-leeway/SKILL.md (the repository copy)", run: func(args []string, out, errw io.Writer) int {
+		p := filepath.Join("skills", config.Name, "SKILL.md")
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err == nil {
 			err = os.WriteFile(p, install.SkillFor(install.RepoCopy, ""), 0o644)
 			if err == nil {

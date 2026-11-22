@@ -127,6 +127,7 @@ func cmdDrift(args []string, out, errw io.Writer, quietSummary bool) int {
 
 func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 	rc := 0
+	messages.SetLang(config.Language(o.lang))
 	T := messages.Drift
 	now := config.Now()
 	since, err := parseSince(o.since, now)
@@ -154,7 +155,7 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 			return 2
 		}
 		if strings.Contains(strings.ToLower(tier), "fable") {
-			say(errw, "Fable-class models are not used for judging; choose another model.")
+			say(errw, T["fable_refused"])
 			return 2
 		}
 		if !drift.Available(t) {
@@ -235,7 +236,7 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 	lines, todo, _ := drift.EstimateLines(items, done, rb.Version, rb.Settings, o.budget)
 	if o.groupOnly {
 		if o.noGroup {
-			say(errw, "--group-only and --no-grouping cannot be used together")
+			say(errw, T["group_only_conflict"])
 			return 2
 		}
 		lines, todo = nil, nil
@@ -273,7 +274,7 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 	if len(todo) > 20 {
 		say(errw, T["start_smaller"])
 	}
-	if note := config.StalePricesNote(now); note != "" {
+	if note := stalePricesNote(now); note != "" {
 		say(errw, note)
 	}
 	// the grouping step: one call per provider after judging, under the same agreement
@@ -301,7 +302,7 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 		var st []string
 		for _, t := range []string{"claude", "codex"} {
 			if _, ok := tiers[t]; ok {
-				st = append(st, messages.Tool[t]+" "+map[bool]string{true: "on", false: "off"}[groupOn[t]])
+				st = append(st, messages.Tool[t]+" "+map[bool]string{true: T["state_on"], false: T["state_off"]}[groupOn[t]])
 			}
 		}
 		say(errw, fmtT(T["grouping_state"], "state", strings.Join(st, ", ")))
@@ -470,6 +471,7 @@ func cmdReport(args []string, out, errw io.Writer) int {
 	if !o.checkTool(errw) {
 		return 2
 	}
+	messages.SetLang(config.Language(o.lang))
 	now := config.Now()
 	since, err := parseSince(o.since, now)
 	if err != nil {
@@ -637,4 +639,16 @@ func shownGroups(recs []py.Value, on map[string]bool) []py.Value {
 		}
 	}
 	return out
+}
+
+// stalePricesNote is config.StalePricesNote in the interface language.
+func stalePricesNote(now time.Time) string {
+	t := config.Prices()
+	if days, stale := config.Staleness(t.Read, now); stale {
+		return fmtT(messages.Drift["stale_prices"], "days", days, "read", t.Read)
+	}
+	if id, end := t.EndedPromotion(now); id != "" {
+		return fmtT(messages.Drift["ended_promo"], "model", id, "date", end)
+	}
+	return ""
 }

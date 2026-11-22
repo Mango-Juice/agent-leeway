@@ -1,0 +1,34 @@
+{
+    "version": "0.1.0",
+    "description": "Occasional check-up of Claude Code and Codex logs (cost leaks and intent drift)",
+    "homepage": "https://github.com/Mango-Juice/agent-leeway",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.0/agent-leeway_windows_amd64.zip",
+            "hash": "0750ed808b01ae00f154302bf5d063a37aaf6a1bbe02b4f6a1c49a7764055395"
+        },
+        "arm64": {
+            "url": "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.0/agent-leeway_windows_arm64.zip",
+            "hash": "cd664f1d796ec81f110be1e538cd35c3c0e15f7d0451364614a64a9546538cdb"
+        }
+    },
+    "bin": "agent-leeway.exe",
+    "notes": "To add the skill to Claude Code and Codex, run once: agent-leeway install-skills. Then ask your agent for a leeway report.",
+    "checkver": {
+        "github": "https://github.com/Mango-Juice/agent-leeway"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/Mango-Juice/agent-leeway/releases/download/v$version/agent-leeway_windows_amd64.zip"
+            },
+            "arm64": {
+                "url": "https://github.com/Mango-Juice/agent-leeway/releases/download/v$version/agent-leeway_windows_arm64.zip"
+            }
+        },
+        "hash": {
+            "url": "$baseurl/checksums.txt"
+        }
+    }
+}

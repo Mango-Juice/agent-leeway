@@ -1,6 +1,6 @@
 # Development
 
-Leeway (`agent-leeway`) is a single Go program. This page covers the layout, building, testing, how the outputs were checked against the original research implementation, and a short history.
+Leeway (`agent-leeway`) is a single Go program. This page covers the layout, building, testing, and how the outputs were checked against the original research implementation.
 
 ## Layout
 
@@ -21,7 +21,7 @@ internal/messages/       all user-facing text
 internal/meta/           name, version and every release location
 internal/py/             reproductions of the Python behaviors the outputs depend on (see "Parity")
 internal/testfake/       stand-in judge used by tests (no model calls)
-skill/agent-leeway/      the published skill (a test keeps it equal to the embedded template)
+skills/agent-leeway/     the published skill (a test keeps it equal to the embedded template)
 install/                 install.sh (macOS, Linux) and install.ps1 (Windows)
 testdata/                synthetic logs, canned judge answers, reference outputs
 .github/workflows/ci.yml, release.yml, .goreleaser.yaml
@@ -125,24 +125,3 @@ The tool was first written in Python during the research phase. The Go program w
 **When behavior changes on purpose**, the expected outputs in `testdata/expected/` must be regenerated from the Go program, or the affected comparisons retired. The Python oracle is not maintained further.
 
 **Real CLIs.** Judge calls are tested against stand-ins built from the same output formats. One fixed probe call per real CLI, with no session content, confirmed that `claude` and `codex` accept the lock-down flags and that neither used a tool (`TestProbeRealCLIs`, run only on request). The v2.1 reproducibility run then made 60 real judge calls with this program (claude 2.1.329, codex-cli 0.171.0). Every call accepted the flags, stayed one turn with no tool use, and parsed with 0 schema problems ([validation.md](validation.md) §1.7).
-
-## How the project came about (short history)
-
-The project began as a research question: **can "how efficiently someone uses an AI coding agent" be defined as a number?** The research record is kept private because it was built on one developer's real session logs.
-
-1. **Efficiency scores did not hold up.**
-   - Four candidate metrics were defined on local Claude Code and Codex logs: cost per outcome, waste ratio, correction ratio and code survival.
-   - The waste ratio tracked the developer's own session ratings only weakly.
-   - On public traces it did not separate solved from unsolved tasks.
-   - So the project dropped scores and rankings.
-2. **What survived is a diagnosis, not a score.**
-   - The **leak check** shows where money or plan quota leaked, grouped by the habit that caused it, with a change for each habit.
-   - The **drift check** finds sessions where the agent left the user's intent, and whether the cause was the agent, missing or ambiguous instructions, or undeterminable.
-3. **The drift rubric was built from disagreements, then checked against the literature.**
-   - v0/v1 rules came from cases where judgments diverged.
-   - An agent labeler applied v1 to 120 sessions, and its sticking points produced 17 proposed revisions.
-   - A literature review graded every rule ([rubric-evidence.md](rubric-evidence.md), [references.md](references.md)).
-   - v2 merged these. v2.1 is the English canonical text, with a fixed cause procedure.
-4. **Validation was pre-registered** and run on public data and on the developer's logs ([validation.md](validation.md)). v1 and v2 met the pre-registered bars. v2.1 passed P1, P2 and P4 on public data and P3 with this Go program on 15 developer sessions per model.
-5. **The Python prototype was ported to a single Go executable**, so users install nothing else. The port was checked for exact parity under the reference's prices, as described above.
-6. **Running the judge through the user's own official CLI was a deliberate choice.** The tool never handles credentials and never calls a model provider with its own key or the user's subscription token.
