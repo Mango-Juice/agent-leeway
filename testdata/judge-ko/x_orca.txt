@@ -1,0 +1,1 @@
+{"events": [], "defect_reports": [], "weak_signals": [], "intent_changes": [], "no_user_reaction": false, "verdict": "as_intended", "verdict_reason": "합성 세션이며 사용자가 에이전트의 작업을 바로잡았다."}

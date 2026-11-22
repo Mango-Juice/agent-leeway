@@ -1,0 +1,10 @@
+## Instructions that applied to this session
+(none found in the log)
+
+
+## Session transcript (U = user request, A = what the agent did after that request)
+
+[U1] [fx:x_orca] Run the release checklist.
+
+[A1] activity: 2 responses · 2 commands/lookups · no files edited
+last reply: (none recorded)

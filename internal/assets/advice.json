@@ -1,0 +1,708 @@
+{
+ "about": "Advice catalogue for the report (docs/24 section 6). One entry per finding id, with per-tool text (claude, codex): 'action' is one plain sentence a person can act on without knowing setting names, 'how' lists the exact command or setting shown after it, 'instruction' is a standing rule that may be copied into an instruction file. Each tool has a basis (official | study | ours | heuristic) and sources with the date read and the exact claim. A copy named advice.json in the settings folder replaces the built-in one; the report flags it when the oldest 'read' date is older than stale_after_days.",
+ "version": "2026-11-22-r6",
+ "stale_after_days": 180,
+ "entries": [
+  {
+   "id": "leak.long_break",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "After a break of more than 5 minutes (1 hour on a subscription), start fresh with a short summary instead of continuing the old conversation.",
+      "ko": "5분(구독이면 1시간)보다 오래 쉬었다면 이전 대화를 이어 가지 말고 짧은 요약으로 새로 시작하세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: How Claude Code uses prompt caching",
+       "url": "https://code.claude.com/docs/en/prompt-caching.md",
+       "read": "2026-11-22",
+       "claim": "Cached prefixes expire after a period of inactivity. Default TTL: one hour for the main conversation on a subscription within plan usage, five minutes otherwise."
+      },
+      {
+       "title": "Claude Code docs: Manage costs",
+       "url": "https://code.claude.com/docs/en/costs.md",
+       "read": "2026-11-22",
+       "claim": "Use /clear to start fresh when switching to unrelated work. Stale context wastes tokens on every subsequent message."
+      }
+     ],
+     "how": [
+      "/clear"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "After a break of more than 30 minutes, start a new chat with a short summary instead of continuing the old one.",
+      "ko": "30분보다 오래 쉬었다면 이전 대화를 이어 가지 말고 짧은 요약으로 새 대화를 시작하세요."
+     },
+     "sources": [
+      {
+       "title": "OpenAI docs: Prompt caching",
+       "url": "https://developers.openai.com/api/docs/guides/prompt-caching",
+       "read": "2026-11-22",
+       "claim": "GPT-5.6 and later: the default is a 30-minute minimum."
+      },
+      {
+       "title": "Codex docs: Slash commands",
+       "url": "https://learn.chatgpt.com/docs/cli/slash-commands",
+       "read": "2026-11-22",
+       "claim": "/new: Start a new chat inside the same CLI session."
+      }
+     ],
+     "how": [
+      "/new"
+     ]
+    }
+   },
+   "against": [
+    {
+     "title": "Claude Code docs: How Claude Code uses prompt caching",
+     "url": "https://code.claude.com/docs/en/prompt-caching.md",
+     "tool": "claude",
+     "note": {
+      "en": "/compact after the break does not avoid the cost: with the cache gone, the summary request reprocesses the history",
+      "ko": "공백 뒤 /compact도 비용을 피하지 못합니다: 캐시가 없으면 요약 요청이 기록 전체를 다시 처리합니다"
+     }
+    }
+   ]
+  },
+  {
+   "id": "leak.mid_switch",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Pick the model, the effort level and the connected tools before you start, and open a new session when you want to change them.",
+      "ko": "모델, 추론 강도, 연결할 도구는 시작하기 전에 정하고, 바꾸고 싶으면 새 세션을 여세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: How Claude Code uses prompt caching",
+       "url": "https://code.claude.com/docs/en/prompt-caching.md",
+       "read": "2026-11-22",
+       "claim": "Each model has its own cache. Switching with /model means the next request reads the entire conversation history with no cache hits."
+      }
+     ],
+     "how": [
+      "/model",
+      "/clear"
+     ]
+    },
+    "codex": {
+     "basis": "ours",
+     "action": {
+      "en": "Pick the model and the effort level before you start, and open a new chat when you want to change them.",
+      "ko": "모델과 추론 강도는 시작하기 전에 정하고, 바꾸고 싶으면 새 대화를 여세요."
+     },
+     "sources": [
+      {
+       "title": "Leeway leak check (our measurement)",
+       "url": "docs/validation.md",
+       "read": "2026-11-22",
+       "claim": "Your Codex logs show the cache being rewritten after a model or setting change."
+      },
+      {
+       "title": "Codex docs: Slash commands",
+       "url": "https://learn.chatgpt.com/docs/cli/slash-commands",
+       "read": "2026-11-22",
+       "claim": "/model: Choose the active model (and reasoning effort, when available)."
+      }
+     ],
+     "how": [
+      "/model",
+      "/new"
+     ]
+    }
+   }
+  },
+  {
+   "id": "leak.let_repeat",
+   "tools": {
+    "claude": {
+     "basis": "heuristic",
+     "action": {
+      "en": "Add a standing rule that tells Claude to stop and report after two failures in a row.",
+      "ko": "연속 두 번 실패하면 멈추고 보고하라는 상시 규칙을 추가하세요."
+     },
+     "sources": [
+      {
+       "title": "Leeway validation (our measurement)",
+       "url": "docs/validation.md",
+       "read": "2026-11-22",
+       "claim": "The leak check counts these calls and their cost from your logs; the sentence itself is our rule of thumb."
+      }
+     ],
+     "instruction": {
+      "en": "Stop and report the cause after two failures in a row, or before running the same command a third time unchanged.",
+      "ko": "같은 단계가 연속 두 번 실패하거나 같은 명령을 세 번째로 그대로 실행하기 전에는 멈추고 원인을 보고한다."
+     },
+     "how": [
+      "~/.claude/CLAUDE.md"
+     ]
+    },
+    "codex": {
+     "basis": "heuristic",
+     "action": {
+      "en": "Add a standing rule that tells Codex to stop and report after two failures in a row.",
+      "ko": "연속 두 번 실패하면 멈추고 보고하라는 상시 규칙을 추가하세요."
+     },
+     "sources": [
+      {
+       "title": "Leeway validation (our measurement)",
+       "url": "docs/validation.md",
+       "read": "2026-11-22",
+       "claim": "The leak check counts these calls and their cost from your logs; the sentence itself is our rule of thumb."
+      }
+     ],
+     "instruction": {
+      "en": "Stop and report the cause after two failures in a row, or before running the same command a third time unchanged.",
+      "ko": "같은 단계가 연속 두 번 실패하거나 같은 명령을 세 번째로 그대로 실행하기 전에는 멈추고 원인을 보고한다."
+     },
+     "how": [
+      "~/.codex/AGENTS.md"
+     ]
+    }
+   }
+  },
+  {
+   "id": "leak.no_map",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "In each request, name the file, describe the symptom and say what “fixed” looks like.",
+      "ko": "요청할 때마다 파일, 증상, ‘고쳐진 상태’가 무엇인지 적으세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Best practices",
+       "url": "https://code.claude.com/docs/en/best-practices.md",
+       "read": "2026-11-22",
+       "claim": "If you name the file, describe the symptom, and say what 'fixed' looks like up front, you usually save yourself a round of corrections later."
+      }
+     ],
+     "how": []
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "In each request, name the file and the result you want, and keep your instruction file short.",
+      "ko": "요청할 때마다 파일과 원하는 결과를 적고, 지시 파일은 짧게 유지하세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Pricing",
+       "url": "https://learn.chatgpt.com/codex/pricing",
+       "read": "2026-11-22",
+       "claim": "Reduce the size of your AGENTS.md. Limit the number of MCP servers you use."
+      }
+     ],
+     "how": [
+      "AGENTS.md"
+     ]
+    }
+   },
+   "against": [
+    {
+     "title": "Gloaguen et al., Evaluating AGENTS.md, arXiv 2602.11988",
+     "url": "https://arxiv.org/abs/2602.11988",
+     "tool": "",
+     "note": {
+      "en": "Context files raised cost by over 20% without improving success in general, so name files in the request rather than growing the instruction file",
+      "ko": "컨텍스트 파일은 성공률을 대체로 높이지 못한 채 비용을 20% 넘게 늘렸습니다. 지시 파일을 키우기보다 요청에 파일을 적으세요"
+     }
+    }
+   ]
+  },
+  {
+   "id": "leak.big_output",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Keep long test and build output out of the conversation by filtering it down to the errors first, or hand long logs to a subagent.",
+      "ko": "긴 테스트·빌드 출력은 오류만 남기고 걸러서 대화에 넣고, 긴 로그는 서브에이전트에게 맡기세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Manage costs",
+       "url": "https://code.claude.com/docs/en/costs.md",
+       "read": "2026-11-22",
+       "claim": "Instead of Claude reading a 10,000-line log file to find errors, a hook can grep for ERROR and return only matching lines."
+      },
+      {
+       "title": "Hong, Troynikov, Huber: Context Rot (Chroma, 2025)",
+       "url": "https://www.trychroma.com/research/context-rot",
+       "read": "2026-11-22",
+       "claim": "Across all experiments, model performance consistently degrades with increasing input length."
+      }
+     ],
+     "how": [
+      "hooks (.claude/settings.json)"
+     ]
+    },
+    "codex": {
+     "basis": "heuristic",
+     "action": {
+      "en": "Ask Codex to read only the failing lines or the end of long output, and shrink the conversation after long runs.",
+      "ko": "긴 출력은 실패한 줄이나 끝부분만 읽게 하고, 긴 작업 뒤에는 대화를 줄이세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Slash commands",
+       "url": "https://learn.chatgpt.com/docs/cli/slash-commands",
+       "read": "2026-11-22",
+       "claim": "/compact: Use after long runs so Codex retains key points without blowing the context window."
+      },
+      {
+       "title": "Hong, Troynikov, Huber: Context Rot (Chroma, 2025)",
+       "url": "https://www.trychroma.com/research/context-rot",
+       "read": "2026-11-22",
+       "claim": "Across all experiments, model performance consistently degrades with increasing input length."
+      }
+     ],
+     "how": [
+      "/compact"
+     ]
+    }
+   }
+  },
+  {
+   "id": "leak.automation",
+   "tools": {
+    "claude": {
+     "basis": "heuristic",
+     "action": {
+      "en": "Make each automated run start fresh from a short summary file and stop after a failure until the next run.",
+      "ko": "자동화는 실행마다 짧은 요약 파일로 새로 시작하고, 실패하면 다음 실행까지 멈추게 하세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: How Claude Code uses prompt caching",
+       "url": "https://code.claude.com/docs/en/prompt-caching.md",
+       "read": "2026-11-22",
+       "claim": "Cached prefixes expire after a period of inactivity. Default TTL: one hour for the main conversation on a subscription within plan usage, five minutes otherwise."
+      }
+     ],
+     "how": []
+    },
+    "codex": {
+     "basis": "heuristic",
+     "action": {
+      "en": "Make each automated run start in a new thread from a short summary file and stop after a failure until the next run.",
+      "ko": "자동화는 실행마다 새 스레드에서 짧은 요약 파일로 시작하고, 실패하면 다음 실행까지 멈추게 하세요."
+     },
+     "sources": [
+      {
+       "title": "OpenAI docs: Prompt caching",
+       "url": "https://developers.openai.com/api/docs/guides/prompt-caching",
+       "read": "2026-11-22",
+       "claim": "GPT-5.6 and later: the default is a 30-minute minimum."
+      }
+     ],
+     "how": []
+    }
+   }
+  },
+  {
+   "id": "drift.RESERVED",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Make Claude ask you before that step with a permission rule, because a written instruction alone is not enforced.",
+      "ko": "지시 문장만으로는 강제되지 않으니, 그 단계 전에는 반드시 묻도록 권한 규칙을 추가하세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Configure permissions",
+       "url": "https://code.claude.com/docs/en/permissions.md",
+       "read": "2026-11-22",
+       "claim": "Permission rules are enforced by Claude Code, not by the model."
+      },
+      {
+       "title": "Claude Code docs: Memory (CLAUDE.md)",
+       "url": "https://code.claude.com/docs/en/memory.md",
+       "read": "2026-11-22",
+       "claim": "Claude treats CLAUDE.md files as context, not enforced configuration ... To block an action regardless of what Claude decides, use a PreToolUse hook instead."
+      }
+     ],
+     "setting": {
+      "label": {
+       "en": "Ask before git push",
+       "ko": "git push 전에 묻기"
+      },
+      "file": ".claude/settings.json",
+      "syntax": "json",
+      "text": "{\n  \"permissions\": {\n    \"ask\": [\"Bash(git push *)\"]\n  }\n}"
+     },
+     "how": [
+      "permissions.ask (.claude/settings.json)"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "Make Codex ask you before that command with a rule (an experimental feature), and keep approvals on request.",
+      "ko": "그 명령 전에는 반드시 묻도록 규칙(실험 기능)을 추가하고, 승인 방식은 요청 시 묻기로 두세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Rules (experimental)",
+       "url": "https://learn.chatgpt.com/docs/agent-configuration/rules",
+       "read": "2026-11-22",
+       "claim": "prompt: Prompt before each matching invocation. Codex applies the most restrictive decision when more than one rule matches (forbidden > prompt > allow)."
+      },
+      {
+       "title": "Codex docs: Agent approvals & security",
+       "url": "https://learn.chatgpt.com/docs/agent-approvals-security",
+       "read": "2026-11-22",
+       "claim": "Locally, Codex uses an OS-enforced sandbox that limits what it can touch (typically to the current workspace); approval_policy = \"on-request\"."
+      }
+     ],
+     "setting": {
+      "label": {
+       "en": "Ask before git push",
+       "ko": "git push 전에 묻기"
+      },
+      "file": "~/.codex/rules/default.rules",
+      "syntax": "python",
+      "text": "prefix_rule(\n    pattern = [\"git\", \"push\"],\n    decision = \"prompt\",\n    justification = \"Ask before pushing\",\n)"
+     },
+     "how": [
+      "prefix_rule(decision = \"prompt\") (~/.codex/rules/default.rules)",
+      "approval_policy = \"on-request\""
+     ]
+    }
+   }
+  },
+  {
+   "id": "drift.FALSE_DONE",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Give Claude a check that passes or fails, and ask it to show the command and its output whenever it says something is verified.",
+      "ko": "통과·실패가 분명한 검사를 주고, 확인했다고 할 때마다 실행한 명령과 출력을 보여 달라고 하세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Best practices",
+       "url": "https://code.claude.com/docs/en/best-practices.md",
+       "read": "2026-11-22",
+       "claim": "Give Claude something it can run that comes back pass or fail."
+      }
+     ],
+     "instruction": {
+      "en": "When you say something is verified or tests pass, show the exact command you ran and its output.",
+      "ko": "확인했다거나 테스트가 통과했다고 말할 때는 실행한 명령과 그 출력을 그대로 보여 준다."
+     },
+     "how": []
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "Ask Codex to re-run the reproduction steps or the tests after each fix and show you the output.",
+      "ko": "수정할 때마다 재현 절차나 테스트를 다시 돌리고 출력을 보여 달라고 하세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Prompting",
+       "url": "https://learn.chatgpt.com/docs/prompting",
+       "read": "2026-11-22",
+       "claim": "Codex should re-run the repro steps after the fix."
+      }
+     ],
+     "instruction": {
+      "en": "When you say something is verified or tests pass, show the exact command you ran and its output.",
+      "ko": "확인했다거나 테스트가 통과했다고 말할 때는 실행한 명령과 그 출력을 그대로 보여 준다."
+     },
+     "how": []
+    }
+   }
+  },
+  {
+   "id": "drift.ASKED_ONLY",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "When you want only an answer or a plan, switch Claude to plan mode before you ask.",
+      "ko": "답이나 계획만 원할 때는 묻기 전에 Claude를 계획 모드로 바꾸세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Permission modes",
+       "url": "https://code.claude.com/docs/en/permission-modes.md",
+       "read": "2026-11-22",
+       "claim": "Plan mode tells Claude to research and propose changes without making them. Enter plan mode by pressing Shift+Tab or prefixing a single prompt with /plan."
+      }
+     ],
+     "how": [
+      "Shift+Tab",
+      "/plan"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "When you want only an answer or a plan, switch Codex to plan mode before you ask.",
+      "ko": "답이나 계획만 원할 때는 묻기 전에 Codex를 계획 모드로 바꾸세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Slash commands",
+       "url": "https://learn.chatgpt.com/docs/cli/slash-commands",
+       "read": "2026-11-22",
+       "claim": "Type /plan and press Enter to switch the active chat into plan mode."
+      },
+      {
+       "title": "Codex docs: Prompting",
+       "url": "https://learn.chatgpt.com/docs/prompting",
+       "read": "2026-11-22",
+       "claim": "enter /plan ... when you want Codex to investigate and propose an approach before editing"
+      }
+     ],
+     "how": [
+      "/plan"
+     ]
+    }
+   }
+  },
+  {
+   "id": "drift.BROKE_SAID.chat",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Write what you had to repeat as one specific line in your instruction file, which Claude reads in every session.",
+      "ko": "반복해서 말해야 했던 것을 Claude가 매 세션 읽는 지시 파일에 구체적인 한 줄로 적으세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Memory (CLAUDE.md)",
+       "url": "https://code.claude.com/docs/en/memory.md",
+       "read": "2026-11-22",
+       "claim": "Keep it to facts Claude should hold in every session. Specific: 'Use 2-space indentation' instead of 'Format code properly'."
+      }
+     ],
+     "how": [
+      "CLAUDE.md"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "Write what you had to repeat as one specific line in your instruction file, which Codex reads before any work.",
+      "ko": "반복해서 말해야 했던 것을 Codex가 작업 전에 읽는 지시 파일에 구체적인 한 줄로 적으세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Custom instructions with AGENTS.md",
+       "url": "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+       "read": "2026-11-22",
+       "claim": "Codex reads AGENTS.md files before doing any work."
+      }
+     ],
+     "how": [
+      "AGENTS.md"
+     ]
+    }
+   },
+   "against": [
+    {
+     "title": "Gloaguen et al., Evaluating AGENTS.md, arXiv 2602.11988",
+     "url": "https://arxiv.org/abs/2602.11988",
+     "tool": "",
+     "note": {
+      "en": "Context files raised cost by over 20% without improving success in general; add a line only for something you had to repeat",
+      "ko": "컨텍스트 파일은 성공률을 대체로 높이지 못한 채 비용을 20% 넘게 늘렸습니다. 반복해야 했던 것만 한 줄로 넣으세요"
+     }
+    }
+   ]
+  },
+  {
+   "id": "drift.BROKE_SAID.file",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "The rule was already in your instruction file, so make it checkable, keep the file under 200 lines, confirm it loads, and enforce must-never-break rules with a hook or deny rule, not emphasis.",
+      "ko": "이미 지시 파일에 있던 규칙이니, 확인할 수 있게 고쳐 쓰고, 파일을 200줄 아래로 유지하고, 파일이 읽히는지 확인하고, 절대 어기면 안 되는 규칙은 강조 대신 훅이나 deny 규칙으로 바꾸세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Best practices",
+       "url": "https://code.claude.com/docs/en/best-practices.md",
+       "read": "2026-11-22",
+       "claim": "If Claude keeps ignoring a line that is in CLAUDE.md, adding IMPORTANT probably won't fix it."
+      },
+      {
+       "title": "Claude Code docs: Memory (CLAUDE.md)",
+       "url": "https://code.claude.com/docs/en/memory.md",
+       "read": "2026-11-22",
+       "claim": "Target under 200 lines per CLAUDE.md file. Longer files consume more context and reduce adherence."
+      },
+      {
+       "title": "Claude Code docs: Best practices",
+       "url": "https://code.claude.com/docs/en/best-practices.md",
+       "read": "2026-11-22",
+       "claim": "If you keep adding emphasis to a CLAUDE.md line and Claude still misses it, that's a sign the line belongs in a hook."
+      },
+      {
+       "title": "Claude Code docs: Memory (CLAUDE.md)",
+       "url": "https://code.claude.com/docs/en/memory.md",
+       "read": "2026-11-22",
+       "claim": "Claude treats CLAUDE.md files and auto memory as context. They aren't enforced configuration."
+      }
+     ],
+     "how": [
+      "CLAUDE.md",
+      "/context all",
+      "hooks, permissions.deny (.claude/settings.json)"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "The rule was already in your instruction file, so make it more concrete, keep all such files under 32 KiB together, and turn rules about commands into rules Codex enforces.",
+      "ko": "규칙이 이미 지시 파일에 있었으니, 더 구체적으로 고치고 지시 파일 합계를 32 KiB 아래로 유지하고, 명령에 관한 규칙은 Codex가 강제하는 규칙으로 바꾸세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Custom instructions with AGENTS.md",
+       "url": "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+       "read": "2026-11-22",
+       "claim": "stops adding files once the combined size reaches the limit defined by project_doc_max_bytes (32 KiB by default)"
+      },
+      {
+       "title": "Codex docs: Rules (experimental)",
+       "url": "https://learn.chatgpt.com/docs/agent-configuration/rules",
+       "read": "2026-11-22",
+       "claim": "prompt: Prompt before each matching invocation. Codex applies the most restrictive decision when more than one rule matches (forbidden > prompt > allow)."
+      }
+     ],
+     "how": [
+      "AGENTS.md",
+      "project_doc_max_bytes",
+      "~/.codex/rules/"
+     ]
+    }
+   }
+  },
+  {
+   "id": "drift.MISTAKE",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Interrupt as soon as it goes wrong, and after two failed corrections start fresh with the file, the symptom and the expected result.",
+      "ko": "잘못되는 순간 바로 끊고, 두 번 바로잡아도 안 되면 파일, 증상, 기대 결과를 적어 새로 시작하세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Best practices",
+       "url": "https://code.claude.com/docs/en/best-practices.md",
+       "read": "2026-11-22",
+       "claim": "Watch the first minute, press Esc the moment Claude drifts, and after two failed corrections run /clear and write a better prompt instead of a third."
+      }
+     ],
+     "how": [
+      "Esc",
+      "/clear"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "Steer Codex while it is still working as soon as it goes wrong, and if corrections keep failing, start a new chat and restate the task.",
+      "ko": "Codex가 작업하는 중에 잘못되면 바로 방향을 바꾸고, 계속 안 되면 새 대화를 열어 다시 요청하세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Prompting",
+       "url": "https://learn.chatgpt.com/docs/prompting",
+       "read": "2026-11-22",
+       "claim": "In Codex CLI, press Enter while Codex is working to steer the current turn"
+      },
+      {
+       "title": "Codex docs: Slash commands",
+       "url": "https://learn.chatgpt.com/docs/cli/slash-commands",
+       "read": "2026-11-22",
+       "claim": "/new: Start a new chat inside the same CLI session."
+      }
+     ],
+     "how": [
+      "Enter",
+      "/new"
+     ]
+    }
+   }
+  },
+  {
+   "id": "drift.PROMPT",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Add what you expected as one specific line that someone could check, starting from the drafts below and editing them first.",
+      "ko": "기대한 것을 누가 봐도 확인할 수 있는 구체적인 한 줄로 추가하되, 아래 초안을 먼저 고쳐서 쓰세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Memory (CLAUDE.md)",
+       "url": "https://code.claude.com/docs/en/memory.md",
+       "read": "2026-11-22",
+       "claim": "Keep it to facts Claude should hold in every session. Specific: 'Use 2-space indentation' instead of 'Format code properly'."
+      },
+      {
+       "title": "Leeway validation (our measurement)",
+       "url": "docs/validation.md",
+       "read": "2026-11-22",
+       "claim": "'Missing or ambiguous instruction' is the cause the judges detect least: recall 0.33 (Opus) and 0.23 (astra), on 6 and 13 episodes."
+      }
+     ],
+     "how": [
+      "CLAUDE.md"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "Add what you expected as one specific line that someone could check, starting from the drafts below and editing them first.",
+      "ko": "기대한 것을 누가 봐도 확인할 수 있는 구체적인 한 줄로 추가하되, 아래 초안을 먼저 고쳐서 쓰세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Custom instructions with AGENTS.md",
+       "url": "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+       "read": "2026-11-22",
+       "claim": "Codex reads AGENTS.md files before doing any work."
+      },
+      {
+       "title": "Leeway validation (our measurement)",
+       "url": "docs/validation.md",
+       "read": "2026-11-22",
+       "claim": "'Missing or ambiguous instruction' is the cause the judges detect least: recall 0.33 (Opus) and 0.23 (astra), on 6 and 13 episodes."
+      }
+     ],
+     "how": [
+      "AGENTS.md"
+     ]
+    }
+   },
+   "against": [
+    {
+     "title": "Gloaguen et al., Evaluating AGENTS.md, arXiv 2602.11988",
+     "url": "https://arxiv.org/abs/2602.11988",
+     "tool": "",
+     "note": {
+      "en": "Model-written context files did worse than developer-written ones (drops in 5 of 8 settings); these drafts are model-written, so keep only lines you would have written yourself",
+      "ko": "모델이 쓴 컨텍스트 파일은 개발자가 쓴 것보다 못했습니다(8개 설정 중 5개에서 하락). 이 초안도 모델이 쓴 것이니 직접 썼을 문장만 남기세요"
+     }
+    }
+   ]
+  }
+ ]
+}

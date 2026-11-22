@@ -1,0 +1,56 @@
+name: Wrong diagnosis
+description: The leak or drift check reached a conclusion you believe is wrong (a missed drift, a false event, a wrong cause or amount).
+labels: ["diagnosis"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not paste logs, transcripts or full reports.** They can contain your code, prompts and secrets, and issues are public. Describe the situation in your own words instead.
+
+        Safe to share:
+        - the output of `agent-leeway --version`, your operating system, and the judge model if it was a drift check
+        - the summary line, and the rule, cause and size the tool gave, with private names removed
+        - what you believe the correct result is, and why
+        - a **synthetic** reproduction: a short made-up exchange that the tool judges the same wrong way
+
+        If you use your own rubric or settings, say which settings you changed.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `agent-leeway --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: check
+    attributes:
+      label: Which check
+      options:
+        - drift (event, cause, size or session verdict)
+        - leak (cause, habit or amount)
+        - idle
+    validations:
+      required: true
+  - type: input
+    id: judge
+    attributes:
+      label: Judge model (drift only)
+      placeholder: e.g. claude:opus or codex:gpt-6.2-astra
+  - type: textarea
+    id: result
+    attributes:
+      label: What the tool said
+      description: The summary line and the relevant result (rule, cause, size, amount), with private names removed. No transcript text.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you believe is correct, and why
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction (optional)
+      description: A short made-up exchange that reproduces the wrong result without your real data.

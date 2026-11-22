@@ -1,0 +1,264 @@
+{
+ "n_sessions": 9,
+ "verdicts": {
+  "agent_drift": 6,
+  "as_intended": 1,
+  "undeterminable": 2
+ },
+ "cause_classes": {
+  "agent_side": 7,
+  "undeterminable": 1,
+  "prompt_side": 1
+ },
+ "causes": {
+  "instruction_violation": 5,
+  "undeterminable": 1,
+  "missing_or_ambiguous_instruction": 1,
+  "agent_error": 2
+ },
+ "sizes": {
+  "major": 8,
+  "minor": 1
+ },
+ "n_defects": 1,
+ "n_weak": 1,
+ "citation_check": {
+  "quotes": 17,
+  "not_found": 1,
+  "dropped_events": 1
+ },
+ "models": {
+  "opus": 6,
+  "gpt-6.2-astra": 3
+ },
+ "rubric_versions": [
+  "v2.1-b636272b"
+ ],
+ "instr_current_sessions": 0,
+ "sessions": [
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000104",
+   "tool": "claude",
+   "project": "데모 프로젝트",
+   "tier": "claude:opus",
+   "verdict": "agent_drift",
+   "model_verdict": "agent_drift",
+   "events": [
+    {
+     "loc": "U3",
+     "rule": "R2a",
+     "cause_class": "agent_side",
+     "cause": "instruction_violation",
+     "size": "major",
+     "summary": "x",
+     "excerpt": "표는 그대로 두라고 했잖아",
+     "instruction": "I1",
+     "resolution": "resolved"
+    },
+    {
+     "loc": "U1",
+     "rule": "R2a",
+     "cause_class": "prompt_side",
+     "cause": "missing_or_ambiguous_instruction",
+     "size": "minor",
+     "summary": "x",
+     "excerpt": "차트를 추가해 줘",
+     "instruction": null,
+     "resolution": "resolved"
+    }
+   ],
+   "defects": [
+    {
+     "loc": "U2",
+     "summary": "Review command failed to start."
+    }
+   ],
+   "instr_warning": null
+  },
+  {
+   "key": "codex:00000000-0000-4000-8000-000000000201",
+   "tool": "codex",
+   "project": "코덱스",
+   "tier": "codex:gpt-6.2-astra",
+   "verdict": "agent_drift",
+   "model_verdict": "minor_drift",
+   "events": [
+    {
+     "loc": "U1",
+     "rule": "R2a",
+     "cause_class": "agent_side",
+     "cause": "agent_error",
+     "size": "major",
+     "summary": "x",
+     "excerpt": "실패하는 테스트를 고쳐",
+     "instruction": null,
+     "resolution": "resolved"
+    },
+    {
+     "loc": "U2",
+     "rule": "R2a",
+     "cause_class": "agent_side",
+     "cause": "agent_error",
+     "size": "major",
+     "summary": "x",
+     "excerpt": "문서도 고쳐",
+     "instruction": null,
+     "resolution": "resolved"
+    }
+   ],
+   "defects": [],
+   "instr_warning": null
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000103",
+   "tool": "claude",
+   "project": "proyecto-demo",
+   "tier": "claude:opus",
+   "verdict": "agent_drift",
+   "model_verdict": "agent_drift",
+   "events": [
+    {
+     "loc": "U2",
+     "rule": "R2a",
+     "cause_class": "agent_side",
+     "cause": "instruction_violation",
+     "size": "major",
+     "summary": "The agent removed a table the user asked to keep.",
+     "excerpt": "te dije que dejaras la tabla",
+     "instruction": "U1",
+     "resolution": "resolved"
+    }
+   ],
+   "defects": [],
+   "instr_warning": null
+  },
+  {
+   "key": "codex:00000000-0000-4000-8000-000000000202",
+   "tool": "codex",
+   "project": "proyecto",
+   "tier": "codex:gpt-6.2-astra",
+   "verdict": "agent_drift",
+   "model_verdict": "prompt_gap",
+   "events": [
+    {
+     "loc": "U2",
+     "rule": "R2a",
+     "cause_class": "agent_side",
+     "cause": "instruction_violation",
+     "size": "major",
+     "summary": "x",
+     "excerpt": "te dije que dejaras la tabla",
+     "instruction": "U1",
+     "resolution": "resolved"
+    }
+   ],
+   "defects": [],
+   "instr_warning": null
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000101",
+   "tool": "claude",
+   "project": "demo-project",
+   "tier": "claude:opus",
+   "verdict": "agent_drift",
+   "model_verdict": "agent_drift",
+   "events": [
+    {
+     "loc": "U2",
+     "rule": "R2a",
+     "cause_class": "agent_side",
+     "cause": "instruction_violation",
+     "size": "major",
+     "summary": "The agent removed a table the user asked to keep.",
+     "excerpt": "I said keep the table",
+     "instruction": "U1",
+     "resolution": "resolved"
+    }
+   ],
+   "defects": [],
+   "instr_warning": null
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000102",
+   "tool": "claude",
+   "project": "demo-project",
+   "tier": "claude:opus",
+   "verdict": "agent_drift",
+   "model_verdict": "agent_drift",
+   "events": [
+    {
+     "loc": "U2",
+     "rule": "R2a",
+     "cause_class": "agent_side",
+     "cause": "instruction_violation",
+     "size": "major",
+     "summary": "The agent removed a table the user asked to keep.",
+     "excerpt": "표는 그대로 두라고 했잖아",
+     "instruction": "U1",
+     "resolution": "resolved"
+    }
+   ],
+   "defects": [],
+   "instr_warning": null
+  },
+  {
+   "key": "codex:00000000-0000-4000-8000-000000000206",
+   "tool": "codex",
+   "project": "orq",
+   "tier": "codex:gpt-6.2-astra",
+   "verdict": "as_intended",
+   "model_verdict": "as_intended",
+   "events": [],
+   "defects": [],
+   "instr_warning": null
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000107",
+   "tool": "claude",
+   "project": "panel",
+   "tier": "claude:opus",
+   "verdict": "undeterminable",
+   "model_verdict": "undeterminable",
+   "events": [
+    {
+     "loc": "U1",
+     "rule": "R2a",
+     "cause_class": "undeterminable",
+     "cause": "undeterminable",
+     "size": "major",
+     "summary": "x",
+     "excerpt": "Rename the helper",
+     "instruction": null,
+     "resolution": "resolved"
+    }
+   ],
+   "defects": [],
+   "instr_warning": null
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000108",
+   "tool": "claude",
+   "project": "big logs",
+   "tier": "claude:opus",
+   "verdict": "undeterminable",
+   "model_verdict": "undeterminable",
+   "events": [],
+   "defects": [],
+   "instr_warning": null
+  }
+ ],
+ "fix_sentences": [
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000104",
+   "project": "데모 프로젝트",
+   "sentence": "표는 유지하고 차트만 추가해 줘."
+  }
+ ],
+ "limitations": [
+  "Verdicts depend on the judging model: the same session can get different events and verdicts from another model (the model used is named in this report).",
+  "Upper-tier Codex models flag more events than upper-tier Claude models (including on public sessions that are probably fine).",
+  "Claude Code logs do not keep the content of CLAUDE.md, so by default the current instruction files are applied to past sessions. If your instructions changed since, \"instruction violated\" can be wrong.",
+  "Events are found from reactions the user left in the transcript (corrections, refusals, re-requests). Drift nobody reacted to can be missed.",
+  "This is not a score or a ranking; it is material for you to judge with, pointing at locations in the transcript."
+ ]
+}

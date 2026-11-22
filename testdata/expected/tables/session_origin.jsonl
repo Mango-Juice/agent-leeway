@@ -1,0 +1,14 @@
+{"key": "claude:00000000-0000-4000-8000-000000000101", "session_class": "human", "session_origin": "human", "session_reason": "interactive", "tool": "claude", "uncertain": false}
+{"key": "claude:00000000-0000-4000-8000-000000000102", "session_class": "human", "session_origin": "human", "session_reason": "interactive", "tool": "claude", "uncertain": false}
+{"key": "claude:00000000-0000-4000-8000-000000000103", "session_class": "human", "session_origin": "human", "session_reason": "interactive", "tool": "claude", "uncertain": false}
+{"key": "claude:00000000-0000-4000-8000-000000000104", "session_class": "human", "session_origin": "human", "session_reason": "interactive", "tool": "claude", "uncertain": false}
+{"key": "claude:00000000-0000-4000-8000-000000000105", "session_class": "auto", "session_origin": "auto", "session_reason": "auto:orca_worker", "tool": "claude", "uncertain": false}
+{"key": "claude:00000000-0000-4000-8000-000000000106", "session_class": "human", "session_origin": "human", "session_reason": "sdk_without_worker_preamble", "tool": "claude", "uncertain": true}
+{"key": "claude:00000000-0000-4000-8000-000000000107", "session_class": "human", "session_origin": "human", "session_reason": "no_entrypoint", "tool": "claude", "uncertain": true}
+{"key": "claude:00000000-0000-4000-8000-000000000108", "session_class": "human", "session_origin": "human", "session_reason": "interactive", "tool": "claude", "uncertain": false}
+{"key": "codex:00000000-0000-4000-8000-000000000201", "session_class": "human", "session_origin": "mixed", "session_reason": "interactive", "tool": "codex", "uncertain": false}
+{"key": "codex:00000000-0000-4000-8000-000000000202", "session_class": "human", "session_origin": "human", "session_reason": "interactive", "tool": "codex", "uncertain": false}
+{"key": "codex:00000000-0000-4000-8000-000000000204", "session_class": "auto", "session_origin": "auto", "session_reason": "auto:agent_opened", "tool": "codex", "uncertain": false}
+{"key": "codex:00000000-0000-4000-8000-000000000205", "session_class": "auto", "session_origin": "auto", "session_reason": "auto:codex_exec", "tool": "codex", "uncertain": false}
+{"key": "codex:00000000-0000-4000-8000-000000000206", "session_class": "auto", "session_origin": "auto", "session_reason": "auto:orca_codex", "tool": "codex", "uncertain": false}
+{"key": "codex:00000000-0000-4000-8000-000000000207", "session_class": "human", "session_origin": "human", "session_reason": "interactive", "tool": "codex", "uncertain": false}

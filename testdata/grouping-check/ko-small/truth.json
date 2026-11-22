@@ -1,0 +1,151 @@
+{
+ "lang": "ko",
+ "size": "small",
+ "sessions": 6,
+ "truth": {
+  "claude": [
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000000#0",
+    "label": "T:tests",
+    "session": 0
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000000#1",
+    "label": "D:style",
+    "session": 0
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000000#2",
+    "label": "M:assert:2",
+    "session": 0
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000001#0",
+    "label": "T:logging",
+    "session": 1
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000001#1",
+    "label": "T:style",
+    "session": 1
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000001#2",
+    "label": "M:assert:0",
+    "session": 1
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000002#0",
+    "label": "T:logging",
+    "session": 2
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000002#1",
+    "label": "M:assert:1",
+    "session": 2
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000003#0",
+    "label": "T:tests",
+    "session": 3
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000003#1",
+    "label": "N:tests:a",
+    "session": 3
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000003#2",
+    "label": "D:logging",
+    "session": 3
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000005#0",
+    "label": "T:tests",
+    "session": 5
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000005#1",
+    "label": "T:style",
+    "session": 5
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-211000000005#2",
+    "label": "N:tests:b",
+    "session": 5
+   }
+  ],
+  "codex": [
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000000#0",
+    "label": "T:tests",
+    "session": 0
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000000#1",
+    "label": "D:style",
+    "session": 0
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000000#2",
+    "label": "M:assert:2",
+    "session": 0
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000001#0",
+    "label": "T:logging",
+    "session": 1
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000001#1",
+    "label": "T:style",
+    "session": 1
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000001#2",
+    "label": "M:assert:0",
+    "session": 1
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000002#0",
+    "label": "T:logging",
+    "session": 2
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000002#1",
+    "label": "M:assert:1",
+    "session": 2
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000003#0",
+    "label": "T:tests",
+    "session": 3
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000003#1",
+    "label": "N:tests:a",
+    "session": 3
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000003#2",
+    "label": "D:logging",
+    "session": 3
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000005#0",
+    "label": "T:tests",
+    "session": 5
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000005#1",
+    "label": "T:style",
+    "session": 5
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-212000000005#2",
+    "label": "N:tests:b",
+    "session": 5
+   }
+  ]
+ }
+}

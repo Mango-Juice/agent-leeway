@@ -1,0 +1,16 @@
+Cost leaks: what to fix first
+1. Letting long logs and outputs into the context whole
+   3 times · $1.33 of the $5.36 spent (25%) · Measured
+   Do: Keep long test and build output out of the conversation by filtering it down to the
+   errors first, or hand long logs to a subagent. → hooks (.claude/settings.json)
+2. Switching model, effort or tools mid-session
+   5 times · $0.58 of the $5.36 spent (11%) · Measured
+   Do: Claude Code: Pick the model, the effort level and the connected tools before you start,
+   and open a new session when you want to change them. → /model, /clear
+   Do: Codex: Pick the model and the effort level before you start, and open a new chat when you
+   want to change them. → /model, /new
+3. Resuming a session after a long break
+   4 times · $0.35 of the $5.36 spent (6.5%) · Measured
+   Do: After a break of more than 5 minutes (1 hour on a subscription), start fresh with a short
+   summary instead of continuing the old conversation. → /clear
+More in the report: `agent-leeway report`

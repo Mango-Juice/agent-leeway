@@ -1,0 +1,18 @@
+{"timestamp":"2025-12-20T23:30:00.000Z","type":"session_meta","payload":{"id":"00000000-0000-4000-8000-000000000207","session_id":"00000000-0000-4000-8000-000000000207","cwd":"/tmp/viejo","originator":"codex_cli_rs","cli_version":"0.90.0","thread_source":"user"},"ordinal":0}
+{"timestamp":"2025-12-20T23:30:00.000Z","type":"event_msg","payload":{"type":"task_started","turn_attribution":{"turn_trigger":"composer"}},"ordinal":1}
+{"timestamp":"2025-12-20T23:30:00.000Z","type":"turn_context","payload":{"model":"gpt-6.2-astra","cwd":"/tmp/viejo","effort":"medium"},"ordinal":2}
+{"timestamp":"2025-12-20T23:30:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"[fx:x_messy] Limpia los avisos del compilador."}],"internal_chat_message_metadata_passthrough":{"content_item_kinds":["user.text"]}},"ordinal":3}
+{"timestamp":"2025-12-20T23:30:01.000Z","type":"response_item","payload":{"type":"function_call"
+[]
+"text"
+3.5
+true
+{"timestamp":null,"type":"event_msg","payload":{"type":"token_count","info":null},"ordinal":4}
+{"timestamp":"2025-12-20T23:30:03.000Z","type":"mystery_record","payload":{"type":"new_kind_of_event"},"ordinal":5}
+{"timestamp":"2025-12-20T23:30:20.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"cargo build\"}","call_id":"v1"},"ordinal":6}
+{"timestamp":"2025-12-20T23:30:21.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"v1","output":"Process exited with code 0"},"ordinal":7}
+{"timestamp":"2025-12-20T23:30:22.000Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":8000,"cached_input_tokens":0,"output_tokens":120,"reasoning_output_tokens":10},"total_token_usage":{"input_tokens":1}}},"ordinal":8}
+{"timestamp":"2025-12-21T00:30:00.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"cargo build\"}","call_id":"v2"},"ordinal":9}
+{"timestamp":"2025-12-21T00:30:01.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"v2","output":"Process exited with code 0"},"ordinal":10}
+{"timestamp":"2025-12-21T00:30:02.000Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":8200,"cached_input_tokens":7900,"output_tokens":120,"reasoning_output_tokens":10},"total_token_usage":{"input_tokens":2}}},"ordinal":11}
+{"timestamp":"2025-12-21T00:30:05.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Avisos corregidos."}]},"ordinal":12}

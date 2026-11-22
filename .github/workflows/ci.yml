@@ -1,0 +1,46 @@
+# Continuous integration (prepared only: not enabled or run; no repository is published yet).
+# Tests run without Claude Code or Codex: judges are faked by the test binaries (internal/testfake).
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel, windows-2025, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go test -count=1 ./...
+      - name: install.ps1 under Windows PowerShell 5.1
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .github/scripts/test-install-ps1.ps1
+      - name: install.ps1 under PowerShell 7
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .github/scripts/test-install-ps1.ps1
+  cross-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - name: build the six release targets
+        shell: bash
+        run: |
+          set -e
+          for t in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64 windows/arm64; do
+            GOOS=${t%/*} GOARCH=${t#*/} CGO_ENABLED=0 go build -trimpath -o /tmp/agent-leeway-${t%/*}-${t#*/} ./cmd/agent-leeway
+          done
+          ls -l /tmp/agent-leeway-*

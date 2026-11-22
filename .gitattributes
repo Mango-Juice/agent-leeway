@@ -1,0 +1,4 @@
+# Keep every text file LF on all platforms (Windows checkouts would otherwise turn them into CRLF; embedded
+# files, generated license text and byte-exact tests depend on LF). Test logs keep their exact bytes.
+* text=auto eol=lf
+testdata/** -text

@@ -1,0 +1,12 @@
+  1/11 claude proyecto-demo: Agent drift ($0.020)
+  2/11 codex orq: As intended ($0.008)
+  3/11 codex proyecto: Agent drift ($0.008)
+  4/11 claude big logs: Undeterminable ($0.020)
+  failed: claude:opus (PARSE_ERROR)
+  5/11 claude panel: Undeterminable ($0.020)
+  failed: claude:opus (PARSE_ERROR)
+  6/11 claude 데모 프로젝트: Agent drift ($0.020)
+  7/11 codex 코덱스: Agent drift ($0.008)
+  8/11 claude demo-project: Agent drift ($0.020)
+  9/11 claude demo-project: Agent drift ($0.020)
+{"done": 9, "spent": 0.1834475, "stopped_reason": null}

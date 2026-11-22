@@ -1,0 +1,151 @@
+{
+ "lang": "en",
+ "size": "small",
+ "sessions": 6,
+ "truth": {
+  "claude": [
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000000#0",
+    "label": "T:docs",
+    "session": 0
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000000#1",
+    "label": "D:commits",
+    "session": 0
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000000#2",
+    "label": "M:assert:2",
+    "session": 0
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000001#0",
+    "label": "T:deps",
+    "session": 1
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000001#1",
+    "label": "D:tests",
+    "session": 1
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000002#0",
+    "label": "N:files:a",
+    "session": 2
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000002#1",
+    "label": "M:assert:0",
+    "session": 2
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000003#0",
+    "label": "T:scope",
+    "session": 3
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000004#0",
+    "label": "T:deps",
+    "session": 4
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000004#1",
+    "label": "T:docs",
+    "session": 4
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000004#2",
+    "label": "N:files:b",
+    "session": 4
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000004#3",
+    "label": "M:assert:1",
+    "session": 4
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000005#0",
+    "label": "T:scope",
+    "session": 5
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-111000000005#1",
+    "label": "T:deps",
+    "session": 5
+   }
+  ],
+  "codex": [
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000000#0",
+    "label": "T:docs",
+    "session": 0
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000000#1",
+    "label": "D:commits",
+    "session": 0
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000000#2",
+    "label": "M:assert:2",
+    "session": 0
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000001#0",
+    "label": "T:deps",
+    "session": 1
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000001#1",
+    "label": "D:tests",
+    "session": 1
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000002#0",
+    "label": "N:files:a",
+    "session": 2
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000002#1",
+    "label": "M:assert:0",
+    "session": 2
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000003#0",
+    "label": "T:scope",
+    "session": 3
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000004#0",
+    "label": "T:deps",
+    "session": 4
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000004#1",
+    "label": "T:docs",
+    "session": 4
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000004#2",
+    "label": "N:files:b",
+    "session": 4
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000004#3",
+    "label": "M:assert:1",
+    "session": 4
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000005#0",
+    "label": "T:scope",
+    "session": 5
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-112000000005#1",
+    "label": "T:deps",
+    "session": 5
+   }
+  ]
+ }
+}

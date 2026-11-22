@@ -1,0 +1,55 @@
+name: Bug report
+description: The program crashes, prints an error, or does something it should not.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not paste logs, transcripts or full reports.** Session logs, `--write-inputs` files, drift results and report files can contain your code, prompts and secrets, and issues are public.
+
+        Safe to share:
+        - the output of `agent-leeway --version` and your operating system
+        - the command you ran (remove project names and paths you do not want to share)
+        - the summary line and error message, with private names removed
+        - a **synthetic** reproduction: a small made-up log that shows the same problem
+
+        Security problems: please use private reporting instead (see SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `agent-leeway --version`
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and architecture
+      placeholder: e.g. macOS 26 arm64, Windows 11 x64, Ubuntu 24.04 arm64
+    validations:
+      required: true
+  - type: input
+    id: agents
+    attributes:
+      label: Agent CLI versions (if relevant)
+      description: Output of `claude --version` and/or `codex --version`
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command, with private names removed
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what you expected
+      description: Include the error message or the summary line, with private names removed. No log content.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction (optional)
+      description: A small made-up log or steps that reproduce the problem without your real data.

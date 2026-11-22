@@ -1,0 +1,271 @@
+{
+ "lang": "ko",
+ "size": "medium",
+ "sessions": 12,
+ "truth": {
+  "claude": [
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000000#0",
+    "label": "N:files:a",
+    "session": 0
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000002#0",
+    "label": "T:commits",
+    "session": 2
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000003#0",
+    "label": "T:logging",
+    "session": 3
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000003#1",
+    "label": "N:files:b",
+    "session": 3
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000003#2",
+    "label": "D:files",
+    "session": 3
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000003#3",
+    "label": "D:deps",
+    "session": 3
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000004#0",
+    "label": "N:docs:b",
+    "session": 4
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000005#0",
+    "label": "T:deps",
+    "session": 5
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000005#1",
+    "label": "M:assert:0",
+    "session": 5
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000006#0",
+    "label": "T:commits",
+    "session": 6
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000006#1",
+    "label": "T:deps",
+    "session": 6
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000006#2",
+    "label": "T:style",
+    "session": 6
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000006#3",
+    "label": "T:git",
+    "session": 6
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000007#0",
+    "label": "T:deps",
+    "session": 7
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000007#1",
+    "label": "T:style",
+    "session": 7
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000007#2",
+    "label": "T:git",
+    "session": 7
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000007#3",
+    "label": "N:docs:a",
+    "session": 7
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000007#4",
+    "label": "M:assert:1",
+    "session": 7
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000008#0",
+    "label": "T:deps",
+    "session": 8
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000009#0",
+    "label": "T:logging",
+    "session": 9
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000009#1",
+    "label": "T:commits",
+    "session": 9
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000009#2",
+    "label": "D:scope",
+    "session": 9
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000009#3",
+    "label": "D:logging",
+    "session": 9
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000009#4",
+    "label": "M:assert:2",
+    "session": 9
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000010#0",
+    "label": "T:git",
+    "session": 10
+   },
+   {
+    "event": "claude:00000000-0000-4000-8000-221000000010#1",
+    "label": "M:assert:3",
+    "session": 10
+   }
+  ],
+  "codex": [
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000000#0",
+    "label": "N:files:a",
+    "session": 0
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000002#0",
+    "label": "T:commits",
+    "session": 2
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000003#0",
+    "label": "T:logging",
+    "session": 3
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000003#1",
+    "label": "N:files:b",
+    "session": 3
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000003#2",
+    "label": "D:files",
+    "session": 3
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000003#3",
+    "label": "D:deps",
+    "session": 3
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000004#0",
+    "label": "N:docs:b",
+    "session": 4
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000005#0",
+    "label": "T:deps",
+    "session": 5
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000005#1",
+    "label": "M:assert:0",
+    "session": 5
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000006#0",
+    "label": "T:commits",
+    "session": 6
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000006#1",
+    "label": "T:deps",
+    "session": 6
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000006#2",
+    "label": "T:style",
+    "session": 6
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000006#3",
+    "label": "T:git",
+    "session": 6
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000007#0",
+    "label": "T:deps",
+    "session": 7
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000007#1",
+    "label": "T:style",
+    "session": 7
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000007#2",
+    "label": "T:git",
+    "session": 7
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000007#3",
+    "label": "N:docs:a",
+    "session": 7
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000007#4",
+    "label": "M:assert:1",
+    "session": 7
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000008#0",
+    "label": "T:deps",
+    "session": 8
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000009#0",
+    "label": "T:logging",
+    "session": 9
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000009#1",
+    "label": "T:commits",
+    "session": 9
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000009#2",
+    "label": "D:scope",
+    "session": 9
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000009#3",
+    "label": "D:logging",
+    "session": 9
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000009#4",
+    "label": "M:assert:2",
+    "session": 9
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000010#0",
+    "label": "T:git",
+    "session": 10
+   },
+   {
+    "event": "codex:00000000-0000-4000-8000-222000000010#1",
+    "label": "M:assert:3",
+    "session": 10
+   }
+  ]
+ }
+}

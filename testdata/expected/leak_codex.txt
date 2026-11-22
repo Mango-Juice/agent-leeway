@@ -1,0 +1,40 @@
+Leak check · 2025-12-21 09:00 – 2026-01-20 09:00 +0900 (local time) · Codex only
+Amounts are USD at API list prices (a subscription is not billed this way; read them as list-price equivalents). Codex model prices are not public: GPT-5 list prices are assumed.
+Only responses inside the window are counted; a session that began earlier contributes only its in-window part.
+Spend in this window $0.16 (Codex $0.16); mechanical leak $0.05 (31.2%)
+
+By habit
+  - Switching model, reasoning effort or tools mid-session: 3 times, $0.03 (per $100 of spend 18.49)
+      Where: Fri 61% · 18-24h 61% · project proyecto 61% (largest share by amount)
+      Change: Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session.
+  - Letting the agent repeat or retry the same command: 6 times, $0.02 (per $100 of spend 10.22)
+      Where: Sun 66% · 06-12h 53% · project 코덱스 66% (largest share by amount)
+      Change: Add "stop and explain after two failures in a row or before running the same command a third time" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling.
+  - Resuming the same session after a long break: 2 times, $0.01 (per $100 of spend 3.25)
+      Where: Sun 100% · 12-18h 98% · project 코덱스 98% (largest share by amount)
+      Change: After a long gap (Claude over 1 h, Codex over ~10 min), leave a summary and start a new session.
+  - Not telling the agent where the key files are (it re-reads them): 1 times, $0.00 (per $100 of spend 1.86)
+      Where: Sun 100% · 06-12h 100% · project 코덱스 100% (largest share by amount)
+      Change: Put the key file locations and layout in the first request or in your instructions file.
+  - Letting long logs and outputs into the context whole: 1 times, $0.00 (per $100 of spend 0.31)
+      Where: Fri 100% · 18-24h 100% · project proyecto 100% (largest share by amount)
+      Change: Ask the agent to read only the tail or a summary of test and build logs.
+
+By cause (detail)
+  $     0.01       2x  Cache expired (resumed after a long break)
+  $     0.03       3x  Cache rewritten mid-session (after a model/settings/tool change)
+  $     0.00       0x  Cache rewritten mid-session (cause unknown)
+  $     0.01       4x  Same command repeated (3rd run onward)
+  $     0.01       2x  Consecutive failures
+  $     0.00       1x  Unchanged file read again
+  $     0.00       1x  Oversized tool output (over 10k tokens)
+
+For reference (not counted as leak)
+  - Sub-agents spent $0.02 (12% of spend). That is the cost of delegating, not a leak.
+  - Small cache shortfalls $0.00 (4 responses, under 20% of the previous context): cache-block granularity, nothing to fix.
+
+Sessions with the largest leak (in-window activity dates and amounts)
+  - 2026-01-11 [direct+automation 24%] Codex 코덱스: leak $0.03 / spend $0.07 - rewrite after a change $0.01
+  - 2026-01-16 Codex proyecto: leak $0.02 / spend $0.07 - rewrite after a change $0.02
+
+Session keys are in the --json output.

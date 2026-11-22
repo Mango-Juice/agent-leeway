@@ -1,0 +1,3 @@
+  claude:opus: 8 sessions, estimated $1.92 (at least $0.240 per session: the validation-run average)
+  codex:gpt-6.2-astra: 3 sessions, estimated $0.11 (at least $0.038 per session: the validation-run average)
+  Estimated total $2.03 (USD at API list prices, drawn from your subscription usage), budget cap $5.00

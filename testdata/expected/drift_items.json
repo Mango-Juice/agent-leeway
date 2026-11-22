@@ -1,0 +1,112 @@
+[
+ {
+  "key": "claude:00000000-0000-4000-8000-000000000103",
+  "tool": "claude",
+  "project": "proyecto-demo",
+  "tier": "claude:opus",
+  "est_usd": 0.24,
+  "n_user": 2,
+  "warning": null,
+  "body_chars": 520
+ },
+ {
+  "key": "codex:00000000-0000-4000-8000-000000000206",
+  "tool": "codex",
+  "project": "orq",
+  "tier": "codex:gpt-6.2-astra",
+  "est_usd": 0.038,
+  "n_user": 1,
+  "warning": null,
+  "body_chars": 294
+ },
+ {
+  "key": "codex:00000000-0000-4000-8000-000000000202",
+  "tool": "codex",
+  "project": "proyecto",
+  "tier": "codex:gpt-6.2-astra",
+  "est_usd": 0.038,
+  "n_user": 2,
+  "warning": null,
+  "body_chars": 635
+ },
+ {
+  "key": "claude:00000000-0000-4000-8000-000000000108",
+  "tool": "claude",
+  "project": "big logs",
+  "tier": "claude:opus",
+  "est_usd": 0.24,
+  "n_user": 1,
+  "warning": null,
+  "body_chars": 328
+ },
+ {
+  "key": "claude:00000000-0000-4000-8000-000000000106",
+  "tool": "claude",
+  "project": "panel",
+  "tier": "claude:opus",
+  "est_usd": 0.24,
+  "n_user": 1,
+  "warning": null,
+  "body_chars": 265
+ },
+ {
+  "key": "claude:00000000-0000-4000-8000-000000000107",
+  "tool": "claude",
+  "project": "panel",
+  "tier": "claude:opus",
+  "est_usd": 0.24,
+  "n_user": 1,
+  "warning": null,
+  "body_chars": 269
+ },
+ {
+  "key": "claude:00000000-0000-4000-8000-000000000105",
+  "tool": "claude",
+  "project": "worker-repo",
+  "tier": "claude:opus",
+  "est_usd": 0.24,
+  "n_user": 1,
+  "warning": null,
+  "body_chars": 363
+ },
+ {
+  "key": "claude:00000000-0000-4000-8000-000000000104",
+  "tool": "claude",
+  "project": "데모 프로젝트",
+  "tier": "claude:opus",
+  "est_usd": 0.24,
+  "n_user": 3,
+  "warning": null,
+  "body_chars": 962
+ },
+ {
+  "key": "codex:00000000-0000-4000-8000-000000000201",
+  "tool": "codex",
+  "project": "코덱스",
+  "tier": "codex:gpt-6.2-astra",
+  "est_usd": 0.038,
+  "n_user": 2,
+  "warning": null,
+  "body_chars": 644
+ },
+ {
+  "key": "claude:00000000-0000-4000-8000-000000000101",
+  "tool": "claude",
+  "project": "demo-project",
+  "tier": "claude:opus",
+  "est_usd": 0.24,
+  "n_user": 2,
+  "warning": null,
+  "body_chars": 539
+ },
+ {
+  "key": "claude:00000000-0000-4000-8000-000000000102",
+  "tool": "claude",
+  "project": "demo-project",
+  "tier": "claude:opus",
+  "est_usd": 0.24,
+  "n_user": 2,
+  "warning": null,
+  "body_chars": 462
+ }
+]

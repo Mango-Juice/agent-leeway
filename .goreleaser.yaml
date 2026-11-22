@@ -1,0 +1,69 @@
+# GoReleaser configuration, run by .github/workflows/release.yml on a v* tag.
+# The GitHub account (Mango-Juice) appears here, in internal/meta/meta.go and in install/.
+version: 2
+project_name: agent-leeway
+# Tests run in a separate job with no secrets (.github/workflows/release.yml), not as GoReleaser hooks.
+# Release from the exported public tree (scripts/export_public.py), where LICENSE, NOTICE.md, the READMEs and
+# THIRD_PARTY_LICENSES.txt sit at the root; a test checks every archive file below exists there.
+builds:
+  - main: ./cmd/agent-leeway
+    binary: agent-leeway
+    env: [CGO_ENABLED=0]
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X github.com/Mango-Juice/agent-leeway/internal/meta.Version={{ .Version }}"]
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"   # stable names for releases/latest/download
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    # license texts must accompany every binary: our LICENSE, NOTICE.md and the generated third-party texts
+    # (internal/licenses keeps THIRD_PARTY_LICENSES.txt equal to what go.mod links; a test checks this list)
+    files: [LICENSE*, NOTICE*, README*, THIRD_PARTY_LICENSES.txt]
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+release:
+  github:
+    owner: Mango-Juice
+    name: agent-leeway
+  draft: true
+# Homebrew and Scoop: the tap and bucket repositories do not exist, so nothing is published to them.
+# The formula and manifest are only written to dist/ (skip_upload); nothing is pushed anywhere.
+brews:
+  - repository:
+      owner: Mango-Juice
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"   # a token limited to the tap repo (GITHUB_TOKEN cannot write there)
+    # the formula is written to dist/ only; it is published after the draft release is reviewed and promoted
+    skip_upload: true
+    # commits in the tap/bucket repos are made by automation: a bot identity, never the owner's name/email
+    # (the owner's own commits are signed; an unsigned commit under their identity would show as Unverified)
+    commit_author:
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    directory: Formula
+    homepage: https://github.com/Mango-Juice/agent-leeway
+    description: Occasional check-up of Claude Code and Codex logs (cost leaks and intent drift)
+    license: MIT
+    install: |
+      bin.install "agent-leeway"
+      prefix.install "LICENSE", "NOTICE.md", "THIRD_PARTY_LICENSES.txt"
+    test: |
+      system "#{bin}/agent-leeway", "--version"
+scoops:
+  - repository:
+      owner: Mango-Juice
+      name: scoop-bucket
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"   # a token limited to the bucket repo
+    skip_upload: true                        # written to dist/ only, published after the draft is promoted
+    # commits in the tap/bucket repos are made by automation: a bot identity, never the owner's name/email
+    # (the owner's own commits are signed; an unsigned commit under their identity would show as Unverified)
+    commit_author:
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    homepage: https://github.com/Mango-Juice/agent-leeway
+    description: Occasional check-up of Claude Code and Codex logs (cost leaks and intent drift)
+    license: MIT

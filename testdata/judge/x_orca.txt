@@ -1,0 +1,1 @@
+{"events": [], "defect_reports": [], "weak_signals": [], "intent_changes": [], "no_user_reaction": false, "verdict": "as_intended", "verdict_reason": "synthetic"}

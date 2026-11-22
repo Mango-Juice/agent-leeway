@@ -1,0 +1,584 @@
+{
+ "about": "List prices in USD per million tokens, read from the providers' pricing pages. Update a row (and its 'read' date) when a page changes; a prices.json with the same layout in the settings folder replaces this table. Matching: a model name equals the id, or is the id followed by a date or a bracketed suffix (claude-haiku-4-5-20251001, claude-opus-5-5[1m]). Anything else is priced with the provider's fallback row and reported as an assumed price.",
+ "read": "2026-11-22",
+ "fallback": {
+  "claude": "claude-opus-5-5",
+  "codex": "gpt-6.2-astra"
+ },
+ "judge_models": {
+  "claude:opus": "claude-opus-5-5",
+  "claude:sonnet": "claude-sonnet-5-5",
+  "claude:haiku": "claude-haiku-5-5"
+ },
+ "measured_judge_usd_per_session": {
+  "claude:opus": {
+   "usd": 0.2431,
+   "sessions": 40,
+   "note": "docs/13 rubric v2, owner sessions, first run each; unchanged at the 2026-11-22 prices"
+  },
+  "codex:gpt-6.2-astra": {
+   "usd": 0.2081,
+   "sessions": 80,
+   "note": "docs/13 rubric v2, owner sessions, first run each, restated at the 2026-11-22 price (was 0.038 at the GPT-5 rate)"
+  }
+ },
+ "caching": {
+  "claude": "Claude Code records each cache write as ephemeral_5m_input_tokens or ephemeral_1h_input_tokens; each is priced at its own rate, and the cache of that thread is treated as expiring after that lifetime. Older logs without the split: 1 hour for the main conversation, 5 minutes for sub-agents (Claude Code's subscription defaults).",
+  "claude_source": "https://code.claude.com/docs/en/prompt-caching.md",
+  "openai": "GPT-5.6 and later keep the prompt cache at least 30 minutes and bill cache writes at the 30-minute rate; earlier models keep it about 5 to 10 minutes and do not bill writes.",
+  "openai_source": "https://developers.openai.com/api/docs/guides/prompt-caching"
+ },
+ "models": [
+  {
+   "id": "claude-fable-5-2",
+   "provider": "anthropic",
+   "input": 8,
+   "cache_read": 0.2,
+   "cache_write_5m": 10,
+   "cache_write_1h": 16,
+   "output": 40,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-mythos-5-2",
+   "provider": "anthropic",
+   "input": 8,
+   "cache_read": 0.2,
+   "cache_write_5m": 10,
+   "cache_write_1h": 16,
+   "output": 40,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22",
+   "note": "limited availability"
+  },
+  {
+   "id": "claude-fable-5-1",
+   "provider": "anthropic",
+   "input": 10,
+   "cache_read": 0.25,
+   "cache_write_5m": 12.5,
+   "cache_write_1h": 20,
+   "output": 50,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-mythos-5-1",
+   "provider": "anthropic",
+   "input": 10,
+   "cache_read": 0.25,
+   "cache_write_5m": 12.5,
+   "cache_write_1h": 20,
+   "output": 50,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22",
+   "note": "limited availability"
+  },
+  {
+   "id": "claude-fable-5",
+   "provider": "anthropic",
+   "input": 10,
+   "cache_read": 1,
+   "cache_write_5m": 12.5,
+   "cache_write_1h": 20,
+   "output": 50,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-mythos-5",
+   "provider": "anthropic",
+   "input": 10,
+   "cache_read": 1,
+   "cache_write_5m": 12.5,
+   "cache_write_1h": 20,
+   "output": 50,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22",
+   "note": "limited availability"
+  },
+  {
+   "id": "claude-opus-5-5",
+   "provider": "anthropic",
+   "input": 4,
+   "cache_read": 0.2,
+   "cache_write_5m": 5,
+   "cache_write_1h": 8,
+   "output": 20,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-opus-5",
+   "provider": "anthropic",
+   "input": 5,
+   "cache_read": 0.5,
+   "cache_write_5m": 6.25,
+   "cache_write_1h": 10,
+   "output": 25,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-opus-4-8",
+   "provider": "anthropic",
+   "input": 5,
+   "cache_read": 0.5,
+   "cache_write_5m": 6.25,
+   "cache_write_1h": 10,
+   "output": 25,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-opus-4-7",
+   "provider": "anthropic",
+   "input": 5,
+   "cache_read": 0.5,
+   "cache_write_5m": 6.25,
+   "cache_write_1h": 10,
+   "output": 25,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-opus-4-6",
+   "provider": "anthropic",
+   "input": 5,
+   "cache_read": 0.5,
+   "cache_write_5m": 6.25,
+   "cache_write_1h": 10,
+   "output": 25,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-opus-4-5",
+   "provider": "anthropic",
+   "input": 5,
+   "cache_read": 0.5,
+   "cache_write_5m": 6.25,
+   "cache_write_1h": 10,
+   "output": 25,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-opus-4-1",
+   "provider": "anthropic",
+   "input": 15,
+   "cache_read": 1.5,
+   "cache_write_5m": 18.75,
+   "cache_write_1h": 30,
+   "output": 75,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22",
+   "note": "retired except Google managed and Bedrock"
+  },
+  {
+   "id": "claude-opus-4",
+   "provider": "anthropic",
+   "input": 15,
+   "cache_read": 1.5,
+   "cache_write_5m": 18.75,
+   "cache_write_1h": 30,
+   "output": 75,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22",
+   "note": "retired except Google managed"
+  },
+  {
+   "id": "claude-sonnet-5-5",
+   "provider": "anthropic",
+   "input": 2,
+   "cache_read": 0.1,
+   "cache_write_5m": 2.5,
+   "cache_write_1h": 4,
+   "output": 10,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-sonnet-5",
+   "provider": "anthropic",
+   "input": 2,
+   "cache_read": 0.2,
+   "cache_write_5m": 2.5,
+   "cache_write_1h": 4,
+   "output": 10,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22",
+   "note": "the $2/$10 introductory price is now the standard price"
+  },
+  {
+   "id": "claude-sonnet-4-6",
+   "provider": "anthropic",
+   "input": 3,
+   "cache_read": 0.3,
+   "cache_write_5m": 3.75,
+   "cache_write_1h": 6,
+   "output": 15,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-sonnet-4-5",
+   "provider": "anthropic",
+   "input": 3,
+   "cache_read": 0.3,
+   "cache_write_5m": 3.75,
+   "cache_write_1h": 6,
+   "output": 15,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "claude-sonnet-4",
+   "provider": "anthropic",
+   "input": 3,
+   "cache_read": 0.3,
+   "cache_write_5m": 3.75,
+   "cache_write_1h": 6,
+   "output": 15,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22",
+   "note": "retired except Google managed and Bedrock"
+  },
+  {
+   "id": "claude-haiku-5-5",
+   "provider": "anthropic",
+   "input": 0.1,
+   "cache_read": 0.01,
+   "cache_write_5m": 0.125,
+   "cache_write_1h": 0.2,
+   "output": 0.5,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22",
+   "long": {
+    "above": 100000,
+    "input": 0.5,
+    "cache_read": 0.05,
+    "cache_write_5m": 0.625,
+    "cache_write_1h": 1,
+    "output": 2.5
+   },
+   "note": "prompts over 100,000 tokens (cache reads and writes included) pay the long rates for the whole request"
+  },
+  {
+   "id": "claude-haiku-4-5",
+   "provider": "anthropic",
+   "input": 1,
+   "cache_read": 0.1,
+   "cache_write_5m": 1.25,
+   "cache_write_1h": 2,
+   "output": 5,
+   "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "read": "2026-11-22"
+  },
+  {
+   "id": "gpt-6.2-astra",
+   "provider": "openai",
+   "input": 8,
+   "cache_read": 0.4,
+   "output": 40,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 10,
+   "long": {
+    "above": 272000,
+    "input": 16,
+    "cache_read": 0.8,
+    "output": 60,
+    "cache_write": 20
+   }
+  },
+  {
+   "id": "gpt-6.2-sol",
+   "provider": "openai",
+   "input": 2,
+   "cache_read": 0.1,
+   "output": 10,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 2.5,
+   "long": {
+    "above": 272000,
+    "input": 4,
+    "cache_read": 0.2,
+    "output": 15,
+    "cache_write": 5
+   }
+  },
+  {
+   "id": "gpt-6-astra",
+   "provider": "openai",
+   "input": 10,
+   "cache_read": 1,
+   "output": 50,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 12.5,
+   "long": {
+    "above": 272000,
+    "input": 20,
+    "cache_read": 2,
+    "output": 75,
+    "cache_write": 25
+   }
+  },
+  {
+   "id": "gpt-6.1-sol",
+   "provider": "openai",
+   "input": 2,
+   "cache_read": 0.1,
+   "output": 10,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 2.5,
+   "long": {
+    "above": 272000,
+    "input": 4,
+    "cache_read": 0.2,
+    "output": 15,
+    "cache_write": 5
+   }
+  },
+  {
+   "id": "gpt-6.1-terra",
+   "provider": "openai",
+   "input": 1,
+   "cache_read": 0.05,
+   "output": 5,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 1.25,
+   "long": {
+    "above": 272000,
+    "input": 2,
+    "cache_read": 0.1,
+    "output": 7.5,
+    "cache_write": 2.5
+   }
+  },
+  {
+   "id": "gpt-6-luna",
+   "provider": "openai",
+   "input": 0.1,
+   "cache_read": 0.01,
+   "output": 0.5,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 0.125,
+   "long": {
+    "above": 272000,
+    "input": 0.2,
+    "cache_read": 0.02,
+    "output": 0.75,
+    "cache_write": 0.25
+   }
+  },
+  {
+   "id": "gpt-6-sol",
+   "provider": "openai",
+   "input": 2,
+   "cache_read": 0.2,
+   "output": 10,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 2.5,
+   "long": {
+    "above": 272000,
+    "input": 4,
+    "cache_read": 0.4,
+    "output": 15,
+    "cache_write": 5
+   }
+  },
+  {
+   "id": "gpt-5.6-sol",
+   "provider": "openai",
+   "input": 4,
+   "cache_read": 0.4,
+   "output": 20,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 5,
+   "long": {
+    "above": 272000,
+    "input": 8,
+    "cache_read": 0.8,
+    "output": 30,
+    "cache_write": 10
+   },
+   "promo_until": "2026-11-30",
+   "note": "the page says GPT-5.6 Sol has promotional pricing until 2026-11-30 without saying what the price is after that"
+  },
+  {
+   "id": "gpt-5.6-terra",
+   "provider": "openai",
+   "input": 2,
+   "cache_read": 0.2,
+   "output": 12,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 2.5,
+   "long": {
+    "above": 272000,
+    "input": 4,
+    "cache_read": 0.4,
+    "output": 18,
+    "cache_write": 5
+   }
+  },
+  {
+   "id": "gpt-5.6-luna",
+   "provider": "openai",
+   "input": 0.2,
+   "cache_read": 0.02,
+   "output": 1.2,
+   "cache_ttl_minutes": 30,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "cache_write": 0.25,
+   "long": {
+    "above": 272000,
+    "input": 0.4,
+    "cache_read": 0.04,
+    "output": 1.8,
+    "cache_write": 0.5
+   }
+  },
+  {
+   "id": "gpt-5.5",
+   "provider": "openai",
+   "input": 5,
+   "cache_read": 0.5,
+   "output": 30,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "long": {
+    "above": 272000,
+    "input": 10,
+    "cache_read": 1,
+    "output": 45
+   },
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5.4",
+   "provider": "openai",
+   "input": 2.5,
+   "cache_read": 0.25,
+   "output": 15,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "long": {
+    "above": 272000,
+    "input": 5,
+    "cache_read": 0.5,
+    "output": 22.5
+   },
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5.4-mini",
+   "provider": "openai",
+   "input": 0.75,
+   "cache_read": 0.075,
+   "output": 4.5,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5.4-nano",
+   "provider": "openai",
+   "input": 0.2,
+   "cache_read": 0.02,
+   "output": 1.25,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5.3-codex",
+   "provider": "openai",
+   "input": 1.75,
+   "cache_read": 0.175,
+   "output": 14,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5.2",
+   "provider": "openai",
+   "input": 1.75,
+   "cache_read": 0.175,
+   "output": 14,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5.1",
+   "provider": "openai",
+   "input": 1.25,
+   "cache_read": 0.125,
+   "output": 10,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5",
+   "provider": "openai",
+   "input": 1.25,
+   "cache_read": 0.125,
+   "output": 10,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5-mini",
+   "provider": "openai",
+   "input": 0.25,
+   "cache_read": 0.025,
+   "output": 2,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  },
+  {
+   "id": "gpt-5-nano",
+   "provider": "openai",
+   "input": 0.05,
+   "cache_read": 0.005,
+   "output": 0.4,
+   "cache_ttl_minutes": 10,
+   "source": "https://developers.openai.com/api/docs/pricing",
+   "read": "2026-11-22",
+   "note": "no cache-write charge; in-memory cache lifetime about 5 to 10 minutes"
+  }
+ ]
+}

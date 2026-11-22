@@ -1,0 +1,19 @@
+Your AI coding agents, overall: POOR   (2025-12-21 – 2026-01-20)
+
+  Did what you asked      good fair [POOR]  Serious misses in 6 of 9 sessions · 6 fewer missed
+  sessions to reach Good
+  Money wasted by habits  good fair [POOR]  $2.55 of $5.36 · $2.28 less to reach Good
+
+Fix first:
+  1. Add this rule to CLAUDE.md
+     In 3 sessions: Keep existing tables as they are
+     Source: https://code.claude.com/docs/en/memory.md
+  2. Keep long logs out · $1.33 lost
+  3. Make broken rules checkable · 1 of 9 sessions
+
+Fixed in-session: 9 / 9 misses
+
+! Judged with your edited rubric v2.1-b636272b+t2; the validation figures in this report were
+measured with the bundled rubric v2.1-cf92779d
+
+→ <reports>/report-2026-01-20T0900.html

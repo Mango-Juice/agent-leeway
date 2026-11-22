@@ -1,0 +1,10 @@
+{"timestamp":"2026-01-18T07:00:00.000Z","type":"session_meta","payload":{"id":"00000000-0000-4000-8000-000000000206","session_id":"00000000-0000-4000-8000-000000000206","cwd":"/tmp/orq","originator":"orca_desktop","cli_version":"0.110.0","thread_source":"user"},"ordinal":0}
+{"timestamp":"2026-01-18T07:00:00.000Z","type":"event_msg","payload":{"type":"task_started","turn_attribution":{"turn_trigger":"composer"}},"ordinal":1}
+{"timestamp":"2026-01-18T07:00:00.000Z","type":"turn_context","payload":{"model":"gpt-6.2-astra","cwd":"/tmp/orq","effort":"medium"},"ordinal":2}
+{"timestamp":"2026-01-18T07:00:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"[fx:x_orca] Run the release checklist."}],"internal_chat_message_metadata_passthrough":{"content_item_kinds":["user.text"]}},"ordinal":3}
+{"timestamp":"2026-01-18T07:00:05.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"make check\"}","call_id":"q1"},"ordinal":4}
+{"timestamp":"2026-01-18T07:00:06.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"q1","output":"Process exited with code 0"},"ordinal":5}
+{"timestamp":"2026-01-18T07:00:07.000Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":4000,"cached_input_tokens":0,"output_tokens":120,"reasoning_output_tokens":10},"total_token_usage":{"input_tokens":1}}},"ordinal":6}
+{"timestamp":"2026-01-18T07:00:09.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"make extra\"}","call_id":"q2"},"ordinal":7}
+{"timestamp":"2026-01-18T07:00:10.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"q2","output":"only in the plain copy"},"ordinal":8}
+{"timestamp":"2026-01-18T07:00:11.000Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":4100,"cached_input_tokens":3900,"output_tokens":120,"reasoning_output_tokens":10},"total_token_usage":{"input_tokens":2}}},"ordinal":9}

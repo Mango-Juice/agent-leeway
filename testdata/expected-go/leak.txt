@@ -1,0 +1,54 @@
+Leak check · 2025-12-21 09:00 – 2026-01-20 09:00 +0900 (local time)
+Amounts are USD at the providers' API list prices (price table read 2026-11-22; `agent-leeway prices` shows it). A subscription is not billed per token: read them as list-price equivalents.
+Only responses inside the window are counted; a session that began earlier contributes only its in-window part.
+Spend in this window $5.36 (Claude Code $4.65 · Codex $0.71); mechanical leak $2.55 (47.6%)
+Previous window of the same length: spend $0.33, leak $0.03 (9.1%) -> leak per $100 of spend 9.09 -> 47.57
+  Direct conversations: spend $5.21, leak $2.53 (48.6%)
+  Automation runs: spend $0.14, leak $0.02 (14.3%)
+  (automation = Codex automations and goal continuation, worker sessions started by another agent, non-interactive exec, sessions opened by an agent)
+
+By habit (direct conversations only)
+  - Letting long logs and outputs into the context whole: 3 times, $1.33 (per $100 of spend 25.58, previous window 0.00)
+      Where: Thu 99% · 18-24h 99% · project big logs 99% (largest share by amount)
+      Change: Ask the agent to read only the tail or a summary of test and build logs.
+  - Switching model, reasoning effort or tools mid-session: 5 times, $0.58 (per $100 of spend 11.17, previous window 0.00)
+      Where: Mon 76% · 06-12h 79% · project 데모 프로젝트 76% (largest share by amount)
+      Change: Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session.
+  - Resuming the same session after a long break: 3 times, $0.34 (per $100 of spend 6.60, previous window 0.00)
+      Where: Sun 50% · 06-12h 50% · project demo-project 100% (largest share by amount)
+      Change: After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session.
+  - Letting the agent repeat or retry the same command: 10 times, $0.09 (per $100 of spend 1.70, previous window 7.31)
+      Where: Sun 38% · 06-12h 47% · project 코덱스 38% (largest share by amount)
+      Change: Add "stop and explain after two failures in a row or before running the same command a third time" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling.
+  - Not telling the agent where the key files are (it re-reads them): 2 times, $0.02 (per $100 of spend 0.38, previous window 0.00)
+      Where: Sun 59% · 06-12h 100% · project 코덱스 59% (largest share by amount)
+      Change: Put the key file locations and layout in the first request or in your instructions file.
+
+Fix in the automation settings (not a personal habit)
+  - Codex automation (heartbeat turns injected into an existing thread): spend $0.02, leak $0.01
+      - Each run continues the same thread after a long gap, so the expired context is cached again (1 time, $0.01). Run each time in a new thread, or pass the needed context as a short summary file.
+
+By cause (detail)  [direct / automation]
+  $     0.35       4x  Cache expired (resumed after a long break)   [$0.34 3x / $0.01 1x]
+  $     0.58       5x  Cache rewritten mid-session (after a model/settings/tool change)   [$0.58 5x / $0.00 0x]
+  $     0.16       1x  Cache rewritten mid-session (cause unknown)   [$0.16 1x / $0.00 0x]
+  $     0.05       5x  Same command repeated (3rd run onward)   [$0.04 4x / $0.00 1x]
+  $     0.05       8x  Consecutive failures   [$0.04 6x / $0.01 2x]
+  $     0.02       2x  Unchanged file read again   [$0.02 2x / $0.00 0x]
+  $     1.33       3x  Oversized tool output (over 10k tokens)   [$1.33 3x / $0.00 0x]
+  (unexplained rewrites, $0.16, look like server-side cache eviction and are not counted as a habit)
+
+For reference (not counted as leak)
+  - Sub-agents spent $0.15 (3% of spend). That is the cost of delegating, not a leak.
+  - Small cache shortfalls $0.02 (13 responses, under 20% of the previous context): cache-block granularity, nothing to fix.
+  - Origin unclear for 2 sessions ($0.07 of spend): counted as direct conversations; settings.json "origin" can classify their launcher.
+  - Assumed price: 10 responses (8.7% of tokens) of model gpt-5-codex have no row in the price table and were priced like gpt-6.2-astra.
+
+Sessions with the largest leak (in-window activity dates and amounts)
+  - 2026-01-15 Claude Code big logs: leak $1.32 / spend $2.69 - oversized output $1.32
+  - 2026-01-12 Claude Code 데모 프로젝트: leak $0.47 / spend $0.93 - rewrite after a change $0.44
+  - 2026-01-10 Claude Code demo-project: leak $0.19 / spend $0.37 - cache expired $0.17, consecutive failures $0.02
+  - 2025-12-21 (session started 2025-12-21, continued into this window) Claude Code demo-project: leak $0.17 / spend $0.18 - cache expired $0.17
+  - 2026-01-20 Claude Code proyecto-demo: leak $0.17 / spend $0.35 - unexplained rewrite $0.16
+
+Session keys are in the --json output. Tags: [automation] = most of the session's leak came from automation runs; [direct+automation N%] = N% of it did.

@@ -1,0 +1,1293 @@
+{
+ "window_start": "2025-12-21T00:00:00+00:00",
+ "window_end": "2026-01-20T00:01:00+00:00",
+ "tool": "all",
+ "origin": "all",
+ "total_usd": 5.36,
+ "automation_fixes": [],
+ "by_tool": {
+  "claude": 4.65,
+  "codex": 0.71
+ },
+ "leak_usd": 2.55,
+ "causes": [
+  {
+   "cause": "expiry",
+   "label": "Cache expired (resumed after a long break)",
+   "usd": 0.35,
+   "count": 4,
+   "fix": "Resumed 4 times after a gap longer than the prompt-cache lifetime (Claude Code: 5 minutes or 1 hour, as each cache write records; Codex: 30 minutes on GPT-5.6 and later). After a long break, leave a short summary and start a new session instead."
+  },
+  {
+   "cause": "reset_known",
+   "label": "Cache rewritten mid-session (after a model/settings/tool change)",
+   "usd": 0.58,
+   "count": 5,
+   "fix": "The cache was rewritten right after model change x2, reasoning-effort change x1, tool-list change x1, system prompt / tool set change x1 (5 times). Choose model, reasoning effort and tools when the session starts and do not change them midway."
+  },
+  {
+   "cause": "reset_unknown",
+   "label": "Cache rewritten mid-session (cause unknown)",
+   "usd": 0.16,
+   "count": 1,
+   "fix": "1 rewrites with no preceding event in the log; most likely server-side cache eviction. Nothing to fix (amount recorded only)."
+  },
+  {
+   "cause": "repeat",
+   "label": "Same command repeated (3rd run onward)",
+   "usd": 0.05,
+   "count": 5,
+   "fix": "5 calls ran a command for at least the third time. If it is status polling, have the agent wait for a completion signal; add \"stop and explain before running the same command a third time\" to your instructions."
+  },
+  {
+   "cause": "fail",
+   "label": "Consecutive failures",
+   "usd": 0.05,
+   "count": 8,
+   "fix": "8 calls failed right after another failure. \"Stop and report the cause after two failures in a row\" in your instructions breaks the loop."
+  },
+  {
+   "cause": "reread",
+   "label": "Unchanged file read again",
+   "usd": 0.02,
+   "count": 2,
+   "fix": "2 calls re-read the same range of a file that had not changed. Put the key file locations and layout in the first request."
+  },
+  {
+   "cause": "oversize",
+   "label": "Oversized tool output (over 10k tokens)",
+   "usd": 1.33,
+   "count": 3,
+   "fix": "3 tool outputs over 10k tokens entered the context and were re-read by every later response. Have logs and test output tailed or summarized."
+  }
+ ],
+ "habits": [
+  {
+   "habit": "long_break",
+   "label": "Resuming the same session after a long break",
+   "causes": [
+    "expiry"
+   ],
+   "usd": 0.35,
+   "count": 4,
+   "per100": 6.583,
+   "where": {
+    "weekday": {
+     "top": "Sun",
+     "share": 0.513
+    },
+    "time": {
+     "top": "06-12h",
+     "share": 0.489
+    },
+    "project": {
+     "top": "demo-project",
+     "share": 0.974
+    }
+   },
+   "tip": "After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session."
+  },
+  {
+   "habit": "mid_switch",
+   "label": "Switching model, reasoning effort or tools mid-session",
+   "causes": [
+    "reset_known"
+   ],
+   "usd": 0.58,
+   "count": 5,
+   "per100": 10.875,
+   "where": {
+    "weekday": {
+     "top": "Mon",
+     "share": 0.759
+    },
+    "time": {
+     "top": "06-12h",
+     "share": 0.793
+    },
+    "project": {
+     "top": "데모 프로젝트",
+     "share": 0.759
+    }
+   },
+   "tip": "Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session."
+  },
+  {
+   "habit": "let_repeat",
+   "label": "Letting the agent repeat or retry the same command",
+   "causes": [
+    "repeat",
+    "fail"
+   ],
+   "usd": 0.1,
+   "count": 13,
+   "per100": 1.81,
+   "where": {
+    "weekday": {
+     "top": "Sun",
+     "share": 0.369
+    },
+    "time": {
+     "top": "06-12h",
+     "share": 0.429
+    },
+    "project": {
+     "top": "코덱스",
+     "share": 0.369
+    }
+   },
+   "tip": "Add \"stop and explain after two failures in a row or before running the same command a third time\" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling."
+  },
+  {
+   "habit": "no_map",
+   "label": "Not telling the agent where the key files are (it re-reads them)",
+   "causes": [
+    "reread"
+   ],
+   "usd": 0.02,
+   "count": 2,
+   "per100": 0.37,
+   "where": {
+    "weekday": {
+     "top": "Sun",
+     "share": 0.588
+    },
+    "time": {
+     "top": "06-12h",
+     "share": 1.0
+    },
+    "project": {
+     "top": "코덱스",
+     "share": 0.588
+    }
+   },
+   "tip": "Put the key file locations and layout in the first request or in your instructions file."
+  },
+  {
+   "habit": "big_output",
+   "label": "Letting long logs and outputs into the context whole",
+   "causes": [
+    "oversize"
+   ],
+   "usd": 1.33,
+   "count": 3,
+   "per100": 24.895,
+   "where": {
+    "weekday": {
+     "top": "Thu",
+     "share": 0.992
+    },
+    "time": {
+     "top": "18-24h",
+     "share": 0.994
+    },
+    "project": {
+     "top": "big logs",
+     "share": 0.992
+    }
+   },
+   "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+  }
+ ],
+ "info": {
+  "subagent": 0.15,
+  "partial_miss": 0.02,
+  "partial_count": 13,
+  "origin_uncertain": {
+   "sessions": 2,
+   "usd": 0.07
+  },
+  "assumed_prices": [
+   {
+    "model": "gpt-5-codex",
+    "responses": 10,
+    "token_share": 0.0868
+   }
+  ]
+ },
+ "sessions": [
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000108",
+   "expiry": 0.0,
+   "fail": 0.0,
+   "oversize": 1.323,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 1.323,
+   "cost": 2.6933,
+   "first": "2026-01-15 10:00:10+00:00",
+   "last": "2026-01-15 10:00:40+00:00",
+   "tool": "claude",
+   "project": "big logs",
+   "start": "2026-01-15 10:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000104",
+   "expiry": 0.0,
+   "fail": 0.0,
+   "oversize": 0.0078,
+   "repeat": 0.0082,
+   "reread": 0.0082,
+   "reset_known": 0.442,
+   "reset_unknown": 0.0,
+   "leak": 0.4661,
+   "cost": 0.9336,
+   "first": "2026-01-12 01:00:20+00:00",
+   "last": "2026-01-12 01:08:50+00:00",
+   "tool": "claude",
+   "project": "데모 프로젝트",
+   "start": "2026-01-12 01:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000101",
+   "expiry": 0.1716,
+   "fail": 0.0187,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 0.1904,
+   "cost": 0.3676,
+   "first": "2026-01-10 09:00:30+00:00",
+   "last": "2026-01-10 11:03:10+00:00",
+   "tool": "claude",
+   "project": "demo-project",
+   "start": "2026-01-10 09:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000102",
+   "expiry": 0.1716,
+   "fail": 0.0,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 0.1716,
+   "cost": 0.1804,
+   "first": "2025-12-21 02:03:10+00:00",
+   "last": "2025-12-21 02:03:10+00:00",
+   "tool": "claude",
+   "project": "demo-project",
+   "start": "2025-12-20 23:00:00+00:00",
+   "started_before": true,
+   "auto_share": 0.0
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000103",
+   "expiry": 0.0,
+   "fail": 0.0061,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.1638,
+   "leak": 0.17,
+   "cost": 0.3469,
+   "first": "2026-01-19 18:00:30+00:00",
+   "last": "2026-01-19 18:32:10+00:00",
+   "tool": "claude",
+   "project": "proyecto-demo",
+   "start": "2026-01-19 18:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  },
+  {
+   "key": "codex:00000000-0000-4000-8000-000000000202",
+   "expiry": 0.0,
+   "fail": 0.0084,
+   "oversize": 0.0026,
+   "repeat": 0.0136,
+   "reread": 0.0,
+   "reset_known": 0.1208,
+   "reset_unknown": 0.0,
+   "leak": 0.1455,
+   "cost": 0.3971,
+   "first": "2026-01-16 09:00:22+00:00",
+   "last": "2026-01-16 09:04:22+00:00",
+   "tool": "codex",
+   "project": "proyecto",
+   "start": "2026-01-16 09:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  },
+  {
+   "key": "codex:00000000-0000-4000-8000-000000000201",
+   "expiry": 0.0086,
+   "fail": 0.0113,
+   "oversize": 0.0,
+   "repeat": 0.0244,
+   "reread": 0.0116,
+   "reset_known": 0.0196,
+   "reset_unknown": 0.0,
+   "leak": 0.0755,
+   "cost": 0.2281,
+   "first": "2026-01-11 00:00:17+00:00",
+   "last": "2026-01-11 03:09:32+00:00",
+   "tool": "codex",
+   "project": "코덱스",
+   "start": "2026-01-11 00:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.1435
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000105",
+   "expiry": 0.0,
+   "fail": 0.0061,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 0.0061,
+   "cost": 0.0512,
+   "first": "2026-01-13 05:00:10+00:00",
+   "last": "2026-01-13 05:01:00+00:00",
+   "tool": "claude",
+   "project": "worker-repo",
+   "start": "2026-01-13 05:00:00+00:00",
+   "started_before": false,
+   "auto_share": 1.0
+  },
+  {
+   "key": "codex:00000000-0000-4000-8000-000000000207",
+   "expiry": 0.0008,
+   "fail": 0.0,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 0.0008,
+   "cost": 0.0104,
+   "first": "2025-12-21 00:30:02+00:00",
+   "last": "2025-12-21 00:30:02+00:00",
+   "tool": "codex",
+   "project": "viejo",
+   "start": "2025-12-20 23:30:00+00:00",
+   "started_before": true,
+   "auto_share": 0.0
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000106",
+   "expiry": 0.0,
+   "fail": 0.0,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 0.0,
+   "cost": 0.0369,
+   "first": "2026-01-14 08:00:10+00:00",
+   "last": "2026-01-14 08:00:20+00:00",
+   "tool": "claude",
+   "project": "panel",
+   "start": "2026-01-14 08:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  },
+  {
+   "key": "claude:00000000-0000-4000-8000-000000000107",
+   "expiry": 0.0,
+   "fail": 0.0,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 0.0,
+   "cost": 0.0369,
+   "first": "2026-01-14 08:00:10+00:00",
+   "last": "2026-01-14 08:00:20+00:00",
+   "tool": "claude",
+   "project": "panel",
+   "start": "2026-01-14 08:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  },
+  {
+   "key": "codex:00000000-0000-4000-8000-000000000204",
+   "expiry": 0.0,
+   "fail": 0.0,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 0.0,
+   "cost": 0.0288,
+   "first": "2026-01-17 03:00:07+00:00",
+   "last": "2026-01-17 03:00:07+00:00",
+   "tool": "codex",
+   "project": "fork",
+   "start": "2026-01-17 03:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  },
+  {
+   "key": "codex:00000000-0000-4000-8000-000000000206",
+   "expiry": 0.0,
+   "fail": 0.0,
+   "oversize": 0.0,
+   "repeat": 0.0,
+   "reread": 0.0,
+   "reset_known": 0.0,
+   "reset_unknown": 0.0,
+   "leak": 0.0,
+   "cost": 0.0448,
+   "first": "2026-01-18 07:00:07+00:00",
+   "last": "2026-01-18 07:00:11+00:00",
+   "tool": "codex",
+   "project": "orq",
+   "start": "2026-01-18 07:00:00+00:00",
+   "started_before": false,
+   "auto_share": 0.0
+  }
+ ],
+ "by_origin": {
+  "human": {
+   "window_start": "2025-12-21T00:00:00+00:00",
+   "window_end": "2026-01-20T00:01:00+00:00",
+   "tool": "all",
+   "origin": "human",
+   "total_usd": 5.21,
+   "automation_fixes": [],
+   "by_tool": {
+    "claude": 4.6,
+    "codex": 0.62
+   },
+   "leak_usd": 2.53,
+   "causes": [
+    {
+     "cause": "expiry",
+     "label": "Cache expired (resumed after a long break)",
+     "usd": 0.34,
+     "count": 3,
+     "fix": "Resumed 3 times after a gap longer than the prompt-cache lifetime (Claude Code: 5 minutes or 1 hour, as each cache write records; Codex: 30 minutes on GPT-5.6 and later). After a long break, leave a short summary and start a new session instead."
+    },
+    {
+     "cause": "reset_known",
+     "label": "Cache rewritten mid-session (after a model/settings/tool change)",
+     "usd": 0.58,
+     "count": 5,
+     "fix": "The cache was rewritten right after model change x2, reasoning-effort change x1, tool-list change x1, system prompt / tool set change x1 (5 times). Choose model, reasoning effort and tools when the session starts and do not change them midway."
+    },
+    {
+     "cause": "reset_unknown",
+     "label": "Cache rewritten mid-session (cause unknown)",
+     "usd": 0.16,
+     "count": 1,
+     "fix": "1 rewrites with no preceding event in the log; most likely server-side cache eviction. Nothing to fix (amount recorded only)."
+    },
+    {
+     "cause": "repeat",
+     "label": "Same command repeated (3rd run onward)",
+     "usd": 0.04,
+     "count": 4,
+     "fix": "4 calls ran a command for at least the third time. If it is status polling, have the agent wait for a completion signal; add \"stop and explain before running the same command a third time\" to your instructions."
+    },
+    {
+     "cause": "fail",
+     "label": "Consecutive failures",
+     "usd": 0.04,
+     "count": 6,
+     "fix": "6 calls failed right after another failure. \"Stop and report the cause after two failures in a row\" in your instructions breaks the loop."
+    },
+    {
+     "cause": "reread",
+     "label": "Unchanged file read again",
+     "usd": 0.02,
+     "count": 2,
+     "fix": "2 calls re-read the same range of a file that had not changed. Put the key file locations and layout in the first request."
+    },
+    {
+     "cause": "oversize",
+     "label": "Oversized tool output (over 10k tokens)",
+     "usd": 1.33,
+     "count": 3,
+     "fix": "3 tool outputs over 10k tokens entered the context and were re-read by every later response. Have logs and test output tailed or summarized."
+    }
+   ],
+   "habits": [
+    {
+     "habit": "long_break",
+     "label": "Resuming the same session after a long break",
+     "causes": [
+      "expiry"
+     ],
+     "usd": 0.34,
+     "count": 3,
+     "per100": 6.6,
+     "where": {
+      "weekday": {
+       "top": "Sun",
+       "share": 0.501
+      },
+      "time": {
+       "top": "06-12h",
+       "share": 0.501
+      },
+      "project": {
+       "top": "demo-project",
+       "share": 0.998
+      }
+     },
+     "tip": "After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session."
+    },
+    {
+     "habit": "mid_switch",
+     "label": "Switching model, reasoning effort or tools mid-session",
+     "causes": [
+      "reset_known"
+     ],
+     "usd": 0.58,
+     "count": 5,
+     "per100": 11.173,
+     "where": {
+      "weekday": {
+       "top": "Mon",
+       "share": 0.759
+      },
+      "time": {
+       "top": "06-12h",
+       "share": 0.793
+      },
+      "project": {
+       "top": "데모 프로젝트",
+       "share": 0.759
+      }
+     },
+     "tip": "Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session."
+    },
+    {
+     "habit": "let_repeat",
+     "label": "Letting the agent repeat or retry the same command",
+     "causes": [
+      "repeat",
+      "fail"
+     ],
+     "usd": 0.09,
+     "count": 10,
+     "per100": 1.699,
+     "where": {
+      "weekday": {
+       "top": "Sun",
+       "share": 0.378
+      },
+      "time": {
+       "top": "06-12h",
+       "share": 0.47
+      },
+      "project": {
+       "top": "코덱스",
+       "share": 0.378
+      }
+     },
+     "tip": "Add \"stop and explain after two failures in a row or before running the same command a third time\" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling."
+    },
+    {
+     "habit": "no_map",
+     "label": "Not telling the agent where the key files are (it re-reads them)",
+     "causes": [
+      "reread"
+     ],
+     "usd": 0.02,
+     "count": 2,
+     "per100": 0.38,
+     "where": {
+      "weekday": {
+       "top": "Sun",
+       "share": 0.588
+      },
+      "time": {
+       "top": "06-12h",
+       "share": 1.0
+      },
+      "project": {
+       "top": "코덱스",
+       "share": 0.588
+      }
+     },
+     "tip": "Put the key file locations and layout in the first request or in your instructions file."
+    },
+    {
+     "habit": "big_output",
+     "label": "Letting long logs and outputs into the context whole",
+     "causes": [
+      "oversize"
+     ],
+     "usd": 1.33,
+     "count": 3,
+     "per100": 25.578,
+     "where": {
+      "weekday": {
+       "top": "Thu",
+       "share": 0.992
+      },
+      "time": {
+       "top": "18-24h",
+       "share": 0.994
+      },
+      "project": {
+       "top": "big logs",
+       "share": 0.992
+      }
+     },
+     "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+    }
+   ],
+   "info": {
+    "subagent": 0.12,
+    "partial_miss": 0.02,
+    "partial_count": 8,
+    "origin_uncertain": {
+     "sessions": 2,
+     "usd": 0.07
+    },
+    "assumed_prices": [
+     {
+      "model": "gpt-5-codex",
+      "responses": 10,
+      "token_share": 0.0906
+     }
+    ]
+   }
+  },
+  "auto": {
+   "window_start": "2025-12-21T00:00:00+00:00",
+   "window_end": "2026-01-20T00:01:00+00:00",
+   "tool": "all",
+   "origin": "auto",
+   "total_usd": 0.14,
+   "automation_fixes": [
+    {
+     "reason": "auto:heartbeat",
+     "label": "Codex automation (heartbeat turns injected into an existing thread)",
+     "cost": 0.02,
+     "leak": 0.01,
+     "tips": [
+      "Each run continues the same thread after a long gap, so the expired context is cached again (1 time, $0.01). Run each time in a new thread, or pass the needed context as a short summary file."
+     ]
+    }
+   ],
+   "by_tool": {
+    "claude": 0.05,
+    "codex": 0.09
+   },
+   "leak_usd": 0.02,
+   "causes": [
+    {
+     "cause": "expiry",
+     "label": "Cache expired (resumed after a long break)",
+     "usd": 0.01,
+     "count": 1,
+     "fix": "Resumed 1 times after a gap longer than the prompt-cache lifetime (Claude Code: 5 minutes or 1 hour, as each cache write records; Codex: 30 minutes on GPT-5.6 and later). After a long break, leave a short summary and start a new session instead."
+    },
+    {
+     "cause": "reset_known",
+     "label": "Cache rewritten mid-session (after a model/settings/tool change)",
+     "usd": 0.0,
+     "count": 0,
+     "fix": ""
+    },
+    {
+     "cause": "reset_unknown",
+     "label": "Cache rewritten mid-session (cause unknown)",
+     "usd": 0.0,
+     "count": 0,
+     "fix": ""
+    },
+    {
+     "cause": "repeat",
+     "label": "Same command repeated (3rd run onward)",
+     "usd": 0.0,
+     "count": 1,
+     "fix": "1 calls ran a command for at least the third time. If it is status polling, have the agent wait for a completion signal; add \"stop and explain before running the same command a third time\" to your instructions."
+    },
+    {
+     "cause": "fail",
+     "label": "Consecutive failures",
+     "usd": 0.01,
+     "count": 2,
+     "fix": "2 calls failed right after another failure. \"Stop and report the cause after two failures in a row\" in your instructions breaks the loop."
+    },
+    {
+     "cause": "reread",
+     "label": "Unchanged file read again",
+     "usd": 0.0,
+     "count": 0,
+     "fix": ""
+    },
+    {
+     "cause": "oversize",
+     "label": "Oversized tool output (over 10k tokens)",
+     "usd": 0.0,
+     "count": 0,
+     "fix": ""
+    }
+   ],
+   "habits": [
+    {
+     "habit": "long_break",
+     "label": "Resuming the same session after a long break",
+     "causes": [
+      "expiry"
+     ],
+     "usd": 0.01,
+     "count": 1,
+     "per100": 5.982,
+     "where": {
+      "weekday": {
+       "top": "Sun",
+       "share": 1.0
+      },
+      "time": {
+       "top": "12-18h",
+       "share": 1.0
+      },
+      "project": {
+       "top": "코덱스",
+       "share": 1.0
+      }
+     },
+     "tip": "After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session."
+    },
+    {
+     "habit": "mid_switch",
+     "label": "Switching model, reasoning effort or tools mid-session",
+     "causes": [
+      "reset_known"
+     ],
+     "usd": 0.0,
+     "count": 0,
+     "per100": 0.0,
+     "where": {},
+     "tip": "Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session."
+    },
+    {
+     "habit": "let_repeat",
+     "label": "Letting the agent repeat or retry the same command",
+     "causes": [
+      "repeat",
+      "fail"
+     ],
+     "usd": 0.01,
+     "count": 3,
+     "per100": 5.856,
+     "where": {
+      "weekday": {
+       "top": "Tue",
+       "share": 0.726
+      },
+      "time": {
+       "top": "12-18h",
+       "share": 1.0
+      },
+      "project": {
+       "top": "worker-repo",
+       "share": 0.726
+      }
+     },
+     "tip": "Add \"stop and explain after two failures in a row or before running the same command a third time\" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling."
+    },
+    {
+     "habit": "no_map",
+     "label": "Not telling the agent where the key files are (it re-reads them)",
+     "causes": [
+      "reread"
+     ],
+     "usd": 0.0,
+     "count": 0,
+     "per100": 0.0,
+     "where": {},
+     "tip": "Put the key file locations and layout in the first request or in your instructions file."
+    },
+    {
+     "habit": "big_output",
+     "label": "Letting long logs and outputs into the context whole",
+     "causes": [
+      "oversize"
+     ],
+     "usd": 0.0,
+     "count": 0,
+     "per100": 0.0,
+     "where": {},
+     "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+    }
+   ],
+   "info": {
+    "subagent": 0.03,
+    "partial_miss": 0.0,
+    "partial_count": 5,
+    "origin_uncertain": {
+     "sessions": 0,
+     "usd": 0.0
+    }
+   }
+  }
+ },
+ "previous": {
+  "window_start": "2025-11-21T00:00:00+00:00",
+  "window_end": "2025-12-21T00:00:00+00:00",
+  "tool": "all",
+  "origin": "all",
+  "total_usd": 0.33,
+  "automation_fixes": [],
+  "by_tool": {
+   "claude": 0.19,
+   "codex": 0.14
+  },
+  "leak_usd": 0.03,
+  "causes": [
+   {
+    "cause": "expiry",
+    "label": "Cache expired (resumed after a long break)",
+    "usd": 0.0,
+    "count": 0,
+    "fix": ""
+   },
+   {
+    "cause": "reset_known",
+    "label": "Cache rewritten mid-session (after a model/settings/tool change)",
+    "usd": 0.0,
+    "count": 0,
+    "fix": ""
+   },
+   {
+    "cause": "reset_unknown",
+    "label": "Cache rewritten mid-session (cause unknown)",
+    "usd": 0.0,
+    "count": 0,
+    "fix": ""
+   },
+   {
+    "cause": "repeat",
+    "label": "Same command repeated (3rd run onward)",
+    "usd": 0.01,
+    "count": 1,
+    "fix": "1 calls ran a command for at least the third time. If it is status polling, have the agent wait for a completion signal; add \"stop and explain before running the same command a third time\" to your instructions."
+   },
+   {
+    "cause": "fail",
+    "label": "Consecutive failures",
+    "usd": 0.02,
+    "count": 3,
+    "fix": "3 calls failed right after another failure. \"Stop and report the cause after two failures in a row\" in your instructions breaks the loop."
+   },
+   {
+    "cause": "reread",
+    "label": "Unchanged file read again",
+    "usd": 0.0,
+    "count": 0,
+    "fix": ""
+   },
+   {
+    "cause": "oversize",
+    "label": "Oversized tool output (over 10k tokens)",
+    "usd": 0.0,
+    "count": 0,
+    "fix": ""
+   }
+  ],
+  "habits": [
+   {
+    "habit": "long_break",
+    "label": "Resuming the same session after a long break",
+    "causes": [
+     "expiry"
+    ],
+    "usd": 0.0,
+    "count": 0,
+    "per100": 0.0,
+    "where": {},
+    "tip": "After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session."
+   },
+   {
+    "habit": "mid_switch",
+    "label": "Switching model, reasoning effort or tools mid-session",
+    "causes": [
+     "reset_known"
+    ],
+    "usd": 0.0,
+    "count": 0,
+    "per100": 0.0,
+    "where": {},
+    "tip": "Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session."
+   },
+   {
+    "habit": "let_repeat",
+    "label": "Letting the agent repeat or retry the same command",
+    "causes": [
+     "repeat",
+     "fail"
+    ],
+    "usd": 0.03,
+    "count": 4,
+    "per100": 8.432,
+    "where": {
+     "weekday": {
+      "top": "Sun",
+      "share": 0.681
+     },
+     "time": {
+      "top": "06-12h",
+      "share": 0.681
+     },
+     "project": {
+      "top": "demo-project",
+      "share": 0.681
+     }
+    },
+    "tip": "Add \"stop and explain after two failures in a row or before running the same command a third time\" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling."
+   },
+   {
+    "habit": "no_map",
+    "label": "Not telling the agent where the key files are (it re-reads them)",
+    "causes": [
+     "reread"
+    ],
+    "usd": 0.0,
+    "count": 0,
+    "per100": 0.0,
+    "where": {},
+    "tip": "Put the key file locations and layout in the first request or in your instructions file."
+   },
+   {
+    "habit": "big_output",
+    "label": "Letting long logs and outputs into the context whole",
+    "causes": [
+     "oversize"
+    ],
+    "usd": 0.0,
+    "count": 0,
+    "per100": 0.0,
+    "where": {},
+    "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+   }
+  ],
+  "info": {
+   "subagent": 0.0,
+   "partial_miss": 0.0,
+   "partial_count": 2,
+   "origin_uncertain": {
+    "sessions": 0,
+    "usd": 0.0
+   }
+  },
+  "by_origin": {
+   "human": {
+    "window_start": "2025-11-21T00:00:00+00:00",
+    "window_end": "2025-12-21T00:00:00+00:00",
+    "tool": "all",
+    "origin": "human",
+    "total_usd": 0.26,
+    "automation_fixes": [],
+    "by_tool": {
+     "claude": 0.19,
+     "codex": 0.07
+    },
+    "leak_usd": 0.02,
+    "causes": [
+     {
+      "cause": "expiry",
+      "label": "Cache expired (resumed after a long break)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "reset_known",
+      "label": "Cache rewritten mid-session (after a model/settings/tool change)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "reset_unknown",
+      "label": "Cache rewritten mid-session (cause unknown)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "repeat",
+      "label": "Same command repeated (3rd run onward)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "fail",
+      "label": "Consecutive failures",
+      "usd": 0.02,
+      "count": 3,
+      "fix": "3 calls failed right after another failure. \"Stop and report the cause after two failures in a row\" in your instructions breaks the loop."
+     },
+     {
+      "cause": "reread",
+      "label": "Unchanged file read again",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "oversize",
+      "label": "Oversized tool output (over 10k tokens)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     }
+    ],
+    "habits": [
+     {
+      "habit": "long_break",
+      "label": "Resuming the same session after a long break",
+      "causes": [
+       "expiry"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session."
+     },
+     {
+      "habit": "mid_switch",
+      "label": "Switching model, reasoning effort or tools mid-session",
+      "causes": [
+       "reset_known"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session."
+     },
+     {
+      "habit": "let_repeat",
+      "label": "Letting the agent repeat or retry the same command",
+      "causes": [
+       "repeat",
+       "fail"
+      ],
+      "usd": 0.02,
+      "count": 3,
+      "per100": 7.312,
+      "where": {
+       "weekday": {
+        "top": "Sun",
+        "share": 1.0
+       },
+       "time": {
+        "top": "06-12h",
+        "share": 1.0
+       },
+       "project": {
+        "top": "demo-project",
+        "share": 1.0
+       }
+      },
+      "tip": "Add \"stop and explain after two failures in a row or before running the same command a third time\" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling."
+     },
+     {
+      "habit": "no_map",
+      "label": "Not telling the agent where the key files are (it re-reads them)",
+      "causes": [
+       "reread"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "Put the key file locations and layout in the first request or in your instructions file."
+     },
+     {
+      "habit": "big_output",
+      "label": "Letting long logs and outputs into the context whole",
+      "causes": [
+       "oversize"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+     }
+    ],
+    "info": {
+     "subagent": 0.0,
+     "partial_miss": 0.0,
+     "partial_count": 0,
+     "origin_uncertain": {
+      "sessions": 0,
+      "usd": 0.0
+     }
+    }
+   },
+   "auto": {
+    "window_start": "2025-11-21T00:00:00+00:00",
+    "window_end": "2025-12-21T00:00:00+00:00",
+    "tool": "all",
+    "origin": "auto",
+    "total_usd": 0.07,
+    "automation_fixes": [],
+    "by_tool": {
+     "codex": 0.07
+    },
+    "leak_usd": 0.01,
+    "causes": [
+     {
+      "cause": "expiry",
+      "label": "Cache expired (resumed after a long break)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "reset_known",
+      "label": "Cache rewritten mid-session (after a model/settings/tool change)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "reset_unknown",
+      "label": "Cache rewritten mid-session (cause unknown)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "repeat",
+      "label": "Same command repeated (3rd run onward)",
+      "usd": 0.01,
+      "count": 1,
+      "fix": "1 calls ran a command for at least the third time. If it is status polling, have the agent wait for a completion signal; add \"stop and explain before running the same command a third time\" to your instructions."
+     },
+     {
+      "cause": "fail",
+      "label": "Consecutive failures",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "reread",
+      "label": "Unchanged file read again",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "oversize",
+      "label": "Oversized tool output (over 10k tokens)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     }
+    ],
+    "habits": [
+     {
+      "habit": "long_break",
+      "label": "Resuming the same session after a long break",
+      "causes": [
+       "expiry"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session."
+     },
+     {
+      "habit": "mid_switch",
+      "label": "Switching model, reasoning effort or tools mid-session",
+      "causes": [
+       "reset_known"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session."
+     },
+     {
+      "habit": "let_repeat",
+      "label": "Letting the agent repeat or retry the same command",
+      "causes": [
+       "repeat",
+       "fail"
+      ],
+      "usd": 0.01,
+      "count": 1,
+      "per100": 12.529,
+      "where": {
+       "weekday": {
+        "top": "Wed",
+        "share": 1.0
+       },
+       "time": {
+        "top": "18-24h",
+        "share": 1.0
+       },
+       "project": {
+        "top": "batch",
+        "share": 1.0
+       }
+      },
+      "tip": "Add \"stop and explain after two failures in a row or before running the same command a third time\" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling."
+     },
+     {
+      "habit": "no_map",
+      "label": "Not telling the agent where the key files are (it re-reads them)",
+      "causes": [
+       "reread"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "Put the key file locations and layout in the first request or in your instructions file."
+     },
+     {
+      "habit": "big_output",
+      "label": "Letting long logs and outputs into the context whole",
+      "causes": [
+       "oversize"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+     }
+    ],
+    "info": {
+     "subagent": 0.0,
+     "partial_miss": 0.0,
+     "partial_count": 2,
+     "origin_uncertain": {
+      "sessions": 0,
+      "usd": 0.0
+     }
+    }
+   }
+  }
+ },
+ "currency": "USD (API list-price equivalent)",
+ "price_table": {
+  "read": "2026-11-22",
+  "age_days": 0,
+  "stale": false
+ }
+}

@@ -1,0 +1,2 @@
+{"branch": "feature/gráfico", "cwd": "/tmp/proyecto", "session_id": "00000000-0000-4000-8000-000000000202", "sha": "0a1b2c3d", "thread_id": "T:codex/2026/01/16/rollout-2026-01-16T09-00-00-00000000-0000-4000-8000-000000000202.jsonl", "tool": "codex", "ts": 1768554081000000000}
+{"branch": "main", "cwd": "/tmp/데모 프로젝트", "session_id": "00000000-0000-4000-8000-000000000104", "sha": "1a2b3c4", "thread_id": "T:claude/-tmp-데모-프로젝트/00000000-0000-4000-8000-000000000104.jsonl", "tool": "claude", "ts": 1768179782000000000}

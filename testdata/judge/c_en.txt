@@ -1,0 +1,41 @@
+Here is the result:
+```json
+{
+  "events": [
+    {
+      "loc": "U2",
+      "locs": [
+        "U2"
+      ],
+      "rule": "R2a",
+      "cause": "instruction_violation",
+      "cause_side": "agent_side",
+      "cause_group": "g",
+      "size": "major",
+      "irreversible_harm": "no",
+      "escalated": false,
+      "evidence": [
+        {
+          "loc": "U2",
+          "quote": "I said keep the table"
+        }
+      ],
+      "instruction": {
+        "loc": "U1",
+        "quote": "keep the table as it is"
+      },
+      "fix_sentence": null,
+      "should_have_asked": null,
+      "error_detail": null,
+      "resolution": "resolved",
+      "summary": "The agent removed a table the user asked to keep."
+    }
+  ],
+  "defect_reports": [],
+  "weak_signals": [],
+  "intent_changes": [],
+  "no_user_reaction": false,
+  "verdict": "agent_drift",
+  "verdict_reason": "synthetic"
+}
+```

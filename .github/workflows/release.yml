@@ -1,0 +1,75 @@
+# Release: runs only when a version tag (v*) is pushed.
+# A pushed version tag (v*) runs three jobs:
+#   test     go vet, go test and the license check, with no secrets and read-only permissions;
+#   build    GoReleaser (pinned version) builds the six targets into a draft GitHub Release with checksums.txt;
+#            it gets only GITHUB_TOKEN (contents: write). The Homebrew formula and Scoop manifest are written
+#            to dist/ and NOT pushed (skip_upload): publish them after the draft is reviewed and promoted.
+#   attest   attests build provenance for every archive listed in checksums.txt; only this job can mint an
+#            OIDC token (id-token: write), and it runs no project code.
+# Users verify a download with:  gh attestation verify <archive> -R Mango-Juice/agent-leeway
+# Action names and permissions follow docs.github.com ("Using artifact attestations", actions/attest@v4) and
+# goreleaser.com/ci/actions (goreleaser/goreleaser-action@v7), checked 2026-11-22. GoReleaser v2.20.3 was the
+# latest v2 release on that date. Every action is pinned to a commit SHA (looked up 2026-11-22 in each action's repository; version in the comment).
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions: {}
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go test -count=1 ./...
+      - name: license texts match go.mod
+        run: |
+          go run ./internal/licenses/gen
+          git diff --exit-code THIRD_PARTY_LICENSES.txt
+  build:
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write     # create the draft release and upload its assets
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          distribution: goreleaser
+          version: "v2.20.3"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: checksums
+          path: dist/checksums.txt
+  attest:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write     # OIDC token used to sign the attestation
+      attestations: write # store the attestation
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: checksums
+      - name: attest build provenance of every archive
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: checksums.txt
+          # storage records exist only for organization-owned repos and need artifact-metadata: write
+          create-storage-record: false
