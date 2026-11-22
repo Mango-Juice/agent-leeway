@@ -6,23 +6,23 @@ class AgentLeeway < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.2/agent-leeway_darwin_arm64.tar.gz"
-      sha256 "49b296fd92b9c218f2a0d7f77fe51ec8b205c2b07b5dd8c561f220c16295422f"
+      url "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.3/agent-leeway_darwin_arm64.tar.gz"
+      sha256 "ce0f3ee4d2ec794f7ca6898e72c5804631dc1ec7424f7ceed44d2f45a702b61e"
     end
     on_intel do
-      url "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.2/agent-leeway_darwin_amd64.tar.gz"
-      sha256 "e6a92b8ec4d975c2d50d4a64ccd42cfec12e7cf9bcb23b4c3aaf04bbd9399cb9"
+      url "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.3/agent-leeway_darwin_amd64.tar.gz"
+      sha256 "d5bec01135048e3451ca62f0b0c4e8692f4b8bc6261b6a04d612652eacfe1833"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.2/agent-leeway_linux_arm64.tar.gz"
-      sha256 "97addd1b211c20ab6074c35e829d44334f36d630beb6658b1cf7f4b6b0564c44"
+      url "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.3/agent-leeway_linux_arm64.tar.gz"
+      sha256 "d63d6be49c005052021091fccf70037bc8dd2c97f757e5c588f570a3eca999a5"
     end
     on_intel do
-      url "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.2/agent-leeway_linux_amd64.tar.gz"
-      sha256 "37c18ba5474e857e4dc7a500aa787b8314bb9d7b9e50d55821a5ebedb0591d41"
+      url "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.3/agent-leeway_linux_amd64.tar.gz"
+      sha256 "90f52e587fd402b08a55b69a6094b4ca41c2020d252a16cdf833e1d23cb90c68"
     end
   end
 
