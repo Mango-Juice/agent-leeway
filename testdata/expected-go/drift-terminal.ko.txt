@@ -5,7 +5,7 @@ AI 코딩 에이전트 활용 종합: 나쁨   (2025-12-21 – 2026-01-20)
 먼저 고칠 것:
   1. 다시 말한 것을 CLAUDE.md나 AGENTS.md에 적어 두세요
      세션 2개에서 반복: “deja la tabla como está”
-     출처: https://code.claude.com/docs/en/memory.md
+     출처: 공식 문서: https://code.claude.com/docs/en/memory.md · https://learn.chatgpt.com/docs/agent-configuration/agents-md
   2. 어긴 규칙 구체화하기 · 세션 9개 중 1개
 
 그 세션에서 해결: 9 / 9번

@@ -39,7 +39,7 @@ Every command prints its options with `-h`.
 | `--dry-run` | Show which sessions would be judged and the estimate. Sends nothing |
 | `--write-inputs DIR` | Write the exact judge input of each session, and the system prompt, to read before agreeing |
 | `--yes` | Skip the confirmation (needed when there is no terminal) |
-| `--max-sessions 50` | Judge at most this many sessions, most recent first. `0` = all in the window |
+| `--max-sessions 50` | Judge at most this many sessions not judged yet, most recent first. `0` = all in the window |
 | `--budget USD` | Optional limit in API list-price dollars, checked before each call. No default |
 | `--project TEXT` | Only projects whose name contains this text |
 | `--include-auto` | Also judge automated sessions |

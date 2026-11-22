@@ -1,3 +1,6 @@
+This check-up has two parts. 1) Checking money lost to habits: done. 2) Checking whether the
+agent did what you asked: 9 sessions checked, 2 Claude Code sessions not yet.
+
 Your AI coding agents, overall: POOR   (2025-12-21 – 2026-01-20)
 
   Did what you asked      good fair [POOR]  Serious misses in 6 of 9 sessions · 6 fewer missed
@@ -8,7 +11,7 @@ Fix first:
   1. Add this rule to CLAUDE.md
      In 4 of 9 sessions it ignored what you had already said.
      Of those, 3 had the same request: Keep existing tables as they are
-     Source: https://code.claude.com/docs/en/memory.md
+     Source: Official docs: https://code.claude.com/docs/en/memory.md · https://learn.chatgpt.com/docs/agent-configuration/agents-md
   2. Keep long logs out · $1.33 lost
   3. Make broken rules checkable · 1 of 9 sessions
 

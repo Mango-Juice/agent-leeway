@@ -100,7 +100,7 @@ func (s *Story) pictureSection() string {
 		head = s.T("pic_judge1")
 	}
 	if !s.DriftRun() {
-		fmt.Fprintf(&b, `<div class="blk8 judges8"><h3>%s</h3><p class="lead8">%s</p><p class="jnote8">%s</p></div>`, E(s.T("pic8_drift_h")), E(s.T("drift_none_fact")),
+		fmt.Fprintf(&b, `<div class="blk8 judges8"><h3>%s</h3><p class="lead8">%s</p><p class="jnote8">%s</p></div>`, E(s.T("pic8_drift_h")), E(s.NoneFact()+" "+s.T("drift_what")),
 			strings.Replace(E(s.T("drift_none_cmd", "cmd", s.DriftCmd())), E(s.DriftCmd()), "<code>"+E(s.DriftCmd())+"</code>", 1))
 		return b.String()
 	}

@@ -349,7 +349,7 @@ func TestDriftDefaultsAndPlanMessage(t *testing.T) {
 	legacy(t)
 	fixtureEnv(t)
 	_, errs, rc := run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run")
-	if rc != 0 || !strings.Contains(errs, "11 sessions in the window; the 11 most recent will be judged (one judge call per session)") ||
+	if rc != 0 || !strings.Contains(errs, "11 sessions in the window; the 11 most recent not judged yet will be judged (one judge call per session)") ||
 		strings.Contains(errs, "--budget $") || strings.Contains(errs, "Only the") {
 		t.Fatalf("default run: rc %d\n%s", rc, errs)
 	}
@@ -357,12 +357,12 @@ func TestDriftDefaultsAndPlanMessage(t *testing.T) {
 		t.Errorf("the estimate is not labelled as an upper estimate:\n%s", errs)
 	}
 	_, errs, _ = run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run", "--max-sessions", "3")
-	if !strings.Contains(errs, "the 3 most recent will be judged") || !strings.Contains(errs, "Only the 3 most recent of the 11 sessions are taken") || !strings.Contains(errs, "--max-sessions 0 for all 11") {
+	if !strings.Contains(errs, "the 3 most recent not judged yet will be judged") || !strings.Contains(errs, "Only the 3 most recent of the 11 sessions not judged yet are taken") || !strings.Contains(errs, "--max-sessions 0 for all 11") {
 		t.Errorf("--max-sessions line missing:\n%s", errs)
 	}
 	for _, n := range []string{"100", "0"} {
 		_, errs, _ = run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run", "--max-sessions", n)
-		if !strings.Contains(errs, "the 11 most recent will be judged") || strings.Contains(errs, "Only the") {
+		if !strings.Contains(errs, "the 11 most recent not judged yet will be judged") || strings.Contains(errs, "Only the") {
 			t.Errorf("--max-sessions %s must take all 11:\n%s", n, errs)
 		}
 	}
@@ -527,5 +527,18 @@ func TestReportSaysWhatIsNotJudged(t *testing.T) {
 	if v.HTML == "" || c["judged"] != 2 || c["unjudged"] != c["sessions"]-2 || x["judged"] != 0 || x["unjudged"] != x["sessions"] || x["sessions"] == 0 ||
 		!strings.Contains(v.NotJudged, "agent-leeway drift --dry-run --since 30d") {
 		t.Errorf("--json counts: %+v", v)
+	}
+}
+
+// --max-sessions counts sessions not judged yet: after the 3 most recent are judged, the next run with
+// --max-sessions 3 takes the next 3 older ones instead of finding nothing to do; the dry run counts every
+// session to judge by project.
+func TestMaxSessionsContinuesWithOlder(t *testing.T) {
+	fixtureEnv(t)
+	run(t, "drift", "--include-auto", "--no-current-instructions", "--yes", "--max-sessions", "3")
+	_, errs, rc := run(t, "drift", "--include-auto", "--no-current-instructions", "--dry-run", "--max-sessions", "3")
+	if rc != 0 || !strings.Contains(errs, "the 3 most recent not judged yet will be judged") || !strings.Contains(errs, "sessions already judged are skipped") ||
+		!strings.Contains(errs, "Only the 3 most recent of the ") || !strings.Contains(errs, "By project, all 3 sessions to judge: ") {
+		t.Errorf("second run:\n%s", errs)
 	}
 }

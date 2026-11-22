@@ -553,11 +553,14 @@ func (s *Story) HTML() string {
 	if s.DriftRun() {
 		c1 = fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p>%s<p class="dist">%s</p>`, E(s.T("c_drift")), E(s.T("f_drift", "n", st.Serious, "j", m.J)),
 			dots(st.Serious, m.J, "f-agent_drift", 15, 5, 4), E(st.DDrift))
+		if pl := s.PartialLine(); pl != "" {
+			c1 += `<p class="dist">` + E(pl) + `</p>`
+		}
 		if st.Drift != "na" {
 			c1 += track(float64(st.Serious)/math.Max(float64(m.J), 1), DriftCuts, 0.4, scale, st.Drift)
 		}
 	} else { // nothing judged in this period: say so, and how to run it
-		c1 = fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p><p class="dist">%s</p>`, E(s.T("c_drift")), E(s.T("drift_none_fact")),
+		c1 = fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p><p class="dist">%s</p><p class="dist">%s</p>`, E(s.T("c_drift")), E(s.NoneFact()), E(s.T("drift_what")),
 			strings.Replace(E(s.T("drift_none_cmd", "cmd", s.DriftCmd())), E(s.DriftCmd()), "<code>"+E(s.DriftCmd())+"</code>", 1))
 	}
 	c1 += `</div>`

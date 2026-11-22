@@ -1,6 +1,6 @@
 이탈 점검 · 세션 11개(직접 대화와 자동화, 최근 것부터, 최대 50개) · 규칙집 v2.1-b636272b+t2
 이 기간 세션: Claude Code 8개 · Codex 3개
-이 기간 세션 11개 중 최근 11개를 판정합니다(세션마다 판정 호출 한 번). 구독이면 요금제 사용량에서 빠지고, API 키면 정가로 약 $2.57입니다.
+이 기간 세션 11개 중 아직 판정하지 않은 최근 11개를 판정합니다(세션마다 판정 호출 한 번). 구독이면 요금제 사용량을 쓰고, API 키면 정가로 약 $2.57입니다.
   2026-01-20 Claude Code proyecto-demo: 약 0k 토큰(1 KB)
   2026-01-18 Codex       orq: 약 0k 토큰(0 KB)
   2026-01-16 Codex       proyecto: 약 0k 토큰(1 KB)
@@ -12,6 +12,7 @@
   2026-01-11 Codex       코덱스: 약 0k 토큰(1 KB)
   2026-01-10 Claude Code demo-project: 약 0k 토큰(1 KB)
   2025-12-21 Claude Code demo-project: 약 0k 토큰(1 KB)
+프로젝트별(판정할 세션 11개 전부): demo-project 2개 · panel 2개 · big logs 1개 · orq 1개 · proyecto 1개 · proyecto-demo 1개 · worker-repo 1개 · 데모 프로젝트 1개 · 코덱스 1개
 발췌마다 로그에 있는 지시 파일(CLAUDE.md, AGENTS.md)이 들어갑니다. 지시 파일이 없는 Claude Code 세션에는 프로젝트 폴더의 현재 CLAUDE.md, CLAUDE.local.md, AGENTS.md와 전역 CLAUDE.md를 붙입니다(--no-current-instructions로 끌 수 있음).
   claude:opus: 세션 8개, 예상 $1.94 (세션당 최소 $0.243: 검증 실행 평균)
   codex:gpt-6.2-astra: 세션 3개, 예상 $0.62 (세션당 최소 $0.208: 검증 실행 평균)

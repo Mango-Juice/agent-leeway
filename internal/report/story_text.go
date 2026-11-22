@@ -31,7 +31,7 @@ func (s *Story) axisRows() []axisRow {
 	m, st := s.M, s.St
 	rows := []axisRow{{s.T("c_drift"), st.Drift, s.T("f_drift", "n", st.Serious, "j", m.J), st.DDrift}}
 	if !s.DriftRun() {
-		rows[0] = axisRow{s.T("c_drift"), "none", s.T("drift_none_fact"), s.T("drift_none_cmd", "cmd", s.DriftCmd())}
+		rows[0] = axisRow{s.T("c_drift"), "none", s.NoneFact(), s.T("drift_none_cmd", "cmd", s.DriftCmd())}
 	}
 	if m.HasLeak {
 		rows = append(rows, axisRow{s.T("c_cost"), st.Cost, s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD)), st.DCost})
@@ -60,12 +60,20 @@ func Terminal(m *Model, md, html string) string {
 	s := NewStory(m)
 	st := s.St
 	out := []string{s.T("kicker") + ": " + strings.ToUpper(s.T("rating."+st.Overall)) + "   (" + s.T("period", "a", m.From, "b", m.To) + ")", ""}
+	if pl := s.PartsLine(); pl != "" { // first, so an agent relaying the summary keeps the order: what is done, what is not
+		out = append(append(Wrap(pl, TermWidth, ""), ""), out...)
+	}
 	w := 0
 	rows := s.axisRows()
 	for _, r := range rows {
 		w = max(w, Width(r.label))
 	}
 	for _, r := range rows {
+		if r.lv == "none" { // not checked yet: the command on a line of its own, never split
+			out = append(out, Wrap(r.label+strings.Repeat(" ", w-Width(r.label))+"  "+s.scale(r.lv)+"  "+r.fact, TermWidth, "  ")...)
+			out = append(out, "  "+strings.Repeat(" ", w)+"  "+r.dist)
+			continue
+		}
 		out = append(out, Wrap(r.label+strings.Repeat(" ", w-Width(r.label))+"  "+s.scale(r.lv)+"  "+joinDot(r.fact, r.dist), TermWidth, "  ")...)
 	}
 	if !s.DriftRun() && st.Cost != "na" {
@@ -89,7 +97,7 @@ func Terminal(m *Model, md, html string) string {
 		default: // cost fixes: the specific numbers; the why stays in the report
 			out = append(out, Wrap(q.Hook, TermWidth, "     ")...)
 		}
-		out = append(out, "     "+s.T("source")+": "+q.SrcURL)
+		out = append(out, "     "+s.T("source")+": "+q.SrcText())
 		for i, f := range s.Top[1:] {
 			out = append(out, Wrap(itoa(i+2)+". "+s.Plain(f).Short+" · "+s.unit(f), TermWidth, "  ")...)
 		}
@@ -137,11 +145,15 @@ func Markdown(m *Model) string {
 		}
 		return "**" + s.T("scale."+itoa(map[string]int{"good": 0, "watch": 1, "attention": 2}[lv])) + "**"
 	}
-	md := []string{"# " + s.T("kicker") + ": " + s.T("rating."+st.Overall), "", s.T("period", "a", m.From, "b", m.To), "",
-		"| | " + s.T("md_rating") + " | " + s.T("md_detail") + " |", "|:--|:--|:--|",
-		"| " + s.T("c_drift") + " | " + scl(st.Drift) + " | " + joinDot(s.T("f_drift", "n", st.Serious, "j", m.J), st.DDrift) + " |"}
+	md := []string{"# " + s.T("kicker") + ": " + s.T("rating."+st.Overall), "", s.T("period", "a", m.From, "b", m.To), ""}
+	if pl := s.PartsLine(); pl != "" {
+		md = append(md, "**"+pl+"**", "")
+	}
+	md = append(md,
+		"| | "+s.T("md_rating")+" | "+s.T("md_detail")+" |", "|:--|:--|:--|",
+		"| "+s.T("c_drift")+" | "+scl(st.Drift)+" | "+joinDot(joinDot(s.T("f_drift", "n", st.Serious, "j", m.J), st.DDrift), s.PartialLine())+" |")
 	if !s.DriftRun() {
-		md[len(md)-1] = "| " + s.T("c_drift") + " | " + s.T("drift_none_word") + " | " + s.T("drift_none_fact") + " " + strings.Replace(s.T("drift_none_cmd", "cmd", s.DriftCmd()), s.DriftCmd(), code(s.DriftCmd()), 1) + " |"
+		md[len(md)-1] = "| " + s.T("c_drift") + " | " + s.T("drift_none_word") + " | " + s.NoneFact() + " " + strings.Replace(s.T("drift_none_cmd", "cmd", s.DriftCmd()), s.DriftCmd(), code(s.DriftCmd()), 1) + " |"
 	}
 	if m.HasLeak {
 		md = append(md, "| "+s.T("c_cost")+" | "+scl(st.Cost)+" | "+joinDot(s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD))+" ("+Pct(st.Share)+")", st.DCost)+" |")
@@ -169,7 +181,7 @@ func Markdown(m *Model) string {
 		default:
 			md = append(md, x.Hook, "")
 		}
-		md = append(md, "["+s.T("source")+"]("+x.SrcURL+") · **→ ["+s.T("show_ev")+"](#"+f0.ID+")**", "")
+		md = append(md, x.SrcMD(s.T("source"))+" · **→ ["+s.T("show_ev")+"](#"+f0.ID+")**", "")
 		if len(s.Top) > 1 {
 			var l []string
 			for _, f := range s.Top[1:] {
@@ -199,7 +211,7 @@ func Markdown(m *Model) string {
 		} else {
 			r = append(r, "**"+x.Hook+"**", "")
 		}
-		r = append(r, x.Why+" ["+s.T("source")+"]("+x.SrcURL+")", "", "_"+s.T("how_sure")+": "+s.X.Level(f.Level)+joinPre(s.X.Notes(f), " · ")+"_", "")
+		r = append(r, x.Why+" "+x.SrcMD(s.T("source")), "", "_"+s.T("how_sure")+": "+s.X.Level(f.Level)+joinPre(s.X.Notes(f), " · ")+"_", "")
 		if d := s.Draft(f, th); d != nil {
 			r = append(r, d.Label, "", "```text", d.Line, "```", "")
 		}
@@ -273,7 +285,7 @@ func Markdown(m *Model) string {
 		md = append(md, "", "_"+s.T("pic8_cost_cap", "total", Money(m.LeakUSD))+"_", "")
 	}
 	if !s.DriftRun() {
-		md = append(md, "### "+s.T("pic8_drift_h"), "", s.T("drift_none_fact")+" "+strings.Replace(s.T("drift_none_cmd", "cmd", s.DriftCmd()), s.DriftCmd(), code(s.DriftCmd()), 1), "")
+		md = append(md, "### "+s.T("pic8_drift_h"), "", s.NoneFact()+" "+s.T("drift_what")+" "+strings.Replace(s.T("drift_none_cmd", "cmd", s.DriftCmd()), s.DriftCmd(), code(s.DriftCmd()), 1), "")
 	} else {
 		md = append(md, "### "+map[bool]string{true: s.T("pic_judge"), false: s.T("pic_judge1")}[len(m.Verdicts) > 1], "")
 	}
@@ -297,7 +309,7 @@ func Markdown(m *Model) string {
 		md = append(md, "### "+s.T("look_more"), "")
 		for _, f := range others {
 			x := s.Plain(f)
-			md = append(md, `<a id="`+f.ID+`"></a>`, "#### "+x.Action, "", "**"+x.Hook+"** "+x.Why+" ["+x.SrcName+"]("+x.SrcURL+")", "",
+			md = append(md, `<a id="`+f.ID+`"></a>`, "#### "+x.Action, "", "**"+x.Hook+"** "+x.Why+" "+x.SrcMD(x.SrcName), "",
 				"_"+s.T("how_sure")+": "+s.X.Level(f.Level)+joinPre(s.X.Notes(f), " · ")+"_", "")
 			md = append(md, evMD(f)...)
 		}

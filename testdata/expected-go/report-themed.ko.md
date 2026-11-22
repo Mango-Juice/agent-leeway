@@ -2,6 +2,8 @@
 
 2025-12-21 – 2026-01-20
 
+**점검은 두 가지입니다. ① 습관으로 샌 비용 확인: 끝남. ② 에이전트가 요청대로 했는지 확인: 세션 9개 확인함, Claude Code 세션 2개는 아직.**
+
 | | 등급 (좋음 · 보통 · 나쁨) | 내용 |
 |:--|:--|:--|
 | 요청대로 했는지 | **나쁨** | 세션 9개 중 6개에서 크게 엇나감 · 그중 6개 줄이면 좋음 |
@@ -13,7 +15,7 @@
 
 세션 9개 중 4개에서 이미 한 말을 어겼습니다. 그중 같은 요청이 세션 3개에서 반복됐습니다: **Keep existing tables as they are**
 
-[출처](https://code.claude.com/docs/en/memory.md) · **→ [사례 보기](#f-drift-broke-chat)**
+[Claude Code docs](https://code.claude.com/docs/en/memory.md) · [Codex docs](https://learn.chatgpt.com/docs/agent-configuration/agents-md) · **→ [사례 보기](#f-drift-broke-chat)**
 
 다음: [긴 로그 붙이지 않기](#f-leak-big-output) · [어긴 규칙 구체화하기](#f-drift-broke-file)
 
@@ -32,7 +34,7 @@
 > “deja la tabla como está”  
 > _Claude Code 판정 모델이 같은 뜻의 말끼리 묶었습니다. 규칙 초안도 이 모델이 썼습니다_
 
-Claude Code는 세션을 시작할 때마다 이 파일을 읽습니다. [출처](https://code.claude.com/docs/en/memory.md)
+Claude Code는 세션을 시작할 때마다 이 파일을 읽습니다. [Claude Code docs](https://code.claude.com/docs/en/memory.md) · [Codex docs](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 
 _확실성: 확실_
 
@@ -159,7 +161,7 @@ _확실성: 측정값_
 <a id="f-leak-mid-switch"></a>
 #### 모델은 시작할 때 정하세요
 
-**세션 중간에 바꾸느라 5번, $0.58가 나갔습니다. 한 세션에서만 $0.44이 나갔습니다.** 모델마다 캐시가 따로라서, 바꾸면 대화 전체를 다시 읽습니다. [여러 출처](https://code.claude.com/docs/en/prompt-caching.md)
+**세션 중간에 바꾸느라 5번, $0.58가 나갔습니다. 한 세션에서만 $0.44이 나갔습니다.** 모델마다 캐시가 따로라서, 바꾸면 대화 전체를 다시 읽습니다. [Claude Code docs](https://code.claude.com/docs/en/prompt-caching.md) · [Leeway 측정](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)
 
 _확실성: 측정값_
 

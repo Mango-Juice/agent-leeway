@@ -1,3 +1,6 @@
+점검은 두 가지입니다. ① 습관으로 샌 비용 확인: 끝남. ② 에이전트가 요청대로 했는지 확인: 세션 9개
+확인함, Claude Code 세션 2개는 아직.
+
 AI 코딩 에이전트 활용 종합: 나쁨   (2025-12-21 – 2026-01-20)
 
   요청대로 했는지   좋음 보통 [나쁨]  세션 9개 중 6개에서 크게 엇나감 · 그중 6개 줄이면 좋음
@@ -7,7 +10,7 @@ AI 코딩 에이전트 활용 종합: 나쁨   (2025-12-21 – 2026-01-20)
   1. 이 규칙을 CLAUDE.md에 적어 두세요
      세션 9개 중 4개에서 이미 한 말을 어겼습니다.
      그중 같은 요청이 세션 3개에서 반복됐습니다: Keep existing tables as they are
-     출처: https://code.claude.com/docs/en/memory.md
+     출처: 공식 문서: https://code.claude.com/docs/en/memory.md · https://learn.chatgpt.com/docs/agent-configuration/agents-md
   2. 긴 로그 붙이지 않기 · $1.33 낭비
   3. 어긴 규칙 구체화하기 · 세션 9개 중 1개
 

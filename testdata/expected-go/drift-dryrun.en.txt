@@ -1,6 +1,6 @@
 Drift check · 11 sessions (direct conversations and automations, most recent first, at most 50) · rubric v2.1-b636272b+t2
 Sessions in the window: Claude Code 8 · Codex 3
-11 sessions in the window; the 11 most recent will be judged (one judge call per session). On a subscription this counts against your plan's usage; with an API key it costs about $2.57 at list prices.
+11 sessions in the window; the 11 most recent not judged yet will be judged (one judge call per session). On a subscription this counts against your plan's usage; with an API key it costs about $2.57 at list prices.
   2026-01-20 Claude Code proyecto-demo: about 0k tokens (1 KB)
   2026-01-18 Codex       orq: about 0k tokens (0 KB)
   2026-01-16 Codex       proyecto: about 0k tokens (1 KB)
@@ -12,6 +12,7 @@ Sessions in the window: Claude Code 8 · Codex 3
   2026-01-11 Codex       코덱스: about 0k tokens (1 KB)
   2026-01-10 Claude Code demo-project: about 0k tokens (1 KB)
   2025-12-21 Claude Code demo-project: about 0k tokens (1 KB)
+By project, all 11 sessions to judge: demo-project 2 · panel 2 · big logs 1 · orq 1 · proyecto 1 · proyecto-demo 1 · worker-repo 1 · 데모 프로젝트 1 · 코덱스 1
 Each excerpt includes the instruction files found in the log (CLAUDE.md, AGENTS.md). For Claude Code sessions without them, the current CLAUDE.md, CLAUDE.local.md and AGENTS.md files of the project folder and your global CLAUDE.md are added (--no-current-instructions turns this off).
   claude:opus: 8 sessions, estimated $1.94 (at least $0.243 per session: the validation-run average)
   codex:gpt-6.2-astra: 3 sessions, estimated $0.62 (at least $0.208 per session: the validation-run average)

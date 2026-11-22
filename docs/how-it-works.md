@@ -46,7 +46,7 @@ After judging, the drift check makes one more call per tool. It groups the judge
 
 The drift check shows how many sessions are in the window, how many it will judge, the grouping calls and an estimate, and asks. Without a terminal it refuses unless you pass `--yes`.
 
-- It takes the most recent sessions first, 50 by default (`--max-sessions`). When `--max-sessions` or `--budget` leaves sessions out, it says so.
+- It takes the most recent sessions not judged yet first, 50 by default (`--max-sessions`), so a second run continues with older ones. When `--max-sessions` or `--budget` leaves sessions out, it says so.
 - It runs up to 3 calls at once (`--concurrency`).
 - It starts no new call when the `--budget` would be exceeded, when a provider reports a usage or rate limit, or after two failures in a row.
 - Each call has a 30-minute limit (`--timeout`). On timeout, Ctrl-C or termination, the judge and everything it started are ended.

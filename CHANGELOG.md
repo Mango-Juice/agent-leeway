@@ -4,6 +4,16 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-23
+
+### Changed
+- When some sessions have not been checked for whether the agent did what you asked, the report's summary starts with the check-up's two parts and their state ("1) Checking money lost to habits: done. 2) Checking whether the agent did what you asked: not checked yet (176 Codex sessions)"), the report's card says so in plain words, and `report --json` gives `parts`. The skill leads with that state, then the cost result, what the second part finds and what it takes, then asks.
+- `--max-sessions` counts sessions not checked yet, so a second run continues with older sessions instead of finding the most recent ones already done.
+- The dry run ends its session list with a count by project for all sessions it would check.
+
+### Fixed
+- In the terminal and Markdown summaries, a finding from both tools cites both tools' sources instead of only the Claude Code docs.
+
 ## [0.1.2] - 2026-11-23
 
 ### Fixed

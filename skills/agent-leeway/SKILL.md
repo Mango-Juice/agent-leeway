@@ -23,7 +23,7 @@ Run the commands exactly as written; they work the same in bash, zsh and PowerSh
   found by meaning (same CLI, same account; `--no-grouping` skips it). On a subscription this counts against the
   plan's usage; with an API key it costs roughly $0.15 to $0.35 per session at list price. Run it only after
   showing the user the `--dry-run` session count and list and getting their explicit approval in this
-  conversation. `--max-sessions N` judges a different number of the most recent sessions (0 = all); `--budget
+  conversation. `--max-sessions N` judges a different number of the most recent sessions not judged yet (0 = all); `--budget
   USD` adds a dollar limit, mainly for API-key users. In a measured run, 30 sessions took about 3.5 minutes (3
   calls at a time, the longest call about 70 seconds). If your command tool has a time limit, use
   `--max-sessions` small enough to finish within it, or run the command in the background. Stopping it early is
@@ -38,20 +38,31 @@ Run the commands exactly as written; they work the same in bash, zsh and PowerSh
 ## When the user asks for a report
 
 1. Run `agent-leeway report --tool claude --lang <en|ko>`. If you are Codex, use `--tool codex` instead of `--tool claude` in these commands.
-2. If the summary ends with a line starting "Not judged yet" (Korean: "아직 판정하지 않음"), some Claude Code
-   sessions in the period were never judged, so the report does not yet show where the agent went off for them.
-   Tell the user how many, then run the `agent-leeway drift --dry-run ...` command from that line and show its
-   session count and list (shortened if long; say so if it judges fewer sessions than are unjudged). Ask whether
-   to judge them now, in one short message that also says: each session is
-   one call to the Claude Code CLI on their account (plan usage on a subscription, roughly the estimated
-   dollars with an API key); they can judge fewer or other sessions with `--max-sessions N`, `--since 7d` or
-   `--project <name>`, for example only the 10 most recent, only the last week, or one project by name.
+2. If the summary starts with "This check-up has two parts" (Korean: "점검은 두 가지입니다"), the second part is
+   not done for some Claude Code sessions. Before presenting any finding, run the dry run from the summary's
+   last line (`agent-leeway drift --dry-run ...`; it sends nothing), then send one short message in this order:
+   - The state: the check-up has two parts; 1) checking money lost to habits: done; 2) checking whether the
+     agent did what you asked: not done yet for N sessions (or done for some, not yet for N). If none was ever
+     checked, say the report so far covers the first part only.
+   - The cost result in one or two lines, and the report's file path.
+   - One sentence on what the second part finds: it reads each session and finds where the agent did something
+     other than what was asked, why, and what to change.
+   - What it takes, in one or two sentences: how many sessions (if fewer than the unchecked ones, say how many
+     unchecked sessions are left for later and that asking again checks them), with the largest project or two from the dry run's "By project" line (not a list of
+     sessions); one call per session to the Claude Code CLI on their account, which uses their plan's usage on
+     a subscription (Korean: "구독이면 요금제 사용량을 씁니다") or costs about the dry run's estimate with an API key. Leave out internal steps such as the
+     grouping call.
+   - That they can check fewer, for example only the 10 most recent, only the last week, or one project by name.
+   - The question: check them now?
+   Toward the user, do not call it "drift check" or "이탈 점검"; say "whether the agent did what you asked"
+   ("에이전트가 요청대로 했는지").
 3. If they answer with a different scope, run the dry run again with it and ask again. Run
    `agent-leeway drift --yes --tool claude` with the same `--since`, `--max-sessions` and `--project` as the
    dry run they approved, only after a clear yes in this conversation, then run the report command again and
-   present it. If they decline, present the report as it is.
-4. If there is no such line, everything in the period is already judged: say so and present the report without
-   asking.
+   present it. If they decline, present the report as the first part only, and say in one sentence that they
+   can ask for the second part any time.
+4. If the summary does not start that way, everything in the period is already checked: present the report
+   without asking.
 
 ## Presenting the report
 
@@ -82,4 +93,4 @@ against the release's checksums, installs the program and adds this skill for Cl
 your command again, with the full path the installer printed if `agent-leeway` is still not found (a new
 terminal picks up the PATH change).
 
-<!-- agent-leeway skill repository copy sha256:7016e85847510f294bd5f1ce2b0a890ce53585d38487f09b0e1e5c42ce950a27 (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->
+<!-- agent-leeway skill repository copy sha256:bc45b3e82ab428bfe6703a59858fdf0f6f10a8069f55854d9044fbde39f34743 (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->

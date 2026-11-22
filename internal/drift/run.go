@@ -121,15 +121,15 @@ func BudgetFit(todo []Item, budget float64) int {
 // PlanLines is the pre-run summary, sessions first: how many were selected, how many will be judged (one call
 // each) and what that means on a subscription and with an API key, then one line per limit that cuts the run.
 // total is the number of sessions selected before --max-sessions; maxSessions 0 means no such limit.
-func PlanLines(total, maxSessions int, todo []Item, budget float64) []string {
+func PlanLines(total, pending, maxSessions int, todo []Item, budget float64) []string {
 	m := BudgetFit(todo, budget)
 	usd := 0.0
 	for _, it := range todo[:m] {
 		usd += it.EstUSD
 	}
 	lines := []string{fmtMsg(messages.Drift["plan_line"], "n", total, "m", m, "usd", usd)}
-	if maxSessions > 0 && total > maxSessions {
-		lines = append(lines, fmtMsg(messages.Drift["cut_max"], "k", maxSessions, "total", total))
+	if maxSessions > 0 && pending > maxSessions {
+		lines = append(lines, fmtMsg(messages.Drift["cut_max"], "k", maxSessions, "total", pending))
 	}
 	if m < len(todo) {
 		lines = append(lines, fmtMsg(messages.Drift["cut_budget"], "b", budget, "m", m, "todo", len(todo)))

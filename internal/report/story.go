@@ -69,6 +69,31 @@ type ThemeRef struct {
 type Plain struct {
 	Action, Short, Hook, Why string
 	SrcName, SrcURL, File    string
+	Both                     [][2]string // a finding of both tools: each tool's source (name, link) for text output
+}
+
+// SrcMD is the source as Markdown links: one link, or one per tool for a finding of both tools.
+func (x Plain) SrcMD(label string) string {
+	if len(x.Both) == 0 {
+		return "[" + label + "](" + x.SrcURL + ")"
+	}
+	var l []string
+	for _, b := range x.Both {
+		l = append(l, "["+b[0]+"]("+b[1]+")")
+	}
+	return strings.Join(l, " · ")
+}
+
+// SrcText is the source for the terminal: the link, or "<label>: <link> · <link>" for a finding of both tools.
+func (x Plain) SrcText() string {
+	if len(x.Both) == 0 {
+		return x.SrcURL
+	}
+	var l []string
+	for _, b := range x.Both {
+		l = append(l, b[1])
+	}
+	return x.SrcName + ": " + strings.Join(l, " · ")
 }
 
 // GoodStat is one measured statement of what is going well.
@@ -363,6 +388,8 @@ func (s *Story) Plain(f *Finding) Plain {
 				x.SrcName = s.T("src_mixed")
 			}
 		}
+		cn, cu := s.codexSource(f, k)
+		x.Both = [][2]string{{srcs[src][0], srcs[src][1]}, {cn, cu}}
 	}
 	if f.Side == "leak" {
 		if top := s.leakTop(f); f.USD > 0 && top/f.USD >= 0.3 {
@@ -845,6 +872,50 @@ func (s *Story) CasesFor(f *Finding, th *Thing) []*Event {
 
 // DriftRun says whether any session in the period was judged; without it the rating rests on cost only.
 func (s *Story) DriftRun() bool { return s.M.J > 0 }
+
+// unjudged is the asked-for tools' sessions in the period with no judged result, and them in words
+// ("176 Codex sessions").
+func (s *Story) unjudged() (int, string) {
+	n := 0
+	var parts []string
+	for _, t := range []string{"claude", "codex"} {
+		if k := s.M.Unjudged[t]; k > 0 {
+			n += k
+			parts = append(parts, s.T("nj_one", "n", k, "tool", s.X.Tool(t)))
+		}
+	}
+	return n, s.join(parts, ", ", ", ")
+}
+
+// PartsLine opens the summary when sessions are unjudged: the check-up has two parts, the cost part is done, and
+// how much of "did the agent do what you asked" is ("" when everything is judged).
+func (s *Story) PartsLine() string {
+	n, list := s.unjudged()
+	if n == 0 {
+		return ""
+	}
+	state := s.T("parts_none", "list", list)
+	if s.M.J > 0 {
+		state = s.T("parts_some", "j", s.M.J, "list", list)
+	}
+	return s.T("parts", "state", state)
+}
+
+// NoneFact is the "did what you asked" fact when nothing is judged: with the unjudged count when known.
+func (s *Story) NoneFact() string {
+	if n, list := s.unjudged(); n > 0 {
+		return s.T("drift_none_n", "list", list)
+	}
+	return s.T("drift_none_fact")
+}
+
+// PartialLine is the card's extra line when more sessions are unjudged than judged ("" otherwise).
+func (s *Story) PartialLine() string {
+	if n, list := s.unjudged(); s.M.J > 0 && n > s.M.J {
+		return s.T("drift_partial", "list", list)
+	}
+	return ""
+}
 
 // DriftCmd is the command that runs the drift check for this report's period.
 func (s *Story) DriftCmd() string {

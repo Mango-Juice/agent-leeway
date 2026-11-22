@@ -6,7 +6,7 @@ Your AI coding agents, overall: POOR   (2025-12-21 – 2026-01-20)
 Fix first:
   1. Add what you had to repeat to CLAUDE.md or AGENTS.md
      In 2 sessions: “deja la tabla como está”
-     Source: https://code.claude.com/docs/en/memory.md
+     Source: Official docs: https://code.claude.com/docs/en/memory.md · https://learn.chatgpt.com/docs/agent-configuration/agents-md
   2. Make broken rules checkable · 1 of 9 sessions
 
 Fixed in-session: 9 / 9 misses

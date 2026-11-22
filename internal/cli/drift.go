@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -48,7 +49,7 @@ type driftOpts struct {
 func addDrift(fs *flag.FlagSet, o *driftOpts) {
 	fs.StringVar(&o.project, "project", "", "only projects whose name contains this text")
 	fs.BoolVar(&o.includeAuto, "include-auto", false, "also judge automation sessions (default: direct conversations only)")
-	fs.IntVar(&o.maxSessions, "max-sessions", drift.DefaultMaxSessions, "judge at most this many sessions, most recent first (0 = all sessions in the window)")
+	fs.IntVar(&o.maxSessions, "max-sessions", drift.DefaultMaxSessions, "judge at most this many sessions not judged yet, most recent first (0 = all sessions in the window)")
 	fs.Float64Var(&o.budget, "budget", 0, "optional spending cap for this run (USD at list prices), checked before each call starts; unset = no dollar limit")
 	fs.StringVar(&o.model, "model", "", "judging models, e.g. claude=opus,codex=gpt-6.2-astra (a session is judged only by its own provider)")
 	fs.StringVar(&o.rubric, "rubric", "", "rubric file (default: settings.json \"rubric\", else the bundled rubric)")
@@ -178,11 +179,10 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 		return 1
 	}
 	cache := o.cacheDir()
+	// --max-sessions counts sessions not judged yet (most recent first), so a second run continues with older
+	// sessions instead of finding the most recent ones already judged; the cut is made after the estimate below
 	all := drift.Select(tb, since, now.Add(time.Minute), tools, o.project, o.includeAuto, 0)
 	selectedTotal := len(all)
-	if o.maxSessions > 0 && len(all) > o.maxSessions {
-		all = all[:o.maxSessions]
-	}
 	var sel []drift.Selected
 	missing := map[string]int{}
 	for _, s := range all {
@@ -235,6 +235,26 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 	}
 	done := drift.DoneIDs(drift.LoadResults(cache))
 	lines, todo, _ := drift.EstimateLines(items, done, rb.Version, rb.Settings, o.budget)
+	pendingTotal := len(todo)
+	if o.maxSessions > 0 && len(todo) > o.maxSessions {
+		keep := map[string]bool{}
+		for _, it := range todo[:o.maxSessions] {
+			keep[it.Key] = true
+		}
+		pending := map[string]bool{}
+		for _, it := range todo {
+			pending[it.Key] = true
+		}
+		var items2 []drift.Item
+		var sel2 []drift.Selected
+		for i, it := range items {
+			if !pending[it.Key] || keep[it.Key] { // judged ones stay (counted as skipped); pending ones up to the limit
+				items2, sel2 = append(items2, it), append(sel2, sel[i])
+			}
+		}
+		items, sel = items2, sel2
+		lines, todo, _ = drift.EstimateLines(items, done, rb.Version, rb.Settings, o.budget)
+	}
 	if o.groupOnly {
 		if o.noGroup {
 			say(errw, T["group_only_conflict"])
@@ -249,7 +269,11 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 	if o.maxSessions > 0 {
 		limit = fmtT(T["limit"], "n", o.maxSessions)
 	}
-	say(errw, fmtT(T["head"], "n", len(items), "scope", scope, "limit", limit, "ver", rb.Version))
+	nHead := len(items)
+	if !o.groupOnly {
+		nHead = len(todo) // the sessions this run would judge (judged ones are skipped, said below)
+	}
+	say(errw, fmtT(T["head"], "n", nHead, "scope", scope, "limit", limit, "ver", rb.Version))
 	both := drift.Select(tb, since, now.Add(time.Minute), nil, o.project, o.includeAuto, 0)
 	perTool := map[string]int{}
 	for _, s := range both {
@@ -261,7 +285,7 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 		leftOut[ot] = perTool[ot]
 		say(errw, fmtT(T["left_out"], "n", perTool[ot], "tool", messages.Tool[ot]))
 	}
-	for _, l := range drift.PlanLines(selectedTotal, o.maxSessions, todo, o.budget) {
+	for _, l := range drift.PlanLines(selectedTotal, pendingTotal, o.maxSessions, todo, o.budget) {
 		say(errw, l)
 	}
 	listSessions(errw, sel, items, todo)
@@ -454,6 +478,37 @@ func listSessions(w io.Writer, sel []drift.Selected, items []drift.Item, todo []
 		say(w, fmtT(messages.Drift["list_line"], "date", time.Unix(0, sel[i].Last).In(time.Local).Format("2006-01-02"), "tool", messages.Tool[it.Tool],
 			"project", it.Project, "ktok", float64(chars)/drift.CharsPerTokenEst/1000, "kb", float64(len(it.Body))/1024))
 	}
+	// every session to judge counted by project (the list above stops at 40), so an agent can summarise all of them
+	by := map[string]int{}
+	for _, it := range todo {
+		by[it.Project]++
+	}
+	if len(by) == 0 {
+		return
+	}
+	names := make([]string, 0, len(by))
+	for p := range by {
+		names = append(names, p)
+	}
+	sort.Slice(names, func(a, b int) bool {
+		if by[names[a]] != by[names[b]] {
+			return by[names[a]] > by[names[b]]
+		}
+		return names[a] < names[b]
+	})
+	var parts []string
+	rest, restN := 0, 0
+	for i, p := range names {
+		if i >= 8 && len(names) > 9 {
+			rest, restN = rest+by[p], restN+1
+			continue
+		}
+		parts = append(parts, fmtT(messages.Drift["by_project_one"], "project", p, "n", by[p]))
+	}
+	if restN > 0 {
+		parts = append(parts, fmtT(messages.Drift["by_project_rest"], "k", restN, "n", rest))
+	}
+	say(w, fmtT(messages.Drift["by_project"], "n", len(todo), "list", strings.Join(parts, " · ")))
 }
 
 func fmtT(tmpl string, kv ...any) string { return leak.F(tmpl, kv...) }
@@ -557,7 +612,8 @@ func cmdReport(args []string, out, errw io.Writer) int {
 		return 1
 	}
 	if *asJSON {
-		return reportJSON(out, o.tool, pm, ph, m.From, m.To, inWin, judged, report.NewStory(m).NotJudgedLine())
+		st := report.NewStory(m)
+		return reportJSON(out, o.tool, pm, ph, m.From, m.To, inWin, judged, st.NotJudgedLine(), st.PartsLine())
 	}
 	fmt.Fprint(out, py.ReplaceSurrogates(report.Terminal(m, pm, ph), "�"))
 	return 0
@@ -565,7 +621,7 @@ func cmdReport(args []string, out, errw io.Writer) int {
 
 // reportJSON is `report --json`: the report files and, per asked-for tool, the sessions in the window, judged and
 // not judged, so an agent can tell "nothing judged for this tool" from "judged" without reading the summary.
-func reportJSON(out io.Writer, tool, md, html, from, to string, inWin, judged map[string]int, next string) int {
+func reportJSON(out io.Writer, tool, md, html, from, to string, inWin, judged map[string]int, next, parts string) int {
 	type counts struct {
 		Sessions int `json:"sessions"`
 		Judged   int `json:"judged"`
@@ -577,14 +633,29 @@ func reportJSON(out io.Writer, tool, md, html, from, to string, inWin, judged ma
 			tools[t] = counts{inWin[t], judged[t], inWin[t] - judged[t]}
 		}
 	}
+	// the check-up's two parts: "cost" (money lost to habits) is always done; "asked" (did the agent do what you
+	// asked) is done, partial or not_started for the asked-for tools
+	j, u := 0, 0
+	for _, c := range tools {
+		j, u = j+c.Judged, u+c.Unjudged
+	}
+	asked := "done"
+	switch {
+	case u > 0 && j == 0:
+		asked = "not_started"
+	case u > 0:
+		asked = "partial"
+	}
 	v := struct {
 		Markdown  string            `json:"markdown"`
 		HTML      string            `json:"html"`
 		From      string            `json:"from"`
 		To        string            `json:"to"`
+		Parts     map[string]string `json:"parts"`
+		PartsLine string            `json:"parts_line,omitempty"`
 		Tools     map[string]counts `json:"tools"`
 		NotJudged string            `json:"not_judged,omitempty"`
-	}{md, html, from, to, tools, next}
+	}{md, html, from, to, map[string]string{"cost": "done", "asked": asked}, parts, tools, next}
 	b, _ := json.MarshalIndent(v, "", "  ")
 	fmt.Fprintln(out, string(b))
 	return 0

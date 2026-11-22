@@ -2,6 +2,8 @@
 
 2025-12-21 – 2026-01-20
 
+**This check-up has two parts. 1) Checking money lost to habits: done. 2) Checking whether the agent did what you asked: 9 sessions checked, 2 Claude Code sessions not yet.**
+
 | | Rating (good · fair · poor) | Details |
 |:--|:--|:--|
 | Did what you asked | **Poor** | Serious misses in 6 of 9 sessions · 6 fewer missed sessions to reach Good |
@@ -13,7 +15,7 @@
 
 In 2 sessions: “deja la tabla como está”
 
-[Source](https://code.claude.com/docs/en/memory.md) · **→ [Show what happened](#f-drift-broke-chat)**
+[Claude Code docs](https://code.claude.com/docs/en/memory.md) · [Codex docs](https://learn.chatgpt.com/docs/agent-configuration/agents-md) · **→ [Show what happened](#f-drift-broke-chat)**
 
 Then: [Keep long logs out](#f-leak-big-output) · [Make broken rules checkable](#f-drift-broke-file)
 
@@ -26,7 +28,7 @@ Then: [Keep long logs out](#f-leak-big-output) · [Make broken rules checkable](
 
 > You had said: “deja la tabla como está”
 
-Claude Code and Codex read this file at the start of every session. [Source](https://code.claude.com/docs/en/memory.md)
+Claude Code and Codex read this file at the start of every session. [Claude Code docs](https://code.claude.com/docs/en/memory.md) · [Codex docs](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 
 _How sure: Firm_
 
@@ -153,7 +155,7 @@ _How sure: Measured_
 <a id="f-leak-mid-switch"></a>
 #### Pick the model before you start
 
-**Switching mid-session cost $0.58, 5 times. One session alone cost $0.44.** Each model has its own cache, so a switch rereads the whole chat. [Several sources](https://code.claude.com/docs/en/prompt-caching.md)
+**Switching mid-session cost $0.58, 5 times. One session alone cost $0.44.** Each model has its own cache, so a switch rereads the whole chat. [Claude Code docs](https://code.claude.com/docs/en/prompt-caching.md) · [Leeway measurement](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)
 
 _How sure: Measured_
 
