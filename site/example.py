@@ -20,6 +20,8 @@ import json
 import os
 import random
 import re
+import shutil
+import struct
 import sys
 import uuid
 from pathlib import Path
@@ -395,20 +397,29 @@ FRAME = {
             NOTE_SHORT='Example · made-up data', NOTE_TAIL='sessions and judgments written by hand, not real logs or model results',
             INSTALL='Install', COPY='Copy', COPIED='Copied', INSTALL_UNIX='macOS and Linux', INSTALL_WIN='Windows (PowerShell)',
             INSTALL_THEN='Then ask Claude Code or Codex: “Make a Leeway report.”', IFRAME_TITLE='Example Leeway report',
-            PRIVACY='Runs on your computer. The basic report sends nothing; the in-depth check asks first.'),
+            PRIVACY='Runs on your computer. The basic report sends nothing; the in-depth check asks first.',
+            OG_ALT='Leeway: a habit check-up for AI coding agents (Claude Code, Codex)', OG_LOCALE='en_US', OG_LOCALE_ALT='ko_KR'),
  'ko': dict(TITLE='Leeway · 예시 리포트', DESC='지어낸 세션으로 만든 Leeway 예시 리포트입니다. 에이전트가 요청대로 했는지, 무엇부터 고칠지, 비용이 얼마나 샜는지 보여 줍니다.',
             NOTE_SHORT='예시 · 지어낸 데이터', NOTE_TAIL='세션과 판정 모두 손으로 쓴 것으로, 실제 로그나 모델 판정 결과가 아닙니다',
             INSTALL='설치', COPY='복사', COPIED='복사됨', INSTALL_UNIX='macOS, Linux', INSTALL_WIN='Windows (PowerShell)',
             INSTALL_THEN='설치한 뒤 Claude Code나 Codex에 “Leeway 리포트 만들어줘”라고 말하면 됩니다.', IFRAME_TITLE='Leeway 예시 리포트',
-            PRIVACY='내 컴퓨터에서 실행됩니다. 기본 리포트는 아무것도 보내지 않고, 정밀 점검은 보내기 전에 먼저 묻습니다.'),
+            PRIVACY='내 컴퓨터에서 실행됩니다. 기본 리포트는 아무것도 보내지 않고, 정밀 점검은 보내기 전에 먼저 묻습니다.',
+            OG_ALT='Leeway: AI 코딩 에이전트 사용 습관 점검 (Claude Code, Codex)', OG_LOCALE='ko_KR', OG_LOCALE_ALT='en_US'),
 }
 REPO = 'https://github.com/Mango-Juice/agent-leeway'
+SITE = 'https://mango-juice.github.io/agent-leeway/'  # where pages.yml publishes it; link previews need absolute URLs
+# made by site/images.py and committed; copied to the top of the site. The user's own report links to none of them.
+STATIC = ('favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'og-en.png', 'og-ko.png')
 
 
 def cmd_frame(out):
-    tpl = (Path(__file__).parent / 'frame.html').read_text(encoding='utf-8')
+    here = Path(__file__).parent
+    tpl = (here / 'frame.html').read_text(encoding='utf-8')
+    for name in STATIC:
+        shutil.copyfile(here / 'static' / name, Path(out) / name)
     for L, page, rep, en, ko in (('en', 'index.html', 'report/en.html', './', 'ko/'), ('ko', 'ko/index.html', '../report/ko.html', '../', './')):
-        v = dict(FRAME[L], LANG=L, REPO=REPO, REPORT=rep, EN_HREF=en, KO_HREF=ko, EN_CUR=' cur' if L == 'en' else '', KO_CUR=' cur' if L == 'ko' else '')
+        v = dict(FRAME[L], LANG=L, REPO=REPO, REPORT=rep, EN_HREF=en, KO_HREF=ko, EN_CUR=' cur' if L == 'en' else '', KO_CUR=' cur' if L == 'ko' else '',
+                 SITE=SITE, PATH=page.replace('index.html', ''), UP='../' * page.count('/'))
         v['NOTE_LONG'] = v['NOTE_SHORT'] + ' · ' + v['NOTE_TAIL']
         h = tpl
         for k, x in v.items():
@@ -482,10 +493,27 @@ def cmd_check(out, raw):
             'every session judged once, with its hand-written verdict' + (f' (wrong: {", ".join(wrong)})' if wrong else ''): not wrong and len(got) == len(sess),
             'no real paths': '/Users/' not in html and '/home/dev' not in html.replace('/home/dev/trail-planner', '').replace('/home/dev/invoice-sync', ''),  # privacy-ok: the check for real paths
             'no external assets': 'src="http' not in html and "url(http" not in html,
+            'no icon or link-preview tags in the report (the site frame has them)': 'property="og:' not in html and 'name="twitter:' not in html and 'rel="icon"' not in html,
         }
         bad += [f'{L}: {k}' for k, ok in need.items() if not ok]
     if verdicts['en'] != verdicts['ko']:
         bad.append('the English and Korean builds judged differently')
+    # the site pages (not the report) carry the icons and the link preview, with absolute image URLs
+    here = Path(__file__).parent / 'static'
+    for n in STATIC:
+        b = (Path(out) / n).read_bytes() if (Path(out) / n).is_file() else b''
+        if b != (here / n).read_bytes():
+            bad.append(f'{n}: not the committed file')
+        elif n.endswith('.png') and struct.unpack('>II', b[16:24]) != ((180, 180) if n.startswith('apple') else (1200, 630)):
+            bad.append(f'{n}: wrong size {struct.unpack(">II", b[16:24])}')
+    for L, page in (('en', 'index.html'), ('ko', 'ko/index.html')):
+        h = (Path(out) / page).read_text(encoding='utf-8')
+        up = '../' * page.count('/')
+        for tag in (f'<link rel="icon" href="{up}favicon.svg"', f'<link rel="icon" href="{up}favicon.ico"', f'<link rel="apple-touch-icon" href="{up}apple-touch-icon.png"',
+                    f'<meta property="og:image" content="{SITE}og-{L}.png">', f'<meta name="twitter:image" content="{SITE}og-{L}.png">',
+                    f'<meta property="og:url" content="{SITE}{page.replace("index.html", "")}">', '<meta name="twitter:card" content="summary_large_image">'):
+            if tag not in h:
+                bad.append(f'{page}: no {tag}')
     for p in Path(out).rglob('*'):  # the site is public: everything readable by everyone
         if p.stat().st_mode & (0o555 if p.is_dir() else 0o444) != (0o555 if p.is_dir() else 0o444):
             bad.append(f'not world-readable: {p.relative_to(out)}')

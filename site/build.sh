@@ -13,6 +13,7 @@ OUT=${2:-$ROOT/site-out}
 WORK=$(mktemp -d "/tmp/leeway-example.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 cp "$ROOT/site/example.py" "$ROOT/site/frame.html" "$WORK/"
+cp -R "$ROOT/site/static" "$WORK/static"   # icons and link-preview images (site/images.py)
 PY=$(command -v python3) || { echo "site/build.sh: python3 is needed" >&2; exit 1; }
 case "$PY" in *" "*) echo "site/build.sh: python3 is at a path with a space ($PY); put one without a space first on PATH" >&2; exit 1;; esac
 "$PY" -c 'import sys; sys.exit(sys.version_info < (3, 7))' || { echo "site/build.sh: python3 3.7 or later is needed" >&2; exit 1; }

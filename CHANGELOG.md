@@ -2,6 +2,11 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.9] - 2026-11-24
+
+### Added
+- The example site has a favicon and a link-preview image (English and Korean), so a shared link shows a card.
+
 ## [0.1.8] - 2026-11-23
 
 ### Added
