@@ -1,16 +1,16 @@
 {
-    "version": "0.1.6",
+    "version": "0.1.7",
     "description": "Occasional check-up of Claude Code and Codex logs (cost leaks and intent drift)",
     "homepage": "https://github.com/Mango-Juice/agent-leeway",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.6/agent-leeway_windows_amd64.zip",
-            "hash": "5b95e9d1156ee44a683156a1c6e7df3cd5d6c19a5d0445bfed012973cc375605"
+            "url": "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.7/agent-leeway_windows_amd64.zip",
+            "hash": "a296c1f126fd63c1f23707c34f159a7a20a6cd1ae0babea9ff14519b535b4e0d"
         },
         "arm64": {
-            "url": "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.6/agent-leeway_windows_arm64.zip",
-            "hash": "345fe1d573f7b3b971b627d37a5694cf80f0deab70151cb54b52db453a017081"
+            "url": "https://github.com/Mango-Juice/agent-leeway/releases/download/v0.1.7/agent-leeway_windows_arm64.zip",
+            "hash": "003e982f5fb0ad00f624e5f3eba2aa688f111bfb94d3f210bd1cc8d4ab07268e"
         }
     },
     "bin": "agent-leeway.exe",
