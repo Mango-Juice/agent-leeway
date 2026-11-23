@@ -61,7 +61,7 @@ Do not change or remove existing tables unless I ask you to edit them.
 <a id="f-leak-big-output"></a>
 ## 고칠 것 2 / 3: 긴 로그는 대화에 붙이지 마세요
 
-**긴 출력이 대화에 남아서 3번, $1.33가 나갔습니다. 한 세션에서만 $1.32이 나갔습니다.**
+**긴 출력이 대화에 남아서 3번, $1.33가 나갔습니다. 한 세션에서만 $1.32가 나갔습니다.**
 
 입력이 길어질수록 모델의 정확도가 떨어집니다. [출처](https://www.trychroma.com/research/context-rot)
 
@@ -152,21 +152,21 @@ _확실성: 확인 필요 · Codex 판정 모델만 찾음, 이 판정 모델은
 <a id="f-leak-long-break"></a>
 #### 오래 쉬었다면 새 세션으로 시작하세요
 
-**오래된 세션을 이어 쓰다가 4번, $0.35가 나갔습니다. 한 세션에서만 $0.17이 나갔습니다.** 쉬는 동안 캐시가 사라져서 대화 전체가 다시 청구됩니다. [Claude Code docs](https://code.claude.com/docs/en/prompt-caching.md)
+**오래된 세션을 이어 쓰다가 4번, $0.35가 나갔습니다. 한 세션에서만 $0.17가 나갔습니다.** 쉬는 동안 캐시가 사라져서 대화 전체가 다시 청구됩니다. [Claude Code docs](https://code.claude.com/docs/en/prompt-caching.md)
 
 _확실성: 측정값_
 
 <a id="f-leak-mid-switch"></a>
 #### 모델은 시작할 때 정하세요
 
-**세션 중간에 바꾸느라 5번, $0.58가 나갔습니다. 한 세션에서만 $0.44이 나갔습니다.** 모델마다 캐시가 따로라서, 바꾸면 대화 전체를 다시 읽습니다. [Claude Code docs](https://code.claude.com/docs/en/prompt-caching.md) · [Leeway 측정](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)
+**세션 중간에 바꾸느라 5번, $0.58가 나갔습니다. 한 세션에서만 $0.44가 나갔습니다.** 모델마다 캐시가 따로라서, 바꾸면 대화 전체를 다시 읽습니다. [Claude Code docs](https://code.claude.com/docs/en/prompt-caching.md) · [Leeway 측정](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)
 
 _확실성: 측정값_
 
 <a id="f-leak-let-repeat"></a>
 #### 두 번 실패하면 멈추라고 적어 두세요
 
-**같은 명령을 되풀이하거나 실패해서 13번, $0.10가 나갔습니다. 한 세션에서만 $0.04이 나갔습니다.** 내 로그를 직접 잰 값입니다. [Leeway 측정](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)
+**같은 명령을 되풀이하거나 실패해서 13번, $0.10가 나갔습니다. 한 세션에서만 $0.04가 나갔습니다.** 내 로그를 직접 잰 값입니다. [Leeway 측정](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)
 
 _확실성: 측정값_
 

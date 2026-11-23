@@ -26,6 +26,8 @@ type builder struct {
 	turns      []Turn
 	commits    []Commit
 	pending    []int
+	images     []Image
+	imageCall  map[int]int // image index -> call index (Codex: the call's response is known only later)
 	startRaw   string
 	endRaw     string
 }
@@ -136,7 +138,7 @@ func (b *builder) finish() *File {
 			th.NHumanTurns++
 		}
 	}
-	return &File{Thread: th, Steps: b.steps, Calls: b.calls, Turns: b.turns, Commits: b.commits}
+	return &File{Thread: th, Steps: b.steps, Calls: b.calls, Turns: b.turns, Commits: b.commits, Images: b.images}
 }
 
 // pySlice is s[a:b] in Python for code points; negative indexes count from the end.

@@ -268,6 +268,14 @@ func TestCostRecordPick(t *testing.T) {
 	if c == nil || why != "" || c.Base != report.BaseReport || !c.BaseAt.Equal(d0) || c.Prev != 0.2 || c.NPrv != 20 {
 		t.Errorf("45-day-old report with both tools: %+v %q", c, why)
 	}
+	// a report saved by 0.1.7 (cause set 1) next to it is never picked, even when newer: only like for like
+	old7 := now.AddDate(0, 0, -35)
+	b7, _ := json.Marshal(snapshot{Start: old7.AddDate(0, 0, -30).Format(time.RFC3339), Hours: 720, End: old7.Format(time.RFC3339), TotalUSD: 90, LeakUSD: 1, Sessions: 30, Habits: map[string]float64{}})
+	_ = os.WriteFile(filepath.Join(cache, "compare", snapNameSet("claude", "aaaa", old7.AddDate(0, 0, -30), 720, 1)), b7, 0o600)
+	if c, _ := pick(); c == nil || !c.BaseAt.Equal(d0) {
+		t.Errorf("older cause set picked: %+v", c)
+	}
+	_ = os.Remove(filepath.Join(cache, "compare", snapNameSet("claude", "aaaa", old7.AddDate(0, 0, -30), 720, 1)))
 	// a later report whose window overlaps this one is not a baseline; the earlier one still is
 	saveSnapshots(cache, src, now.AddDate(0, 0, -40), now.AddDate(0, 0, -10), 720, map[string]report.Agg{"claude": a(50, 1, 12)}, map[string]bool{"claude": true})
 	if c, _ := pick(); c == nil || !c.BaseAt.Equal(d0) {
@@ -291,12 +299,31 @@ func TestCostRecordPick(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(cache, "compare"), 0o700)
 	st := d0.AddDate(0, 0, -30)
 	b, _ := json.Marshal(map[string]any{"start": st.Format(time.RFC3339), "hours": 720, "total_usd": 80, "leak_usd": 16, "max_session_leak_usd": 2, "sessions": 15, "habits_usd": map[string]float64{}})
+	_ = os.WriteFile(filepath.Join(cache, "compare", snapNameSet("claude", "aaaa", st, 720, 1)), b, 0o600)
+	// it counted fewer causes (no screenshots): not compared as if equal, with the reason (0.1.8, cause set 2)
+	if c, why := pick(); c != nil || why != "cmp_why_cost_causes" {
+		t.Errorf("0.1.6 file: %+v %q", c, why)
+	}
+	// the same file with this version's cause set is a baseline (ends at start + length)
+	b, _ = json.Marshal(map[string]any{"start": st.Format(time.RFC3339), "hours": 720, "total_usd": 80, "leak_usd": 16, "max_session_leak_usd": 2, "sessions": 15, "habits_usd": map[string]float64{},
+		"cause_set": leak.CauseSet})
 	_ = os.WriteFile(filepath.Join(cache, "compare", snapName("claude", "aaaa", st, 720)), b, 0o600)
 	if c, _ := pick(); c == nil || !c.BaseAt.Equal(d0) {
-		t.Errorf("0.1.6 file: %+v", c)
+		t.Errorf("0.1.6-shaped file of this cause set: %+v", c)
 	}
+	// a 0.1.7 binary reads only "…h.json": this version's records are named so that it never picks them up
+	if n := snapName("claude", "aaaa", st, 720); strings.HasSuffix(n, "h.json") || !strings.HasSuffix(n, "h.c2.json") {
+		t.Errorf("new record name %q is readable by 0.1.7", n)
+	}
+	// a record with a cause set that does not match its file name is ignored
+	_ = os.WriteFile(filepath.Join(cache, "compare", snapNameSet("claude", "aaaa", st, 720, 1)), b, 0o600)
+	_ = os.Remove(filepath.Join(cache, "compare", snapName("claude", "aaaa", st, 720)))
+	if c, why := pick(); c != nil || why == "cmp_why_cost_causes" {
+		t.Errorf("mismatched name: %+v %q", c, why)
+	}
+	_ = os.Remove(filepath.Join(cache, "compare", snapNameSet("claude", "aaaa", st, 720, 1)))
 	// numbers that cannot be right are ignored
-	_ = os.WriteFile(filepath.Join(cache, "compare", snapName("claude", "aaaa", st, 720)), []byte(`{"start":"`+st.Format(time.RFC3339)+`","hours":720,"total_usd":10,"leak_usd":12,"sessions":15}`), 0o600)
+	_ = os.WriteFile(filepath.Join(cache, "compare", snapName("claude", "aaaa", st, 720)), []byte(`{"start":"`+st.Format(time.RFC3339)+`","hours":720,"total_usd":10,"leak_usd":12,"sessions":15,"cause_set":2}`), 0o600)
 	if c, _ := pick(); c != nil {
 		t.Error("leak above total accepted")
 	}

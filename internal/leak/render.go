@@ -181,7 +181,7 @@ func Render(R *Report, top int, P, H, A, PH, PA *Report, now time.Time, loc *tim
 			v    float64
 		}
 		var parts []part
-		for _, k := range CauseKeys {
+		for _, k := range causeKeys() {
 			if s.ByCause[k] >= 0.01 {
 				parts = append(parts, part{messages.ShortCause[k], s.ByCause[k]})
 			}

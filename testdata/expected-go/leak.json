@@ -59,6 +59,13 @@
    "usd": 1.33,
    "count": 3,
    "fix": "3 tool outputs over 10k tokens entered the context and were re-read by every later response. Have logs and test output tailed or summarized."
+  },
+  {
+   "cause": "image",
+   "label": "Screenshots left in the conversation",
+   "usd": 0.0,
+   "count": 0,
+   "fix": ""
   }
  ],
  "habits": [
@@ -187,6 +194,18 @@
     }
    },
    "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+  },
+  {
+   "habit": "screenshots",
+   "label": "Leaving screenshots in the conversation",
+   "causes": [
+    "image"
+   ],
+   "usd": 0.0,
+   "count": 0,
+   "per100": 0.0,
+   "where": {},
+   "tip": "Screenshots left in the conversation are re-read on every request and cost money; once the visual check is done, compact or start a new session."
   }
  ],
  "info": {
@@ -210,6 +229,7 @@
    "key": "claude:00000000-0000-4000-8000-000000000108",
    "expiry": 0.0,
    "fail": 0.0,
+   "image": 0.0,
    "oversize": 1.323,
    "repeat": 0.0,
    "reread": 0.0,
@@ -229,6 +249,7 @@
    "key": "claude:00000000-0000-4000-8000-000000000104",
    "expiry": 0.0,
    "fail": 0.0,
+   "image": 0.0,
    "oversize": 0.0078,
    "repeat": 0.0082,
    "reread": 0.0082,
@@ -248,6 +269,7 @@
    "key": "claude:00000000-0000-4000-8000-000000000101",
    "expiry": 0.1716,
    "fail": 0.0187,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -267,6 +289,7 @@
    "key": "claude:00000000-0000-4000-8000-000000000102",
    "expiry": 0.1716,
    "fail": 0.0,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -286,6 +309,7 @@
    "key": "claude:00000000-0000-4000-8000-000000000103",
    "expiry": 0.0,
    "fail": 0.0061,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -305,6 +329,7 @@
    "key": "codex:00000000-0000-4000-8000-000000000202",
    "expiry": 0.0,
    "fail": 0.0084,
+   "image": 0.0,
    "oversize": 0.0026,
    "repeat": 0.0136,
    "reread": 0.0,
@@ -324,6 +349,7 @@
    "key": "codex:00000000-0000-4000-8000-000000000201",
    "expiry": 0.0086,
    "fail": 0.0113,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0244,
    "reread": 0.0116,
@@ -343,6 +369,7 @@
    "key": "claude:00000000-0000-4000-8000-000000000105",
    "expiry": 0.0,
    "fail": 0.0061,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -362,6 +389,7 @@
    "key": "codex:00000000-0000-4000-8000-000000000207",
    "expiry": 0.0008,
    "fail": 0.0,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -381,6 +409,7 @@
    "key": "claude:00000000-0000-4000-8000-000000000106",
    "expiry": 0.0,
    "fail": 0.0,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -400,6 +429,7 @@
    "key": "claude:00000000-0000-4000-8000-000000000107",
    "expiry": 0.0,
    "fail": 0.0,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -419,6 +449,7 @@
    "key": "codex:00000000-0000-4000-8000-000000000204",
    "expiry": 0.0,
    "fail": 0.0,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -438,6 +469,7 @@
    "key": "codex:00000000-0000-4000-8000-000000000206",
    "expiry": 0.0,
    "fail": 0.0,
+   "image": 0.0,
    "oversize": 0.0,
    "repeat": 0.0,
    "reread": 0.0,
@@ -516,6 +548,13 @@
      "usd": 1.33,
      "count": 3,
      "fix": "3 tool outputs over 10k tokens entered the context and were re-read by every later response. Have logs and test output tailed or summarized."
+    },
+    {
+     "cause": "image",
+     "label": "Screenshots left in the conversation",
+     "usd": 0.0,
+     "count": 0,
+     "fix": ""
     }
    ],
    "habits": [
@@ -644,6 +683,18 @@
       }
      },
      "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+    },
+    {
+     "habit": "screenshots",
+     "label": "Leaving screenshots in the conversation",
+     "causes": [
+      "image"
+     ],
+     "usd": 0.0,
+     "count": 0,
+     "per100": 0.0,
+     "where": {},
+     "tip": "Screenshots left in the conversation are re-read on every request and cost money; once the visual check is done, compact or start a new session."
     }
    ],
    "info": {
@@ -731,6 +782,13 @@
     {
      "cause": "oversize",
      "label": "Oversized tool output (over 10k tokens)",
+     "usd": 0.0,
+     "count": 0,
+     "fix": ""
+    },
+    {
+     "cause": "image",
+     "label": "Screenshots left in the conversation",
      "usd": 0.0,
      "count": 0,
      "fix": ""
@@ -823,6 +881,18 @@
      "per100": 0.0,
      "where": {},
      "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+    },
+    {
+     "habit": "screenshots",
+     "label": "Leaving screenshots in the conversation",
+     "causes": [
+      "image"
+     ],
+     "usd": 0.0,
+     "count": 0,
+     "per100": 0.0,
+     "where": {},
+     "tip": "Screenshots left in the conversation are re-read on every request and cost money; once the visual check is done, compact or start a new session."
     }
    ],
    "info": {
@@ -894,6 +964,13 @@
    {
     "cause": "oversize",
     "label": "Oversized tool output (over 10k tokens)",
+    "usd": 0.0,
+    "count": 0,
+    "fix": ""
+   },
+   {
+    "cause": "image",
+    "label": "Screenshots left in the conversation",
     "usd": 0.0,
     "count": 0,
     "fix": ""
@@ -973,6 +1050,18 @@
     "per100": 0.0,
     "where": {},
     "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+   },
+   {
+    "habit": "screenshots",
+    "label": "Leaving screenshots in the conversation",
+    "causes": [
+     "image"
+    ],
+    "usd": 0.0,
+    "count": 0,
+    "per100": 0.0,
+    "where": {},
+    "tip": "Screenshots left in the conversation are re-read on every request and cost money; once the visual check is done, compact or start a new session."
    }
   ],
   "info": {
@@ -1043,6 +1132,13 @@
      {
       "cause": "oversize",
       "label": "Oversized tool output (over 10k tokens)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "image",
+      "label": "Screenshots left in the conversation",
       "usd": 0.0,
       "count": 0,
       "fix": ""
@@ -1122,6 +1218,18 @@
       "per100": 0.0,
       "where": {},
       "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+     },
+     {
+      "habit": "screenshots",
+      "label": "Leaving screenshots in the conversation",
+      "causes": [
+       "image"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "Screenshots left in the conversation are re-read on every request and cost money; once the visual check is done, compact or start a new session."
      }
     ],
     "info": {
@@ -1191,6 +1299,13 @@
      {
       "cause": "oversize",
       "label": "Oversized tool output (over 10k tokens)",
+      "usd": 0.0,
+      "count": 0,
+      "fix": ""
+     },
+     {
+      "cause": "image",
+      "label": "Screenshots left in the conversation",
       "usd": 0.0,
       "count": 0,
       "fix": ""
@@ -1270,6 +1385,18 @@
       "per100": 0.0,
       "where": {},
       "tip": "Ask the agent to read only the tail or a summary of test and build logs."
+     },
+     {
+      "habit": "screenshots",
+      "label": "Leaving screenshots in the conversation",
+      "causes": [
+       "image"
+      ],
+      "usd": 0.0,
+      "count": 0,
+      "per100": 0.0,
+      "where": {},
+      "tip": "Screenshots left in the conversation are re-read on every request and cost money; once the visual check is done, compact or start a new session."
      }
     ],
     "info": {
@@ -1285,6 +1412,7 @@
   }
  },
  "currency": "USD (API list-price equivalent)",
+ "cause_set": 2,
  "price_table": {
   "read": "2026-11-22",
   "age_days": 0,

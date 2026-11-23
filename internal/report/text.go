@@ -39,7 +39,7 @@ func (x Text) Tr(key string, kv ...any) string {
 }
 
 var (
-	oneNoun   = regexp.MustCompile(`\b1 (session|time|thing|rule|problem|request|day|theme)s\b`)
+	oneNoun   = regexp.MustCompile(`\b1 (session|time|thing|rule|problem|request|day|theme|screenshot|image|skill|line)s\b`)
 	maybeMany = regexp.MustCompile(`\b(\d+) ([a-z]+)\(s\)`)
 	oneWere   = regexp.MustCompile(`\b1 (?:different )?(thing|rule)s?( you had said)? were\b`)
 )

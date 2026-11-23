@@ -36,6 +36,7 @@ By cause (detail)  [direct / automation]
   $     0.05       8x  Consecutive failures   [$0.04 6x / $0.01 2x]
   $     0.02       2x  Unchanged file read again   [$0.02 2x / $0.00 0x]
   $     1.33       3x  Oversized tool output (over 10k tokens)   [$1.33 3x / $0.00 0x]
+  $     0.00       0x  Screenshots left in the conversation   [$0.00 0x / $0.00 0x]
   (unexplained rewrites, $0.16, look like server-side cache eviction and are not counted as a habit)
 
 For reference (not counted as leak)

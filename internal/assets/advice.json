@@ -816,6 +816,79 @@
      ]
     }
    }
+  },
+  {
+   "id": "leak.screenshots",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Once a visual check is done, compact the conversation or start a new session, so old screenshots stop being sent with every request.",
+      "ko": "화면 확인이 끝나면 대화를 압축하거나 새 세션을 열어, 지난 스크린샷이 요청마다 다시 실리지 않게 하세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Manage costs",
+       "url": "https://code.claude.com/docs/en/costs.md",
+       "read": "2026-11-23",
+       "claim": "Stale context wastes tokens on every subsequent message."
+      },
+      {
+       "title": "Claude docs: Vision",
+       "url": "https://platform.claude.com/docs/en/build-with-claude/vision",
+       "read": "2026-11-23",
+       "claim": "An image, therefore, costs `⌈width / 28⌉ × ⌈height / 28⌉` visual tokens."
+      },
+      {
+       "title": "Claude docs: Vision",
+       "url": "https://platform.claude.com/docs/en/build-with-claude/vision",
+       "read": "2026-11-23",
+       "claim": "In multi-turn conversations and agentic workflows, each request resends the full conversation history."
+      }
+     ],
+     "how": [
+      "/compact",
+      "/clear"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "Once a visual check is done, compact the conversation or start a new chat, so old screenshots stop being sent with every request.",
+      "ko": "화면 확인이 끝나면 대화를 압축하거나 새 대화를 열어, 지난 스크린샷이 요청마다 다시 실리지 않게 하세요."
+     },
+     "sources": [
+      {
+       "title": "OpenAI docs: Conversation state",
+       "url": "https://developers.openai.com/api/docs/guides/conversation-state",
+       "read": "2026-11-23",
+       "claim": "Even when using `previous_response_id`, all previous input tokens for responses in the chain are billed as input tokens in the API."
+      },
+      {
+       "title": "OpenAI docs: Images and vision",
+       "url": "https://developers.openai.com/api/docs/guides/images-vision",
+       "read": "2026-11-23",
+       "claim": "keep in mind that images count as tokens and will be billed accordingly."
+      },
+      {
+       "title": "Codex docs: Slash commands",
+       "url": "https://learn.chatgpt.com/docs/cli/slash-commands",
+       "read": "2026-11-23",
+       "claim": "/compact | Summarize the visible chat to free tokens. | Use after long runs so Codex retains key points without blowing the context window."
+      },
+      {
+       "title": "Codex docs: Slash commands",
+       "url": "https://learn.chatgpt.com/docs/cli/slash-commands",
+       "read": "2026-11-23",
+       "claim": "/new | Start a new chat inside the same CLI session. | Reset the chat context without leaving the CLI when you want a fresh prompt in the same repo."
+      }
+     ],
+     "how": [
+      "/compact",
+      "/new"
+     ]
+    }
+   }
   }
  ]
 }

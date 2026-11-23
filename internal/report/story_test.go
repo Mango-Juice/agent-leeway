@@ -298,7 +298,7 @@ func TestFirstScreenBudget(t *testing.T) {
 		i := strings.Index(h, `<section class="sec verdict"`)
 		j := strings.Index(h[i:], "</section>")
 		txt := html.UnescapeString(tag.ReplaceAllString(h[i:i+j], " "))
-		if strings.HasPrefix(name, "report.en") || strings.HasPrefix(name, "report-themed.en") {
+		if strings.Contains(name, ".en.") {
 			if n := len(enw.FindAllString(txt, -1)); n > 75 {
 				t.Errorf("%s: %d English words on the first screen", name, n)
 			}

@@ -83,14 +83,14 @@ func (s *Story) pictureSection() string {
 	if m.HasLeak && len(crows) > 0 {
 		lt := math.Max(m.LeakUSD, 1e-9)
 		fmt.Fprintf(&b, `<div class="blk8"><h3>%s</h3><p class="lead8">%s</p><ul class="bars8">`, E(s.T("pic8_cost_h")),
-			E(s.T("pic8_cost_lead", "a", crows[0].Label, "usd", Money(crows[0].Value), "total", Money(m.LeakUSD), "spend", Money(m.TotalUSD))))
+			E(s.T("pic8_cost_lead", "a", crows[0].Label, "usd", s.money(crows[0].Value, crows[0].Approx), "total", Money(m.LeakUSD), "spend", Money(m.TotalUSD))))
 		for _, r := range crows {
 			cls := "c"
 			if r.Label == s.T("prob_other") {
 				cls = "o"
 			}
 			fmt.Fprintf(&b, `<li class="%s"><span class="bl">%s</span><span class="bv">%s<small>%s</small></span><span class="bt" role="img" aria-label="%s"><i style="width:%s"></i></span></li>`,
-				cls, E(r.Label), E(Money(r.Value)), E(Pct(r.Value/lt)), E(r.Label+": "+Money(r.Value)), pctW(r.Value/lt))
+				cls, E(r.Label), E(s.money(r.Value, r.Approx)), E(Pct(r.Value/lt)), E(r.Label+": "+s.money(r.Value, r.Approx)), pctW(r.Value/lt))
 		}
 		fmt.Fprintf(&b, `</ul>%s<p class="cap8">%s</p></div>`, s.cmpDetail(false), E(s.T("pic8_cost_cap", "total", Money(m.LeakUSD))))
 	}

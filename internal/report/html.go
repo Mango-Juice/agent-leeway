@@ -93,8 +93,9 @@ func track(value float64, cuts [2]float64, vmax float64, words [3]string, lv str
 }
 
 type barRow struct {
-	Label string
-	Value float64
+	Label  string
+	Value  float64
+	Approx bool // an estimate (screenshots): shown as "about $X"
 }
 
 // hbars is labelled horizontal bars with the value at the bar end.
@@ -318,7 +319,7 @@ func (s *Story) evidenceBody(f *Finding, evs []*Event, wrap bool) string {
 	}
 	b.WriteString(s.draftBox(s.Draft(f, th)))
 	fmt.Fprintf(&b, `<details class="more5" data-fold><summary>%s %s</summary><dl class="facts5"><dt>%s</dt><dd>%s</dd><dt>%s</dt><dd>%s</dd></dl><h3>%s</h3>%s</details>`,
-		iconChev, E(s.T("more")), E(s.T("how_often")), E(s.X.Size(s.M, f)), E(s.T("how_sure")), s.badge(f.Level)+notesHTML(s.X.Notes(f)), E(s.T("all_sources")), s.sourcesHTML(f))
+		iconChev, E(s.T("more")), E(s.T("how_often")), E(s.sizeLine(f)), E(s.T("how_sure")), s.badge(f.Level)+notesHTML(s.X.Notes(f)), E(s.T("all_sources")), s.sourcesHTML(f))
 	if wrap {
 		return `<div class="evb">` + b.String() + `</div>`
 	}
@@ -708,17 +709,17 @@ func (s *Story) PictureRows() (drift, cost []barRow) {
 	fs := append([]*Finding(nil), s.Findings...)
 	sortBy(fs, func(f *Finding) float64 { return float64(f.Sessions) })
 	for _, f := range fs {
-		drift = append(drift, barRow{s.prob(f), float64(f.Sessions)})
+		drift = append(drift, barRow{Label: s.prob(f), Value: float64(f.Sessions)})
 	}
 	lk := append([]*Finding(nil), s.Leak...)
 	sortBy(lk, func(f *Finding) float64 { return f.USD })
 	sum := 0.0
 	for _, f := range lk {
-		cost = append(cost, barRow{s.prob(f), f.USD})
+		cost = append(cost, barRow{s.prob(f), f.USD, estimated(f)})
 		sum += f.USD
 	}
 	if rest := s.M.LeakUSD - sum; rest >= 0.5 {
-		cost = append(cost, barRow{s.T("prob_other"), rest})
+		cost = append(cost, barRow{Label: s.T("prob_other"), Value: rest})
 	}
 	return drift, cost
 }

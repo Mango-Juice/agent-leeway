@@ -545,7 +545,7 @@ var Story = map[string]map[string]string{
 		"nav":                        "리포트 구간",
 		"next":                       "다음",
 		"nextc":                      "다음 사례",
-		"one_sess":                   "한 세션에서만 {top}이 나갔습니다.",
+		"one_sess":                   "한 세션에서만 {top}가 나갔습니다.",
 		"or":                         "나 ",
 		"period":                     "{a} – {b}",
 		"pic_cost":                   "습관별로 샌 비용",

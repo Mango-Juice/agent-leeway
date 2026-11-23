@@ -6,6 +6,11 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 
 ### Added
 - "Your setup" in the basic report: each tool's skill list and instruction file against the line its own docs publish (Claude Code: skill descriptions dropped from the list, `CLAUDE.md` over 200 lines; Codex: `AGENTS.md` at `project_doc_max_bytes`). An item over its line is a fix, ranked after the firm and measured fixes; every item is a row in Look things up, with the tool's page. Offline, no model call; see docs/privacy.md for what is read.
+- A new cause in "money wasted by habits": screenshots (and other images) left in the conversation, shown as an estimate ("about $X"). Each image is billed again with every later request until compaction; only those re-reads are counted (never taking the screenshot or its first read), from the image's size in its header and each vendor's published token rule, bounded by the logged usage.
+
+### Changed
+- Cost records now name the set of causes they counted, and are saved under a new file name that 0.1.7 does not read. A cost saved by 0.1.7 or earlier is not compared with this version's numbers ("this version counts one more cause").
+- `leak --json` gained `cause_set` (2 in this version); `compare` says when two files count different causes and then compares each cause on its own.
 
 ## [0.1.7] - 2026-11-23
 

@@ -128,6 +128,7 @@ var cliKO = map[string]string{
 		"  - 프롬프트로만 요청하는 것(강제 아님): 대화 기록을 데이터로만 점검하고 JSON으로만 답할 것.\n" +
 		"  - 점검 CLI는 내 환경을 물려받으므로 ANTHROPIC_BASE_URL, OPENAI_BASE_URL, 프록시 같은 설정이 적용됩니다.\n" +
 		"  - drift는 로그에 지시 파일이 없는 Claude Code 세션에 프로젝트 폴더의 현재 CLAUDE.md, CLAUDE.local.md, AGENTS.md(와 전역 CLAUDE.md)를 붙입니다. --no-current-instructions로 끌 수 있습니다.\n" +
+		"  - 대화에 남은 스크린샷은 로그에 있는 이미지 헤더에서 가로, 세로 크기만 읽습니다. PNG, GIF, WebP는 앞부분만, JPEG는 프레임 헤더가 나올 때까지 구간 헤더를 최대 4 MB, 64개까지 따라갑니다. 이미지는 디코딩하거나 저장하거나 해시하거나 보내지 않습니다.\n" +
 		"  - 모든 명령은 로그에 나온 프로젝트 폴더에서 프로젝트 이름을 알려고 `git rev-parse`(읽기만 함)를 실행합니다.\n" +
 		"  - `report`는 지워진 로그와 사용하지 않은 기간을 구분하려고 Claude Code settings.json에서 설정 하나(cleanupPeriodDays, 대화 기록을 두는 기간)와 그 파일의 날짜를 읽습니다. 또 Claude Code가 로그를 지운 뒤에도 비교할 수 있도록 기간마다 비용을 숫자로만(사용액, 샌 비용, 습관별 금액, 세션 수. 글은 없음) 캐시의 compare/*.json에 저장합니다.\n" +
 		"  - \"내 설정\"을 위해 `report`는 Claude Code의 사용자, 프로젝트, 로컬 settings.json에서 skillOverrides만, Codex config.toml에서 project_doc_max_bytes 한 줄만 읽습니다. 로그에서는 스킬 수, 설명 없이 실린 스킬 이름, 직접 부른 스킬의 이름과 횟수, CLAUDE.md 줄 수와 경로, AGENTS.md 크기와 마지막 줄바꿈 여부만 쓰고, 글은 남기지 않습니다. 이 값은 로그 분석 캐시와 리포트에만 남고 비교 기록에는 넣지 않습니다.\n" +

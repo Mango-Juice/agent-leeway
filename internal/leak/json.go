@@ -105,7 +105,7 @@ func (R *Report) ToValue(withSessions bool) py.Value {
 	b.set("info", info.v())
 	if withSessions {
 		var ss []py.Value
-		causes := append([]string(nil), CauseKeys...)
+		causes := append([]string(nil), causeKeys()...)
 		sort.Strings(causes)
 		for _, s := range R.Sessions {
 			o := newObj().set("key", sv(s.Key))
@@ -134,6 +134,7 @@ func JSON(R, H, A, P, PH, PA *Report) py.Value {
 	}
 	out.O.Set("currency", sv("USD (API list-price equivalent)"))
 	if !config.Legacy {
+		out.O.Set("cause_set", iv(CauseSet))
 		days, stale := config.Staleness(config.Prices().Read, config.Now())
 		pt := newObj().set("read", sv(config.Prices().Read)).set("age_days", iv(days)).set("stale", bv(stale))
 		if id, end := config.Prices().EndedPromotion(config.Now()); id != "" {
@@ -186,7 +187,7 @@ func Compare(A, B py.Value) string {
 		}
 		return 0
 	}
-	for _, k := range CauseKeys {
+	for _, k := range causeKeys() {
 		a, okA := ca[k]
 		b, okB := cb[k]
 		if !okA || !okB {
@@ -194,6 +195,10 @@ func Compare(A, B py.Value) string {
 		}
 		x, y := per100(a, A), per100(b, B)
 		out = append(out, F(T["line"], "x", x, "y", y, "d", y-x, "na", a.Get("count"), "nb", b.Get("count"), "label", messages.Causes[k][0]))
+	}
+	if causeSet(A) != causeSet(B) { // another set of causes: the totals and habits are not like for like
+		out = append(out, T["warn_causes"], T["caveat"])
+		return strings.Join(out, "\n")
 	}
 	lx, ly := 100*pct(A), 100*pct(B)
 	out = append(out, F(T["total"], "x", lx, "y", ly, "d", ly-lx))
@@ -245,4 +250,12 @@ func Compare(A, B py.Value) string {
 	}
 	out = append(out, T["caveat"])
 	return strings.Join(out, "\n")
+}
+
+// causeSet is the set of causes a `leak --json` file counted (files without the field: 1, up to 0.1.7).
+func causeSet(X py.Value) int64 {
+	if v := X.Get("cause_set"); v.K == py.Int {
+		return v.I
+	}
+	return 1
 }

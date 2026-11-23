@@ -411,3 +411,91 @@ func TestSetupSingular(t *testing.T) {
 		}
 	}
 }
+
+// The cost card's reason when only a record of an older cause set exists: one line, in both languages.
+func TestCostReasonCauseSet(t *testing.T) {
+	for _, lang := range []string{"en", "ko"} {
+		m := setupModel(t, lang, leakReport(100, leak.Habit{Habit: "screenshots", Causes: []string{"image"}, USD: 3, Count: 4}), judged(t, 10, 0))
+		m.Compare = &Compare{Hours: 720, CostWhy: "cmp_why_cost_causes", CostArgs: map[string]any{}, DriftArgs: map[string]any{}}
+		s := NewStory(m)
+		want := s.T("cmp_why_cost_causes")
+		if !strings.Contains(want, map[string]string{"en": "one more cause", "ko": "원인을 하나 더"}[lang]) || !strings.Contains(html.UnescapeString(s.HTML()), want) {
+			t.Errorf("%s: reason missing", lang)
+		}
+		if s.prob(s.Leak[0]) != map[string]string{"en": "Leaving screenshots in the conversation", "ko": "스크린샷을 대화에 남겨 두기"}[lang] {
+			t.Errorf("%s: habit label %q", lang, s.prob(s.Leak[0]))
+		}
+	}
+}
+
+// B3: screenshots as Fix first keep the first screen within its budget (75 English words, 155 Hangul syllables).
+func TestScreenshotsFirstScreenBudget(t *testing.T) {
+	tag := regexp.MustCompile(`<[^>]+>`)
+	enw := regexp.MustCompile(`[A-Za-z][A-Za-z'’.-]*`)
+	ko := regexp.MustCompile(`[가-힣]`)
+	for _, tool := range []string{"claude", "codex"} {
+		for _, lang := range []string{"en", "ko"} {
+			R := &leak.Report{TotalUSD: 114.84, LeakUSD: 11.63, WindowStart: seen.AddDate(0, 0, -30), WindowEnd: seen,
+				Habits:   []leak.Habit{{Habit: "screenshots", Causes: []string{"image"}, USD: 11.63, Count: 40}},
+				Sessions: []leak.SessionLeak{{Key: tool + ":a", Tool: tool, ByCause: map[string]float64{"image": 6}}, {Key: tool + ":b", Tool: tool, ByCause: map[string]float64{"image": 5.63}}}}
+			s := NewStory(setupModel(t, lang, R, judged(t, 21, 2)))
+			if len(s.Top) == 0 || s.Top[0].Habit != "screenshots" {
+				t.Fatalf("fixture: %v", sides(s.Top))
+			}
+			h := s.HTML()
+			i := strings.Index(h, `<section class="sec verdict"`)
+			txt := html.UnescapeString(tag.ReplaceAllString(h[i:i+strings.Index(h[i:], "</section>")], " "))
+			if n := len(enw.FindAllString(txt, -1)); lang == "en" && n > 75 {
+				t.Errorf("%s en: %d words", tool, n)
+			}
+			if n := len(ko.FindAllString(txt, -1)); lang == "ko" && n > 155 {
+				t.Errorf("%s ko: %d syllables", tool, n)
+			}
+		}
+	}
+}
+
+// A4, A12, B5, B10: wording that must match the vendor pages, and Codex sources quoted as written.
+func TestReviewWording(t *testing.T) {
+	en, ko := NewStory(setupModel(t, "en", nil, nil)), NewStory(setupModel(t, "ko", nil, nil))
+	for _, c := range [][2]string{
+		{en.T("su.codex.instr.line", "lim", 32), "nothing past 32 KiB in total is read"},
+		{ko.T("su.codex.instr.line", "lim", 32), "합쳐서 32 KiB를 넘는 부분은 읽지 않음"},
+		{ko.T("pl.SETUP_SKILLS.short"), "직접 부르는 스킬은 목록에서 빼기"},
+		{ko.T("su.docs", "tool", "Codex"), "Codex 문서"},
+		{ko.T("pl.SETUP_INSTR.term", "file", "CLAUDE.md", "n", 236), "CLAUDE.md: 236줄"},
+		{en.T("pl.screenshots.hook", "n", 9, "usd", "$2.40"), "9 screenshots left in the conversation cost about $2.40."},
+	} {
+		if c[0] != c[1] {
+			t.Errorf("%q, want %q", c[0], c[1])
+		}
+	}
+	e := advice.Builtin().Get("leak.screenshots")
+	var claims []string
+	for _, s := range e.Tools["codex"].Sources {
+		claims = append(claims, s.Claim)
+	}
+	all := strings.Join(claims, "\n")
+	for _, want := range []string{"all previous input tokens for responses in the chain are billed as input tokens in the API.",
+		"/compact | Summarize the visible chat to free tokens. | Use after long runs so Codex retains key points without blowing the context window."} {
+		if !strings.Contains(all, want) {
+			t.Errorf("Codex sources lack %q", want)
+		}
+	}
+}
+
+// Item 3 (second pass): one screenshot reads in the singular.
+func TestScreenshotSingular(t *testing.T) {
+	R := &leak.Report{TotalUSD: 100, LeakUSD: 3, WindowStart: seen.AddDate(0, 0, -30), WindowEnd: seen,
+		Habits:   []leak.Habit{{Habit: "screenshots", Causes: []string{"image"}, USD: 3, Count: 1}},
+		Sessions: []leak.SessionLeak{{Key: "claude:a", Tool: "claude", ByCause: map[string]float64{"image": 3}}}}
+	for lang, want := range map[string]string{"en": "1 screenshot left in the conversation cost about $3.00.", "ko": "스크린샷 1장 때문에 약 $3.00가 나갔습니다."} {
+		s := NewStory(setupModel(t, lang, R, judged(t, 10, 0)))
+		if h := s.Plain(s.Leak[0]).Hook; !strings.Contains(h, want) {
+			t.Errorf("%s: %q", lang, h)
+		}
+	}
+	if got := Number("en", "1 screenshots, 1 skills, 1 lines, 2 images"); got != "1 screenshot, 1 skill, 1 line, 2 images" {
+		t.Errorf("%q", got)
+	}
+}

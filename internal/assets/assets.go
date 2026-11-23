@@ -30,3 +30,9 @@ var Advice []byte
 //
 //go:embed judges.json
 var Judges []byte
+
+// ImageTokens holds each vendor's published rule for what an image costs in tokens (with the page and the date it
+// was read): the screenshot cause of the cost check uses it.
+//
+//go:embed image_tokens.json
+var ImageTokens []byte

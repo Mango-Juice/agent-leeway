@@ -1,0 +1,23 @@
+This is the basic report. It covers only money lost to habits.
+
+Your AI coding agents, overall: FAIR   (2026-01-30 – 2026-03-01)
+
+  Did what you asked      not checked yet  The in-depth check has not been run for 1 Claude Code
+  sessions, 1 Codex sessions in this period.
+                          To run it: agent-leeway drift --since 30d (it shows what it would send and asks first)
+  Money wasted by habits  good [FAIR] poor  $0.22 of $4.11 · $0.01 less to reach Good
+  Rated on cost only: the in-depth check has not been run yet.
+
+Fix first:
+  1. Once the visual check is done, compact or start a new session
+     9 screenshots left in the conversation cost about $0.22. One session alone cost about
+     $0.20.
+     Source: https://code.claude.com/docs/en/costs.md
+
+No waste found in 95% of spend
+
+→ <reports>/report-2026-03-01T0000.html
+
+Not checked in depth yet: 1 Claude Code sessions, 1 Codex sessions in this period. To see what would be checked (nothing is sent): agent-leeway drift --dry-run --since 30d
+
+Run the in-depth check and add "did the agent do what you asked" to the report? It takes longer than the basic report.

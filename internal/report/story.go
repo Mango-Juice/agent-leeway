@@ -123,7 +123,7 @@ func (s *Story) T(key string, kv ...any) string {
 	for i := 0; i+1 < len(kv); i += 2 {
 		m[kv[i].(string)] = kv[i+1]
 	}
-	if n, ok := m["n"].(int); ok && n == 1 { // a singular form, where the language has one ("<key>.one")
+	if n := m["n"]; n == 1 || n == "1" { // a singular form, where the language has one ("<key>.one")
 		if _, ok := s.S[key+".one"]; ok {
 			key += ".one"
 		}
@@ -405,8 +405,10 @@ func (s *Story) Plain(f *Finding) Plain {
 		x.Both = [][2]string{{srcs[src][0], srcs[src][1]}, {cn, cu}}
 	}
 	if f.Side == "leak" {
-		if top := s.leakTop(f); f.USD > 0 && top/f.USD >= 0.3 {
-			x.Hook += " " + s.T("one_sess", "top", Money(top))
+		if top := s.leakTop(f); f.USD > 0 && top/f.USD >= 0.999 {
+			x.Hook += " " + s.T("one_sess_all") // the whole amount in one session: not said twice
+		} else if f.USD > 0 && top/f.USD >= 0.3 {
+			x.Hook += " " + s.T("one_sess", "top", s.money(top, estimated(f)))
 		}
 	}
 	return x
@@ -418,7 +420,7 @@ var codexSrc = map[string]string{
 	"ASKED_ONLY": "Prompting", "BROKE_CHAT": "AGENTS.md", "BROKE_CHAT_TH": "AGENTS.md", "BROKE_SAID": "AGENTS.md",
 	"BROKE_FILE": "AGENTS.md", "PROMPT": "AGENTS.md", "BROKE_CHAT_EX": "ours", "FALSE_DONE": "Prompting",
 	"MISTAKE": "Prompting", "RESERVED": "Rules", "automation": "Prompt caching", "long_break": "Prompt caching",
-	"mid_switch": "ours", "big_output": "Context Rot", "let_repeat": "ours", "no_map": "Pricing",
+	"mid_switch": "ours", "big_output": "Context Rot", "let_repeat": "ours", "no_map": "Pricing", "screenshots": "Conversation state",
 }
 
 // codexSource is the short name and link of the Codex source behind a Codex finding's why line: "Codex docs",
@@ -727,7 +729,7 @@ func (s *Story) BigNum(f *Finding) string {
 		return s.setupBig(f)
 	}
 	if f.Side == "leak" {
-		return Money(f.USD)
+		return s.money(f.USD, estimated(f))
 	}
 	return fmt.Sprintf("%d / %d", f.Sessions, s.M.J) // theme mode too: the finding's size comes first
 }
@@ -961,4 +963,23 @@ func (s *Story) days() int {
 		return 30
 	}
 	return s.M.Days
+}
+
+// estimated says a finding's dollars are an estimate (screenshots: from each image's size), not counted from usage.
+func estimated(f *Finding) bool { return f.Side == "leak" && f.Habit == "screenshots" }
+
+// money is "$2.40", or "about $2.40" for an estimate.
+func (s *Story) money(v float64, approx bool) string {
+	if approx {
+		return s.T("about_usd", "usd", Money(v))
+	}
+	return Money(v)
+}
+
+// sizeLine is the details' "How often" line; for screenshots it says once that the amount is estimated.
+func (s *Story) sizeLine(f *Finding) string {
+	if estimated(f) {
+		return s.X.Size(s.M, f) + " · " + s.T("shots_est")
+	}
+	return s.X.Size(s.M, f)
 }

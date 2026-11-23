@@ -70,6 +70,13 @@ type SetupRow struct {
 	Setup          logs.Setup
 }
 
+// ImageRow is one image a response read (logs.Image), with its thread.
+type ImageRow struct {
+	logs.Image
+	Tool, ThreadID string
+	Key            logs.NS
+}
+
 // Tables holds every table, in the reference's row order.
 type Tables struct {
 	// OldestClaude is the oldest Claude Code transcript's time (UnixNano; 0 when none was read): Claude Code
@@ -90,6 +97,7 @@ type Tables struct {
 	ResetSteps   []ResetStep
 	Stats        logs.Stats
 	Setups       []SetupRow // files with setup facts, in discovery order
+	Images       []ImageRow // images the model received (size only)
 	Files        int
 	Skipped      int
 }
@@ -121,6 +129,9 @@ func FromFiles(files []*logs.File) *Tables {
 			t.Commits = append(t.Commits, CommitRow{Commit: c, Tool: th.Tool, ThreadID: th.ThreadID, SessionID: th.SessionID})
 		}
 		t.Events[th.ThreadID] = f.Events
+		for _, im := range f.Images {
+			t.Images = append(t.Images, ImageRow{Image: im, Tool: th.Tool, ThreadID: th.ThreadID, Key: k})
+		}
 		if f.Setup != nil {
 			t.Setups = append(t.Setups, SetupRow{Tool: th.Tool, ThreadID: th.ThreadID, Key: k, Cwd: th.Cwd, Start: th.Start, End: th.End, Setup: *f.Setup})
 		}

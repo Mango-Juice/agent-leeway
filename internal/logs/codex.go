@@ -193,6 +193,15 @@ func ParseCodex(path string) (*File, error) {
 				b.meta.hasFinalMsg = true
 			}
 		case isStr(typ, "response_item") && isStr(pt, "message") && isStr(p.Get("role"), "user"):
+			for _, im := range codexImages(p.Get("content"), tsOf(ts), b.lastStep()) {
+				if n := len(b.pending); n > 0 { // after a call whose response's usage is not logged yet: that response comes first
+					if b.imageCall == nil {
+						b.imageCall = map[int]int{}
+					}
+					b.imageCall[len(b.images)] = b.pending[n-1]
+				}
+				b.images = append(b.images, im)
+			}
 			kinds := p.Get("internal_chat_message_metadata_passthrough").Get("content_item_kinds")
 			var texts []string
 			if c := p.Get("content"); c.K == py.Arr {
@@ -279,6 +288,15 @@ func ParseCodex(path string) (*File, error) {
 			callByID[key(p.Get("call_id"))] = ci
 		case isStr(typ, "response_item") && inStrs(pt, "function_call_output", "custom_tool_call_output", "tool_search_output"):
 			ci, ok := callByID[key(p.Get("call_id"))]
+			for _, im := range codexImages(p.Get("output"), tsOf(ts), b.lastStep()) {
+				if ok { // the response that issued the call reads the output next time: its step is set when its usage arrives
+					if b.imageCall == nil {
+						b.imageCall = map[int]int{}
+					}
+					b.imageCall[len(b.images)] = ci
+				}
+				b.images = append(b.images, im)
+			}
 			text := outText(p.Get("output"))
 			if ok {
 				c := &b.calls[ci]
@@ -344,6 +362,11 @@ func ParseCodex(path string) (*File, error) {
 		}
 	}
 	f := b.finish()
+	for i, ci := range b.imageCall {
+		if f.Calls[ci].Step >= 0 {
+			f.Images[i].Step = f.Calls[ci].Step
+		}
+	}
 	f.Events = codexEvents(lines, fid, maxOrd)
 	f.Stats = st
 	if !isStr(b.meta.source, "subagent") && !su.Empty() {

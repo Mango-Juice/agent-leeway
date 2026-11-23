@@ -1,0 +1,37 @@
+{
+ "about": "What one image costs in input tokens, per vendor, as each vendor's page states it. Used to estimate the cost of screenshots left in the conversation. Sizes: max_dim is the longest side allowed (the image is scaled down to fit, keeping its aspect ratio); patches is the patch budget (scaled down further to fit it); a model with tile_based is not counted (its rule is not implemented). An image over reject_above_patches (OpenAI) or reject_above_px (Anthropic) is rejected by the API and costs nothing.",
+ "anthropic": {
+  "url": "https://platform.claude.com/docs/en/build-with-claude/vision",
+  "read": "2026-11-23",
+  "rule": "An image, therefore, costs `⌈width / 28⌉ × ⌈height / 28⌉` visual tokens.",
+  "patch": 28,
+  "reject_above_px": 8000,
+  "high_resolution_from": "4.7",
+  "high_resolution": {"max_dim": 2576, "max_tokens": 4784},
+  "standard": {"max_dim": 1568, "max_tokens": 1568}
+ },
+ "openai": {
+  "url": "https://developers.openai.com/api/docs/guides/images-vision",
+  "read": "2026-11-23",
+  "rule": "patch_count = ceil(width/32)×ceil(height/32); billable tokens = the patch count times the model's multiplier, rounded up",
+  "patch": 32,
+  "reject_above_patches": 30000,
+  "models": [
+   {"prefixes": ["gpt-6-astra"], "multiplier": 1.2, "auto": "original",
+    "detail": {"low": {"max_dim": 512}, "high": {"patches": 2500, "max_dim": 65535}, "original": {"max_dim": 65535}}},
+   {"prefixes": ["gpt-6"], "multiplier": 1.2, "auto": "original", "assumed": "not in the vendor's tables; uses the gpt-6-astra rule",
+    "detail": {"low": {"max_dim": 512}, "high": {"patches": 2500, "max_dim": 65535}, "original": {"max_dim": 65535}}},
+   {"prefixes": ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"], "multiplier": 1.2, "auto": "original",
+    "detail": {"low": {"max_dim": 512}, "high": {"patches": 2500, "max_dim": 2048}, "original": {"max_dim": 65535}}},
+   {"prefixes": ["gpt-5.5"], "multiplier": 1.2, "auto": "original",
+    "detail": {"low": {"max_dim": 512}, "high": {"patches": 2500, "max_dim": 2048}, "original": {"patches": 10000, "max_dim": 6000}}},
+   {"prefixes": ["gpt-5.4"], "multiplier": 1.2, "auto": "high",
+    "detail": {"low": {"patches": 6144, "max_dim": 2048}, "high": {"patches": 2500, "max_dim": 2048}, "original": {"patches": 10000, "max_dim": 6000}}},
+   {"prefixes": ["gpt-5.2"], "multiplier": 1.2, "auto": "high",
+    "detail": {"low": {"patches": 6144, "max_dim": 2048}, "high": {"patches": 6144, "max_dim": 2048}}},
+   {"prefixes": ["gpt-4.1-mini"], "multiplier": 1.62, "auto": "high",
+    "detail": {"low": {"patches": 6144, "max_dim": 2048}, "high": {"patches": 6144, "max_dim": 2048}}},
+   {"prefixes": ["gpt-5.1", "gpt-5", "gpt-4.1", "gpt-4o", "o1", "o3"], "tile_based": true}
+  ]
+ }
+}

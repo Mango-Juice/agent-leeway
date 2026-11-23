@@ -15,7 +15,11 @@ import (
 )
 
 // CauseKeys in display order.
-var CauseKeys = []string{"expiry", "reset_known", "reset_unknown", "repeat", "fail", "reread", "oversize"}
+var CauseKeys = []string{"expiry", "reset_known", "reset_unknown", "repeat", "fail", "reread", "oversize", "image"}
+
+// CauseSet numbers the set of causes counted: a cost from another set is not compared as if equal. 1: up to 0.1.7;
+// 2: screenshots left in the conversation ("image") added.
+const CauseSet = 2
 
 // FixableEvents are reset causes the user can avoid (switching model, effort, settings or tools mid-session).
 var FixableEvents = map[string]bool{"model_change": true, "effort_change": true, "config_update": true, "tools_change": true, "shape_change": true}
@@ -26,7 +30,25 @@ var Habits = []struct {
 	Causes []string
 }{
 	{"long_break", []string{"expiry"}}, {"mid_switch", []string{"reset_known"}}, {"let_repeat", []string{"repeat", "fail"}},
-	{"no_map", []string{"reread"}}, {"big_output", []string{"oversize"}},
+	{"no_map", []string{"reread"}}, {"big_output", []string{"oversize"}}, {"screenshots", []string{"image"}},
+}
+
+// causeKeys and habits are the ones counted: the parity tests (config.Legacy) keep the reference's set.
+func causeKeys() []string {
+	if config.Legacy {
+		return CauseKeys[:len(CauseKeys)-1]
+	}
+	return CauseKeys
+}
+
+func habits() []struct {
+	Key    string
+	Causes []string
+} {
+	if config.Legacy {
+		return Habits[:len(Habits)-1]
+	}
+	return Habits
 }
 
 // Event is one leak (one response or one reset).
@@ -122,6 +144,7 @@ func LoadEvents(t *pipeline.Tables, tool string) *Events {
 	add("fail", func(r Resp) float64 { return r.CFail }, func(r Resp) float64 { return float64(r.NFail) })
 	add("reread", func(r Resp) float64 { return r.CReread }, func(r Resp) float64 { return float64(r.NReread) })
 	add("oversize", func(r Resp) float64 { return r.Oversize }, func(r Resp) float64 { return float64(r.NOversize) })
+	add("image", func(r Resp) float64 { return r.Image }, func(r Resp) float64 { return float64(r.NImage) })
 	if len(t.ResetEv) > 0 {
 		// first response per (thread, ts) gives the origin of a reset
 		first := map[tsk]Resp{}
@@ -322,7 +345,7 @@ func Compute(E *Events, since, until time.Time, tool, origin string, loc *time.L
 			detail += py.Format(messages.EventCount, map[string]any{"name": name, "n": c.n})
 		}
 	}
-	for _, k := range CauseKeys {
+	for _, k := range causeKeys() {
 		lt := messages.Causes[k]
 		usd := 0.0
 		if s := usdBy[k]; s != nil {
@@ -338,7 +361,7 @@ func Compute(E *Events, since, until time.Time, tool, origin string, loc *time.L
 	total := sumf(len(sw), func(i int) float64 { return sw[i].WCost })
 	R.TotalUSD = py.Round(total, 2)
 	// habits: where (weekday / time of day / project, local time) each habit happens
-	for _, h := range Habits {
+	for _, h := range habits() {
 		lt := messages.Habits[h.Key]
 		var d []Event
 		for _, e := range ev {
@@ -431,7 +454,7 @@ func Compute(E *Events, since, until time.Time, tool, origin string, loc *time.L
 	for _, k := range keys {
 		s := S[k]
 		leak := 0.0
-		for _, c := range CauseKeys {
+		for _, c := range causeKeys() {
 			v := 0.0
 			if x := causeSum[k][c]; x != nil {
 				v = x.sum
@@ -560,7 +583,7 @@ func automationFixes(ev []Event, sw []Resp) []AutoFix {
 		if usd["reset_known"] != nil {
 			tips = append(tips, py.Format(messages.AutoTips["reset_known"], map[string]any{"times": messages.Times(int(n["reset_known"])), "usd": u("reset_known")}))
 		}
-		if other := u("reread") + u("oversize"); other >= 0.01 {
+		if other := u("reread") + u("oversize") + u("image"); other >= 0.01 {
 			tips = append(tips, py.Format(messages.AutoTips["other"], map[string]any{"usd": other}))
 		}
 		label := messages.Automation[reason]

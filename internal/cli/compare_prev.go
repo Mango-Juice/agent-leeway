@@ -89,6 +89,7 @@ func costCompare(cache string, src map[string]string, claudePrev, saving bool, n
 		return nil, ""
 	}
 	var best *snapshot
+	older := false // a record that would do but counted another set of causes
 	newest := snaps[0]
 	for i := range snaps {
 		s := &snaps[i]
@@ -98,9 +99,16 @@ func costCompare(cache string, src map[string]string, claudePrev, saving bool, n
 		if s.Hours != hours || s.end().After(since.Add(report.CmpSessionSlack)) || now.Sub(s.end()) > report.CmpMaxAgeDays*24*time.Hour {
 			continue
 		}
+		if s.causes() != leak.CauseSet {
+			older = true
+			continue
+		}
 		if best == nil || s.end().After(best.end()) {
 			best = s
 		}
+	}
+	if best == nil && older {
+		return nil, "cmp_why_cost_causes"
 	}
 	if best == nil {
 		if now.Sub(newest.end()) > report.CmpMaxAgeDays*24*time.Hour {
@@ -111,7 +119,7 @@ func costCompare(cache string, src map[string]string, claudePrev, saving bool, n
 	}
 	base := best.agg()
 	for _, s := range readSnapshots(cache, "codex", src["codex"]) { // the same report's Codex numbers (none: no Codex use then)
-		if s.Start == best.Start && s.Hours == best.Hours {
+		if s.Start == best.Start && s.Hours == best.Hours && s.causes() == best.causes() {
 			base = base.Add(s.agg())
 		}
 	}
@@ -635,7 +643,11 @@ type snapshot struct {
 	MaxShare float64            `json:"max_session_share,omitempty"`
 	Sessions int                `json:"sessions"`
 	Habits   map[string]float64 `json:"habits_usd"`
+	Causes   int                `json:"cause_set,omitempty"` // leak.CauseSet the numbers were counted with (absent: 1)
 }
+
+// causes is the set of causes the numbers were counted with (records before 0.1.8 have none: set 1).
+func (s snapshot) causes() int { return max(s.Causes, 1) }
 
 func (s snapshot) start() time.Time { t, _ := time.Parse(time.RFC3339, s.Start); return t }
 
@@ -673,8 +685,17 @@ func snapSources(o *logOpts) map[string]string {
 	return map[string]string{"claude": h(claude), "codex": h(codexDirs...)}
 }
 
+// snapName is a record's file name. Records of cause set 2 or later carry it in the name ("…-720h.c2.json"), so a
+// 0.1.7 binary, which reads only "…h.json", never compares them with its own numbers as if equal.
 func snapName(tool, src string, start time.Time, hours int) string {
-	return fmt.Sprintf("%s-%s-%s-%dh.json", tool, src, start.UTC().Format("2006-01-02"), hours)
+	return snapNameSet(tool, src, start, hours, leak.CauseSet)
+}
+
+func snapNameSet(tool, src string, start time.Time, hours, set int) string {
+	if set <= 1 {
+		return fmt.Sprintf("%s-%s-%s-%dh.json", tool, src, start.UTC().Format("2006-01-02"), hours)
+	}
+	return fmt.Sprintf("%s-%s-%s-%dh.c%d.json", tool, src, start.UTC().Format("2006-01-02"), hours, set)
 }
 
 // saveSnapshots writes each tool's window whose logs cover it (ok) and that has any spend.
@@ -686,7 +707,7 @@ func saveSnapshots(cache string, src map[string]string, since, now time.Time, ho
 		}
 		_ = os.MkdirAll(snapDir(cache), 0o700)
 		s := snapshot{Start: since.UTC().Format(time.RFC3339), Hours: hours, End: now.UTC().Format(time.RFC3339), TotalUSD: a.Total, LeakUSD: a.Leak,
-			MaxLeak: a.MaxLeak, Sessions: a.Sessions, Habits: a.Habits}
+			MaxLeak: a.MaxLeak, Sessions: a.Sessions, Habits: a.Habits, Causes: leak.CauseSet}
 		if a.Total > 0 {
 			s.MaxShare = a.MaxLeak / a.Total
 		}
@@ -699,6 +720,8 @@ func saveSnapshots(cache string, src map[string]string, since, now time.Time, ho
 // and whose numbers can be right.
 func readSnapshots(cache, tool, src string) []snapshot {
 	files, _ := filepath.Glob(filepath.Join(snapDir(cache), fmt.Sprintf("%s-%s-*h.json", tool, src)))
+	more, _ := filepath.Glob(filepath.Join(snapDir(cache), fmt.Sprintf("%s-%s-*h.c*.json", tool, src)))
+	files = append(files, more...)
 	var out []snapshot
 	for _, f := range files {
 		b, err := os.ReadFile(f)
@@ -710,7 +733,7 @@ func readSnapshots(cache, tool, src string) []snapshot {
 			continue
 		}
 		st, err := time.Parse(time.RFC3339, s.Start)
-		if err != nil || filepath.Base(f) != snapName(tool, src, st, s.Hours) || !snapSane(s) {
+		if err != nil || filepath.Base(f) != snapNameSet(tool, src, st, s.Hours, s.causes()) || !snapSane(s) {
 			continue
 		}
 		out = append(out, s)
@@ -734,7 +757,8 @@ func snapSane(s snapshot) bool {
 // pruneSnapshots removes saved report windows that ended more than keepDays days ago.
 func pruneSnapshots(cache string, now time.Time) {
 	files, _ := filepath.Glob(filepath.Join(snapDir(cache), "*h.json"))
-	for _, f := range files {
+	more, _ := filepath.Glob(filepath.Join(snapDir(cache), "*h.c*.json"))
+	for _, f := range append(files, more...) {
 		b, err := os.ReadFile(f)
 		if err != nil {
 			continue

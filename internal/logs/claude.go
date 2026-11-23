@@ -191,6 +191,17 @@ func ParseClaude(path string) (*File, error) {
 						continue
 					}
 					ci, ok := callByID[key(c.Get("tool_use_id"))]
+					step := b.lastStep()
+					if ok && b.calls[ci].Step >= 0 {
+						step = b.calls[ci].Step
+					}
+					if blocks := c.Get("content"); blocks.K == py.Arr {
+						for _, x := range blocks.A {
+							if im, ok := claudeImage(x, tsOf(ts), step); ok {
+								b.images = append(b.images, im)
+							}
+						}
+					}
 					if !ok {
 						continue
 					}
@@ -203,6 +214,13 @@ func ParseClaude(path string) (*File, error) {
 					}
 				}
 				return
+			}
+		}
+		if content.K == py.Arr && !o.Get("isCompactSummary").Truthy() { // an image pasted into a message
+			for _, x := range content.A {
+				if im, ok := claudeImage(x, tsOf(ts), b.lastStep()); ok {
+					b.images = append(b.images, im)
+				}
 			}
 		}
 		if o.Get("isMeta").Truthy() || sub || o.Get("isCompactSummary").Truthy() {

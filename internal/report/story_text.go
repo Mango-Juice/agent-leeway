@@ -46,7 +46,7 @@ func (s *Story) unit(f *Finding) string {
 	if f.Side == "drift" {
 		return s.T("unit_s", "n", f.Sessions, "j", s.M.J)
 	}
-	return s.T("unit_usd", "usd", Money(f.USD))
+	return s.T("unit_usd", "usd", s.money(f.USD, estimated(f)))
 }
 
 func joinDot(a, b string) string {
@@ -228,6 +228,9 @@ func Markdown(m *Model) string {
 			r = append(r, "**"+x.Hook+"**", "")
 		}
 		r = append(r, x.Why+" "+x.SrcMD(s.T("source")), "", "_"+s.T("how_sure")+": "+s.X.Level(f.Level)+joinPre(s.X.Notes(f), " · ")+"_", "")
+		if estimated(f) {
+			r = append(r, "_"+s.T("shots_est")+"_", "")
+		}
 		if d := s.Draft(f, th); d != nil {
 			r = append(r, d.Label, "", "```text", d.Line, "```", "")
 		}
@@ -293,10 +296,10 @@ func Markdown(m *Model) string {
 	}
 	if m.HasLeak && len(crows) > 0 {
 		lt := maxf(m.LeakUSD, 1e-9)
-		md = append(md, "### "+s.T("pic8_cost_h"), "", s.T("pic8_cost_lead", "a", crows[0].Label, "usd", Money(crows[0].Value), "total", Money(m.LeakUSD), "spend", Money(m.TotalUSD)), "",
+		md = append(md, "### "+s.T("pic8_cost_h"), "", s.T("pic8_cost_lead", "a", crows[0].Label, "usd", s.money(crows[0].Value, crows[0].Approx), "total", Money(m.LeakUSD), "spend", Money(m.TotalUSD)), "",
 			"| | "+s.T("md_detail")+" |", "|:--|--:|")
 		for _, r := range crows {
-			md = append(md, "| "+r.Label+" | "+Money(r.Value)+" ("+Pct(r.Value/lt)+") |")
+			md = append(md, "| "+r.Label+" | "+s.money(r.Value, r.Approx)+" ("+Pct(r.Value/lt)+") |")
 		}
 		md = append(md, "", "_"+s.T("pic8_cost_cap", "total", Money(m.LeakUSD))+"_", "")
 	}

@@ -21,6 +21,10 @@ type WasteRow struct {
 	NFail, NRepeat, NReread, NOversize int
 	NExpiry, NMidmiss                  int
 	Oversize                           float64
+	// Image is the cost of images first read by this response staying in the context: re-read by every later
+	// response of the thread until compaction (at most 200), at the cache-read price. The first read is not counted.
+	Image  float64
+	NImage int
 	// Assumed is the model name when the response was priced with a fallback row; Tokens are its input and output.
 	Assumed string
 	Tokens  int64
@@ -250,6 +254,9 @@ func (t *Tables) BuildWaste() {
 			x.nOver++
 		}
 	}
+	if !config.Legacy {
+		t.imageWaste(rows, index, stepByKey, maxSeq, keep)
+	}
 	for i := range rows {
 		r := &rows[i]
 		if x, ok := S[tsKey{r.ThreadID, r.Seq}]; ok {
@@ -265,4 +272,105 @@ func (t *Tables) BuildWaste() {
 		}
 	}
 	t.Waste = rows
+}
+
+// imageWaste adds the carry-over of images (docs/31 B2), bounded by what the logs show. An image enters the context
+// at the response that first reads it (not counted) and is then carried by each later response of its thread until a
+// compaction, until the input falls by about its size (it left the context), or for at most 200 responses. Each
+// later response is charged at its own cache-read price (its own model and long-context tier) for the image tokens it
+// carries, never more than its cached input. The image's size comes from its header and its tokens from the vendor's
+// rule for the model that first read it. Image blocks add no characters to tool output, so oversized output never
+// counts them.
+func (t *Tables) imageWaste(rows []WasteRow, index map[tsKey]int, stepByKey map[tsKey]*StepRow, maxSeq map[string]int, keep map[string]bool) {
+	type img struct {
+		tok, n int
+		cost   float64
+		row    int
+	}
+	byThread := map[string]map[int][]*img{} // thread -> first-read response -> images
+	var all []*img
+	for _, im := range t.Images {
+		if !im.Key.OK || !keep[im.Key.S] {
+			continue
+		}
+		first := max(im.Step+1, 0)
+		s, ok := stepByKey[tsKey{im.ThreadID, first}]
+		if !ok {
+			continue
+		}
+		tok := ImageTokens(im.Tool, s.Model.S, im.Detail, im.W, im.H)
+		if tok == 0 {
+			continue
+		}
+		x := &img{tok: tok, row: index[tsKey{im.ThreadID, first}]}
+		if byThread[im.ThreadID] == nil {
+			byThread[im.ThreadID] = map[int][]*img{}
+		}
+		byThread[im.ThreadID][first] = append(byThread[im.ThreadID][first], x)
+		all = append(all, x)
+	}
+	// an image cannot be larger than what its first read added to the input (beyond the previous response's output):
+	// where the vendor's rule says more (Codex resizes some images, several images in one message), the logs win
+	for th, firsts := range byThread {
+		for q, xs := range firsts {
+			s := stepByKey[tsKey{th, q}]
+			grow := float64(s.InputTotal)
+			if p, ok := stepByKey[tsKey{th, q - 1}]; ok {
+				grow = float64(s.InputTotal - p.InputTotal - p.Output)
+			}
+			sum := 0
+			for _, x := range xs {
+				sum += x.tok
+			}
+			if f := math.Max(grow, 0) / float64(sum); f < 1 {
+				for _, x := range xs {
+					x.tok = int(float64(x.tok) * f)
+				}
+			}
+		}
+	}
+	for th, firsts := range byThread {
+		var alive []*img
+		var prev *StepRow
+		for q := 0; q <= maxSeq[th]; q++ {
+			s, ok := stepByKey[tsKey{th, q}]
+			if !ok {
+				continue
+			}
+			if s.AfterCompaction {
+				alive = nil
+			} else if prev != nil && s.InputTotal < prev.InputTotal { // the input fell: the oldest images that fit left
+				d := prev.InputTotal - s.InputTotal
+				for len(alive) > 0 && float64(d) >= 0.75*float64(alive[0].tok) {
+					d -= int64(alive[0].tok)
+					alive = alive[1:]
+				}
+			}
+			carried := 0
+			for _, x := range alive {
+				carried += x.tok
+			}
+			if carried > 0 {
+				charged := math.Min(float64(carried), math.Min(float64(s.Cached), float64(s.InputTotal)))
+				for _, x := range alive {
+					x.cost += charged * float64(x.tok) / float64(carried) * s.PRead / 1e6
+					x.n++
+				}
+			}
+			keepAlive := alive[:0]
+			for _, x := range alive {
+				if x.n < 200 {
+					keepAlive = append(keepAlive, x)
+				}
+			}
+			alive = append(keepAlive, firsts[q]...)
+			prev = s
+		}
+	}
+	for _, x := range all {
+		if x.cost > 0 {
+			rows[x.row].Image += x.cost
+			rows[x.row].NImage++
+		}
+	}
 }

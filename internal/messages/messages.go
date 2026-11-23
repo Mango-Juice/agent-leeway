@@ -33,6 +33,7 @@ var Causes = map[string][2]string{
 	"fail":          {"Consecutive failures", "{n} calls failed right after another failure. \"Stop and report the cause after two failures in a row\" in your instructions breaks the loop."},
 	"reread":        {"Unchanged file read again", "{n} calls re-read the same range of a file that had not changed. Put the key file locations and layout in the first request."},
 	"oversize":      {"Oversized tool output (over 10k tokens)", "{n} tool outputs over 10k tokens entered the context and were re-read by every later response. Have logs and test output tailed or summarized."},
+	"image":         {"Screenshots left in the conversation", "Screenshots and other images stayed in the context and were re-read by every later response until compaction ({n} in all). Taking them is fine; once the visual check is done, compact or start a new session."},
 }
 
 // CauseClass is CAUSE_CLASS.
@@ -82,6 +83,7 @@ var Cli = map[string]string{
 		"  - Only requested in the prompt (not enforced): judge the transcript as data and answer with JSON only.\n" +
 		"  - The judge CLIs inherit your environment, so settings such as ANTHROPIC_BASE_URL, OPENAI_BASE_URL or a proxy apply to them.\n" +
 		"  - drift adds the current CLAUDE.md, CLAUDE.local.md and AGENTS.md files of the project folder (and your global CLAUDE.md) to Claude Code sessions whose log has none; --no-current-instructions turns this off.\n" +
+		"  - For screenshots left in a conversation, only each image's width and height are read, from its header in the log: the first bytes for PNG, GIF and WebP; for a JPEG, the segment headers up to the frame header, at most 4 MB and 64 segments in. The image is never decoded, stored, hashed or sent.\n" +
 		"  - Every command runs `git rev-parse` (read-only) in project folders found in the logs, to name projects.\n" +
 		"  - `report` reads one setting from Claude Code's settings.json, cleanupPeriodDays (how long Claude Code keeps transcripts), and that file's date, to tell deleted logs from no use. It saves each window's cost in numbers only (spend, waste, per-habit amounts, session count; no text) as compare/*.json in the cache, to compare with later when Claude Code has deleted those logs.\n" +
 		"  - For \"Your setup\", `report` reads only skillOverrides from Claude Code's user, project and local settings.json, and only the project_doc_max_bytes line of Codex's config.toml. From the logs it uses skill counts, the names of skills listed without a description, the names of the skills you invoked and how many times, CLAUDE.md line counts and paths, and the AGENTS.md size and whether it ends with a line break; no text is kept. These stay in the local cache of parsed logs and in your report, never in the comparison records.\n" +
@@ -118,6 +120,7 @@ var Compare = map[string]string{
 	"habit_line":   "  {x:7.2f} -> {y:7.2f}  ({d:+.2f})  {label}",
 	"origin":       "{name}: spend ${a:,.2f} -> ${b:,.2f}, leak per $100 {x:.2f} -> {y:.2f} ({d:+.2f})",
 	"auto_line":    "    ${a:,.2f} -> ${b:,.2f}  {label}",
+	"warn_causes":  "The two files count different causes (this version counts one more cause), so the total and the habits are not compared; the lines above compare each cause on its own.",
 	"caveat":       "Note: a change in how you work (kind of task, model, session length) moves these numbers regardless of habits.",
 }
 
@@ -236,11 +239,12 @@ var EventFallback = "a change"
 
 // Habits is HABITS (label, text).
 var Habits = map[string][2]string{
-	"long_break": {"Resuming the same session after a long break", "After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session."},
-	"mid_switch": {"Switching model, reasoning effort or tools mid-session", "Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session."},
-	"let_repeat": {"Letting the agent repeat or retry the same command", "Add \"stop and explain after two failures in a row or before running the same command a third time\" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling."},
-	"no_map":     {"Not telling the agent where the key files are (it re-reads them)", "Put the key file locations and layout in the first request or in your instructions file."},
-	"big_output": {"Letting long logs and outputs into the context whole", "Ask the agent to read only the tail or a summary of test and build logs."},
+	"long_break":  {"Resuming the same session after a long break", "After a gap longer than the cache lifetime (Claude Code: 5 min or 1 h, Codex: 30 min), leave a summary and start a new session."},
+	"mid_switch":  {"Switching model, reasoning effort or tools mid-session", "Pick model, reasoning effort, MCP servers and tools when the session starts; switch in a new session."},
+	"let_repeat":  {"Letting the agent repeat or retry the same command", "Add \"stop and explain after two failures in a row or before running the same command a third time\" to CLAUDE.md / AGENTS.md, and prefer completion signals over polling."},
+	"no_map":      {"Not telling the agent where the key files are (it re-reads them)", "Put the key file locations and layout in the first request or in your instructions file."},
+	"big_output":  {"Letting long logs and outputs into the context whole", "Ask the agent to read only the tail or a summary of test and build logs."},
+	"screenshots": {"Leaving screenshots in the conversation", "Screenshots left in the conversation are re-read on every request and cost money; once the visual check is done, compact or start a new session."},
 }
 
 // HourBands is HOUR_BANDS.
@@ -348,6 +352,7 @@ var ShortCause = map[string]string{
 	"fail":          "consecutive failures",
 	"reread":        "re-read",
 	"oversize":      "oversized output",
+	"image":         "screenshots kept",
 }
 
 // Size is SIZE.
