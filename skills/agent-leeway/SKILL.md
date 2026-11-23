@@ -1,6 +1,6 @@
 ---
 name: agent-leeway
-description: Occasional check-up of this computer's Claude Code and Codex logs with the agent-leeway command. Finds mechanical cost leaks (expired prompt cache, repeated or failing commands, re-reads, oversized tool output) and intent drift (where the agent did something other than what was asked). Use when the user asks for a leak check, an in-depth check or drift check, a token or cost waste report, or a Leeway report.
+description: Occasional check-up of this computer's Claude Code and Codex logs with the agent-leeway command. Finds mechanical cost leaks (expired prompt cache, repeated or failing commands, re-reads, oversized tool output) and intent drift (where the agent did something other than what was asked). Use when the user asks for a leak check, an in-depth check or drift check, a token or cost waste report, or a Leeway report, or asks to update agent-leeway.
 ---
 
 # Leeway (agent-leeway)
@@ -33,6 +33,8 @@ Run the commands exactly as written; they work the same in bash, zsh and PowerSh
   both tools' logs.
 - `agent-leeway idle` - recent sessions whose prompt cache has probably expired, and what resuming costs.
 - `agent-leeway privacy` - where data lives and what leaves the computer.
+- `agent-leeway self-update --check --lang <en|ko>` - whether a newer version exists, and the one command that
+  updates this copy. It downloads nothing. `agent-leeway --version` prints the version installed.
 
 ## When the user asks for a report
 
@@ -103,6 +105,20 @@ report files. Keep these rules:
 For other commands, show the output as it is. Amounts are USD at API list prices (list-price equivalents, not a
 bill).
 
+## When the user asks to update agent-leeway
+
+1. Run `agent-leeway self-update --check --lang <en|ko>`. If it says the version is up to date, tell the user so
+   and stop. If it fails, show its one line and stop; do not run an install line instead.
+2. Otherwise it prints one command for how this copy was installed (Homebrew, Scoop or the installer), or a
+   download page. Run that command exactly as printed. It needs no administrator rights, except when the output
+   says to use a terminal opened as administrator (Scoop installed for all users): then do not run it; show it to
+   the user and ask them to run it there. If any command asks for such rights (sudo, an administrator prompt),
+   stop and ask the user first. If your command tool runs in a sandbox and the
+   command fails on the network, ask the user to allow it outside the sandbox. For a download page, give the
+   user the link instead of running anything.
+3. Run `agent-leeway --version` and tell the user the version now installed. If Homebrew or Scoop said it was
+   already up to date, say the new version has not reached it yet and to try again in a few minutes.
+
 ## If agent-leeway is not installed
 
 If running `agent-leeway` fails because the command is not found, do not download or install anything on your
@@ -116,4 +132,4 @@ against the release's checksums, installs the program and adds this skill for Cl
 your command again, with the full path the installer printed if `agent-leeway` is still not found (a new
 terminal picks up the PATH change).
 
-<!-- agent-leeway skill repository copy sha256:0fe7e606b9dc91803eed4e98f019a53bcda0e3206e0834791b01c2b0c87b2c9d (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->
+<!-- agent-leeway skill repository copy sha256:d8e5ad448f3f0b305cef2835e9f09cf3cea9619775c7df25624cf3065ade4757 (installed by `agent-leeway install-skills`; `agent-leeway uninstall-skills` removes it) -->

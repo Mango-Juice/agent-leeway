@@ -89,7 +89,16 @@ agent-leeway install-skills --dry-run  # show what would change
 
 ## Updates
 
-`agent-leeway self-update --check` asks GitHub for the latest release and prints the line to run. It downloads nothing.
+Ask your agent "Update Mango-Juice/agent-leeway to the latest version", or run `agent-leeway self-update --check`. It asks GitHub for the latest release and prints the one command that fits how this copy was installed. It downloads nothing and never replaces the program itself.
+
+- One-line installer: run the same install line again. It also refreshes the skills. On Windows the check prints it as `powershell -NoProfile -ExecutionPolicy Bypass -Command "irm … | iex"`, which works from bash, cmd and PowerShell.
+- Homebrew: `brew update && brew upgrade agent-leeway && agent-leeway install-skills`. `brew update` comes first because Homebrew refreshes taps on its own only once a day by default.
+- Scoop: `scoop update; scoop update agent-leeway; agent-leeway install-skills`. For an install for all users, `scoop update -g agent-leeway`, in a terminal opened as administrator.
+- Manual download: download the new archive from the [Releases page](https://github.com/Mango-Juice/agent-leeway/releases/latest) and replace the executable.
+
+The formula and the manifest in this repository are updated a few minutes after a release is published, so right after a release Homebrew or Scoop may still say it is up to date.
+
+`agent-leeway self-update --check --json` prints `{current, latest, newer, method, command, url}`, or `{"error": "…"}` with exit code 1 when the check fails. `method` is `homebrew`, `scoop`, `scoop-global`, `installer` or `manual`.
 
 ## Removal
 

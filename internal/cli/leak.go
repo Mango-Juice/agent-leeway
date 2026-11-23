@@ -298,15 +298,25 @@ func cmdLeak(args []string, out, errw io.Writer) int {
 		fmt.Fprintln(errw, err)
 		return 2
 	}
-	x, _, err := leakReports(&o, since, now, !*noPrev, errw)
+	x, tb, err := leakReports(&o, since, now, !*noPrev, errw)
 	if err != nil {
 		fmt.Fprintln(errw, err)
 		return 1
+	}
+	// the previous window is compared only when the logs of the tools shown cover it, the rule the report uses: a
+	// window whose older transcripts Claude Code deleted would look like a drop in spend. Codex keeps its logs, so
+	// `--tool codex` keeps its comparison.
+	dropped := false
+	if x.P != nil && !config.Legacy && o.tool != "codex" && !claudeCovers(tb, since.Add(-now.Sub(since)), now) {
+		x.P, x.PH, x.PA, dropped = nil, nil, nil, true
 	}
 	if *asJSON {
 		printOut(out, py.DumpsOpt(leak.JSON(x.R, x.H, x.A, x.P, x.PH, x.PA), py.DumpOpts{Indent: 1}))
 	} else {
 		printOut(out, leak.Render(x.R, *top, x.P, x.H, x.A, x.PH, x.PA, now, time.Local))
+		if dropped { // why there is no comparison, in the report's words
+			printOut(out, messages.Story[config.Language(o.lang)]["cmp_why_cost_gone"])
+		}
 		if !config.Legacy {
 			// the leak side of "What to fix first", with what to do per tool
 			m := newModel(x.R, nil, config.Language(o.lang), now, since, 0, nil, nil, errw)

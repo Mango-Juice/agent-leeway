@@ -1,20 +1,14 @@
 package cli
 
 import (
-	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"net/http"
-	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Mango-Juice/agent-leeway/internal/config"
 	"github.com/Mango-Juice/agent-leeway/internal/install"
-	"github.com/Mango-Juice/agent-leeway/internal/meta"
 	"github.com/Mango-Juice/agent-leeway/internal/py"
 )
 
@@ -125,48 +119,4 @@ func printable(s string) string {
 		}
 		return r
 	}, py.Head(s, 200))
-}
-
-func cmdSelfUpdate(args []string, out, errw io.Writer) int {
-	fs := flag.NewFlagSet("self-update", flag.ContinueOnError)
-	fs.SetOutput(errw)
-	check := fs.Bool("check", false, "look up the latest release and print how to update (downloads nothing)")
-	if err := fs.Parse(args); err != nil {
-		return helpRC(err)
-	}
-	if !*check {
-		fmt.Fprintf(errw, "%s does not replace itself. Use `%s self-update --check`, then the install line it prints.\n", config.Name, config.Name)
-		return 2
-	}
-	api := os.Getenv("LEEWAY_RELEASE_API")
-	if api == "" {
-		api = meta.LatestReleaseAPI()
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, api, nil)
-	req.Header.Set("User-Agent", config.Name+"/"+meta.Version) // no personal data
-	req.Header.Set("Accept", "application/vnd.github+json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Fprintln(errw, "could not check for updates:", err)
-		return 1
-	}
-	defer resp.Body.Close()
-	var rel struct {
-		TagName string `json:"tag_name"`
-		HTMLURL string `json:"html_url"`
-	}
-	if resp.StatusCode != 200 || json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&rel) != nil || rel.TagName == "" {
-		fmt.Fprintf(errw, "could not check for updates (HTTP %d)\n", resp.StatusCode)
-		return 1
-	}
-	rel.TagName, rel.HTMLURL = printable(rel.TagName), printable(rel.HTMLURL)
-	if !newer(rel.TagName, meta.Version) {
-		fmt.Fprintf(out, "%s %s is up to date (latest release %s).\n", config.Name, meta.Version, rel.TagName)
-		return 0
-	}
-	fmt.Fprintf(out, "A newer release is available: %s (you have %s). %s\nTo update, run the install line again:\n  macOS/Linux: %s\n  Windows:     %s\n",
-		rel.TagName, meta.Version, rel.HTMLURL, meta.InstallSh(), meta.InstallPs1())
-	return 0
 }

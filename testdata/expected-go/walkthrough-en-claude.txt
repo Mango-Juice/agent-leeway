@@ -1,0 +1,22 @@
+### 1. a newer version exists
+USER: Update Mango-Juice/agent-leeway to the latest version
+  $ agent-leeway self-update --check --lang en
+    A newer version is available: 0.1.6 (you have 0.1.3). Release notes: https://github.com/Mango-Juice/agent-leeway/releases/tag/v0.1.6
+    To update, run (it also refreshes the skills):
+      brew update && brew upgrade agent-leeway && agent-leeway install-skills
+    The Homebrew formula is updated a few minutes after a release is published. If Homebrew still says agent-leeway is up to date, try again a little later.
+  $ brew update && brew upgrade agent-leeway && agent-leeway install-skills
+    (simulated: installs the new version)
+  $ agent-leeway --version
+    agent-leeway 0.1.6
+AGENT: Updated to 0.1.6.
+USER: Update Mango-Juice/agent-leeway to the latest version
+  $ agent-leeway self-update --check --lang en
+    agent-leeway 0.1.6 is up to date.
+AGENT: agent-leeway 0.1.6 is up to date.
+
+### 2. offline
+USER: Update Mango-Juice/agent-leeway to the latest version
+  $ agent-leeway self-update --check --lang en
+    Could not check for a newer version: HTTP 503
+AGENT: Could not check for a newer version: HTTP 503

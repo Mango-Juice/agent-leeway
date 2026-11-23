@@ -58,6 +58,21 @@ var Cli = map[string]string{
 	"rubric_backed_up": "Kept the previous file as {path}.",
 	"rubric_copied":    "Copied the rubric to {path}. Edit it, then pass --rubric {path} or set \"rubric\" in the settings file.",
 	"rubric_file":      "Rubric file: {path} ({ver})",
+
+	// self-update --check
+	"upd_no_replace":    "{name} does not replace itself. Run `{name} self-update --check`: it prints the one command that updates this copy.",
+	"upd_failed":        "Could not check for a newer version: {err}",
+	"upd_current":       "{name} {cur} is up to date.",
+	"upd_newer":         "A newer version is available: {vs} (you have {cur}). Release notes: {url}",
+	"upd_newer_short":   "A newer version is available: {vs} (you have {cur}).",
+	"upd_run_installer": "To update, run the installer again (it also refreshes the skills):",
+	"upd_run_pkg":       "To update, run (it also refreshes the skills):",
+	"upd_lag_homebrew":  "The Homebrew formula is updated a few minutes after a release is published. If Homebrew still says agent-leeway is up to date, try again a little later.",
+	"upd_lag_scoop":     "The Scoop manifest is updated a few minutes after a release is published. If Scoop still says agent-leeway is up to date, try again a little later.",
+	"upd_run_admin":     "To update, run this in a terminal opened as administrator, because it is installed for all users (it also refreshes the skills):",
+	"upd_rate_limit":    "GitHub limits how often it answers without a login, and the limit is used up for now; try again within an hour",
+	"upd_manual":        "This copy was not installed with Homebrew, Scoop or the one-line installer, so download the new version from the Releases page:",
+
 	"privacy_details": "Details:\n" +
 		"  - Judge calls run in a fresh private folder under the cache folder, with the session on stdin only.\n" +
 		"  - Grouping calls (one per provider after judging) use the same CLI command line and send only that provider's judged problems: ids, rule and cause codes, the quoted instruction and your quoted words exactly as the judge saw them (not masked), and the judge's summaries. Results are stored in drift/groups.jsonl; `report` reads them and makes no call.\n" +

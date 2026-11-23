@@ -335,3 +335,30 @@ func TestEventsForToolMatchesLoadEvents(t *testing.T) {
 		}
 	}
 }
+
+// `leak` compares with the previous window under the report's rule: not when Claude Code deleted part of it.
+func TestLeakPreviousWindowNeedsCoverage(t *testing.T) {
+	tmp := cmpEnv(t, 1, 3, 5, 7, 9, 40, 42, 44) // the oldest transcript left is 44 days old
+	out, _, rc := run(t, "leak", "--json")
+	if rc != 0 || strings.Contains(out, `"previous"`) {
+		t.Errorf("logs from 44 days back, default retention: no previous window (rc %d)", rc)
+	}
+	if out, _, _ := run(t, "leak"); !strings.Contains(out, "Claude Code deleted its older logs, so there is no cost comparison.") {
+		t.Error("text output: the reason, in the report's words")
+	}
+	// some Codex logs (the fixtures; their dates do not matter here)
+	if err := os.CopyFS(filepath.Join(tmp, "codex"), os.DirFS(repo("testdata", "logs", "codex"))); err != nil {
+		t.Fatal(err)
+	}
+	if out, errs, _ := run(t, "leak", "--tool", "codex", "--json"); !strings.Contains(out, `"previous"`) {
+		t.Log(errs)
+		t.Error("--tool codex keeps its comparison: only Claude Code's logs are missing")
+	}
+	if out, _, _ := run(t, "leak", "--tool", "codex"); strings.Contains(out, "Claude Code deleted") {
+		t.Error("--tool codex: no reason line")
+	}
+	claudeSettings(t, tmp, `{"cleanupPeriodDays": 90}`, cmpNow.AddDate(0, 0, -100))
+	if out, _, _ := run(t, "leak", "--json"); !strings.Contains(out, `"previous"`) {
+		t.Error("covered by the retention setting: the previous window is compared")
+	}
+}

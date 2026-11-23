@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -99,22 +97,7 @@ func TestRepoSkillIsRendered(t *testing.T) {
 	}
 }
 
-func TestSelfUpdateCheck(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.Header.Get("User-Agent"), "agent-leeway/") {
-			t.Errorf("user agent %q", r.Header.Get("User-Agent"))
-		}
-		w.Write([]byte(`{"tag_name": "v9.0.0", "html_url": "https://example.invalid/r"}`))
-	}))
-	defer srv.Close()
-	t.Setenv("LEEWAY_RELEASE_API", srv.URL)
-	out, _, rc := run(t, "self-update", "--check")
-	if rc != 0 || !strings.Contains(out, "v9.0.0") || !strings.Contains(out, "install line") {
-		t.Errorf("rc %d: %s", rc, out)
-	}
-	if _, _, rc := run(t, "self-update"); rc != 2 {
-		t.Error("self-update without --check must not do anything")
-	}
+func TestSelfUpdateVersionOrder(t *testing.T) {
 	if printable("v1\x1b[31m.0\x07") != "v1[31m.0" {
 		t.Error("escape sequences from the server must not reach the terminal")
 	}

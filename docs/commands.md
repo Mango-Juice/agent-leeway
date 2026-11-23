@@ -15,7 +15,7 @@ Every command prints its options with `-h`.
 | `agent-leeway prices` | Shows the price table (USD per million tokens, with sources and dates) | No |
 | `agent-leeway privacy` | The folders it uses and what leaves this computer | No |
 | `agent-leeway install-skills`, `uninstall-skills` | Add or remove the skill (`--claude`, `--codex`, `--dry-run`) | No |
-| `agent-leeway self-update --check` | Says whether a newer release exists and prints the install line | Asks GitHub for the latest release tag |
+| `agent-leeway self-update --check` | Says whether a newer release exists and prints the one command that updates this copy (Homebrew, Scoop, the installer, or a download link). `--json` for scripts | Asks GitHub for the latest release tag |
 
 ## Options of `leak`, `drift` and `report`
 

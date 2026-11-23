@@ -4,6 +4,16 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-11-23
+
+### Added
+- `self-update --check` prints the one command that updates this copy, chosen from where the program is installed: Homebrew (`brew update && brew upgrade agent-leeway && agent-leeway install-skills`), Scoop (`scoop update; scoop update agent-leeway; …`, or `-g` in an administrator terminal for an install for all users), the one-line installer (on Windows in a form that also runs from bash and cmd), or the Releases page. `--json` prints `{current, latest, newer, method, command, url}`, or `{"error": …}` when the check fails; `--lang ko` speaks Korean.
+- Asked to update, the skill runs that command and reports the new version. Nothing checks for updates unless you ask.
+
+### Fixed
+- `self-update --check` trusts only a well-formed release tag and this repository's release page; anything else is a failed check, and GitHub's rate limit is named as such.
+- `leak` no longer compares with the previous window when Claude Code has deleted part of its logs, the same rule the report uses, and says why. `leak --tool codex` keeps its comparison.
+
 ## [0.1.5] - 2026-11-23
 
 ### Added

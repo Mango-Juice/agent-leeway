@@ -104,6 +104,21 @@ var cliKO = map[string]string{
 	"rubric_backed_up": "이전 파일을 {path}에 남겼습니다.",
 	"rubric_copied":    "규칙집을 {path}에 복사했습니다. 고친 뒤 --rubric {path}로 넘기거나 설정 파일에 \"rubric\"을 적으세요.",
 	"rubric_file":      "규칙집 파일: {path} ({ver})",
+
+	// self-update --check
+	"upd_no_replace":    "{name}은(는) 스스로를 바꾸지 않습니다. `{name} self-update --check`를 실행하면 이 설치본을 업데이트하는 명령 하나를 알려 줍니다.",
+	"upd_failed":        "새 버전을 확인하지 못했습니다: {err}",
+	"upd_current":       "{name} {cur}: 최신 버전입니다.",
+	"upd_newer":         "새 버전 {vs} 나왔습니다(지금 {cur}). 릴리스 노트: {url}",
+	"upd_newer_short":   "새 버전 {vs} 나왔습니다(지금 {cur}).",
+	"upd_run_installer": "업데이트하려면 설치 명령을 다시 실행하세요(스킬도 함께 새로 고칩니다):",
+	"upd_run_pkg":       "업데이트하려면 다음을 실행하세요(스킬도 함께 새로 고칩니다):",
+	"upd_lag_homebrew":  "Homebrew 포뮬러는 릴리스가 나오고 몇 분 뒤에 갱신됩니다. Homebrew가 아직 최신이라고 하면 조금 뒤에 다시 해 보세요.",
+	"upd_lag_scoop":     "Scoop 매니페스트는 릴리스가 나오고 몇 분 뒤에 갱신됩니다. Scoop이 아직 최신이라고 하면 조금 뒤에 다시 해 보세요.",
+	"upd_run_admin":     "모든 사용자용으로 설치되어 있으니, 관리자 권한으로 연 터미널에서 다음을 실행하세요(스킬도 함께 새로 고칩니다):",
+	"upd_rate_limit":    "로그인 없이 보내는 요청 수가 GitHub 한도에 닿았습니다. 한 시간 안에 다시 해 보세요",
+	"upd_manual":        "Homebrew, Scoop, 설치 명령 중 어느 것으로도 설치하지 않은 사본이라 릴리스 페이지에서 새 버전을 내려받으세요:",
+
 	"privacy_details": "자세히:\n" +
 		"  - 점검 호출은 캐시 폴더 아래 새 비공개 폴더에서 실행하고, 세션은 표준 입력으로만 보냅니다.\n" +
 		"  - 묶기 호출(점검 뒤 제공사마다 한 번)은 같은 CLI 명령을 쓰고, 그 제공사에서 점검한 문제만 보냅니다: id, 규칙·원인 코드, 판정 모델이 본 그대로의 지시 인용과 내 말 인용(가리지 않음), 판정 모델 요약. 결과는 drift/groups.jsonl에 두며, `report`는 이것을 읽기만 하고 호출하지 않습니다.\n" +

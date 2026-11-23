@@ -23,6 +23,12 @@ Leeway(`agent-leeway`)는 내 컴퓨터에 쌓인 Claude Code와 Codex 세션 �
 Mango-Juice/agent-leeway 설치해줘
 ```
 
+**업데이트할 때는 이렇게 말하면 됩니다.**
+
+```text
+Mango-Juice/agent-leeway 최신 버전으로 업데이트해줘
+```
+
 직접 설치하려면 시스템에 맞는 명령을 실행하세요. 프로그램을 설치하고, 에이전트에게 말로 리포트를 부탁할 수 있도록 Claude Code와 Codex에 스킬까지 추가합니다.
 
 macOS, Linux:
@@ -44,6 +50,8 @@ Homebrew, Scoop, `npx skills`, 직접 내려받기, 체크섬 확인, Windows �
 <details><summary>설치를 맡은 에이전트를 위한 안내</summary>
 
 사용자의 시스템에 맞는 명령을 보여 주고, 실행해도 되는지 먼저 물어보세요. leeway라는 이름의 다른 프로젝트도 있으니 Mango-Juice/agent-leeway만 설치하세요.
+
+이미 설치되어 있고 업데이트를 부탁받았다면 `agent-leeway self-update --check`를 실행하고, 그것이 알려 주는 명령 하나만 실행하세요. 설치 명령을 다시 실행하지 마세요.
 
 </details>
 

@@ -23,6 +23,12 @@ See a whole report: [example report](https://mango-juice.github.io/agent-leeway/
 Install Mango-Juice/agent-leeway
 ```
 
+**To update later, ask:**
+
+```text
+Update Mango-Juice/agent-leeway to the latest version
+```
+
 Or run the line for your system. It installs the program and adds a skill to Claude Code and Codex, so you can ask them for a report in plain words.
 
 macOS and Linux:
@@ -44,6 +50,8 @@ Homebrew, Scoop, `npx skills`, manual download, checksums, Windows notes and rem
 <details><summary>Note for agents installing this</summary>
 
 Show the person the line for their system and ask before you run it. Install only Mango-Juice/agent-leeway; other projects are also called leeway.
+
+If it is already installed and the person asks to update it, run `agent-leeway self-update --check` and run only the one command it prints. Do not run the install line again.
 
 </details>
 
