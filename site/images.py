@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Makes the example site's icons and link-preview images in site/static/ (site/README.md).
 
-    python3 site/images.py [CHROME]
+    python3 site/images.py [CHROME] [--icons]     # --icons: only the icons, the previews are left as they are
 
 Run by hand when the design changes, then commit the files it writes; the site build only copies them.
 Needs Pillow. The link-preview images need Google Chrome or Chromium (CHROME, default: the macOS app path) for the
@@ -11,8 +11,10 @@ with the Pillow version. The export lists each image by its SHA-256 (BINARY_OK i
 running this, update those hashes. A changed image needs a new file name to reach link previews soon: Facebook,
 KakaoTalk and others keep a fetched og:image for a long time.
 
-Design: off-white paper, the "Leeway" wordmark, a three-part bar with the middle part amber, and columns of dots
-at the sides. Everything that matters in a preview sits in the centre square, so a square crop still reads.
+Icon: leeway in the nautical sense. On a navy tile, a dotted line is the intended course and an amber curve the path
+actually taken, pushed off it, both from one start dot. At 16 px the dotted line is left out.
+Previews: off-white paper, the "Leeway" wordmark, a three-part bar with the middle part amber, and columns of dots at
+the sides. Everything that matters in a preview sits in the centre square, so a square crop still reads.
 """
 import subprocess, sys, tempfile
 from pathlib import Path
@@ -20,30 +22,69 @@ from PIL import Image, ImageDraw
 
 OUT = Path(__file__).resolve().parent / 'static'
 PAPER, INK, GREY, AMBER, RUST, SUB = '#f6f4ee', '#1e1f21', '#e4e0d6', '#d9a441', '#a8452f', '#6b6a66'
-CHROME = sys.argv[1] if len(sys.argv) > 1 else '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+if set(sys.argv[1:]) - set(ARGS) - {'--icons'}:
+    sys.exit('usage: python3 site/images.py [CHROME] [--icons]')
+CHROME = ARGS[0] if ARGS else '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
-# ---------------------------------------------------------------- the icon: an "L" whose foot is the amber bar
-# on a 32-unit tile. The SVG is the favicon itself; the PNG and ICO are drawn from the same shapes.
-STEM = (9, 6, 15, 23)     # ink stem, x0 y0 x1 y1
-FOOT = (9, 20, 24, 26)    # amber foot, a pill (radius 3)
-SVG = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-<rect width="32" height="32" rx="7" fill="{PAPER}"/>
-<rect x="{STEM[0]}" y="{STEM[1]}" width="{STEM[2] - STEM[0]}" height="{STEM[3] - STEM[1]}" fill="{INK}"/>
-<rect x="{FOOT[0]}" y="{FOOT[1]}" width="{FOOT[2] - FOOT[0]}" height="{FOOT[3] - FOOT[1]}" rx="3" fill="{AMBER}"/>
+# ---------------------------------------------------------------- the icon: leeway in the nautical sense
+# The dotted line is the intended course, the amber curve the path actually taken, pushed off course; the dot is where
+# both start. 64 units on a navy tile. The SVG is the favicon itself; the PNG and ICO are drawn from the same geometry.
+NAVY, CURVE = '#15304d', '#e0a63f'
+ICO16_COURSE = False  # at 16 px the dotted line is a grey smudge: left out (judged from the rendered image)
+START, COURSE_END = (14, 48), (50, 16)
+BEZIER = ((14, 48), (26, 44), (40, 42), (52, 34))
+SVG = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<rect width="64" height="64" rx="14" fill="{NAVY}"/>
+<path d="M14 48 L50 16" stroke="{PAPER}" stroke-opacity=".45" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 8"/>
+<path d="M14 48 C26 44 40 42 52 34" stroke="{CURVE}" stroke-width="6" stroke-linecap="round" fill="none"/>
+<circle cx="14" cy="48" r="5" fill="{PAPER}"/>
 </svg>
 '''
 
 
-def icon(px, rounded=True):
-    """The icon at px pixels, drawn 8 times larger and scaled down (smooth edges)."""
-    k = px * 8 / 32
-    s = lambda box: tuple(round(v * k) for v in box)
-    im = Image.new('RGBA', (px * 8, px * 8), (0, 0, 0, 0))
+def icon(px, rounded=True, course=True):
+    """The icon at px pixels, drawn 16 times larger and scaled down (smooth edges). rounded=False fills the whole
+    square (the phone rounds it); course=False leaves out the dotted line, which turns to a smudge at 16 px."""
+    S = px * 16
+    k = S / 64
+    im = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    d.rounded_rectangle((0, 0, px * 8 - 1, px * 8 - 1), radius=round(7 * k) if rounded else 0, fill=PAPER)
-    d.rectangle(s(STEM), fill=INK)
-    d.rounded_rectangle(s(FOOT), radius=round(3 * k), fill=AMBER)
-    return im.resize((px, px), Image.LANCZOS)
+    d.rounded_rectangle((0, 0, S - 1, S - 1), radius=round(14 * k) if rounded else 0, fill=NAVY)
+
+    def stroke(dr, points, width, fill):  # a polyline with round caps and joins
+        r = width * k / 2
+        pts = [(x * k, y * k) for x, y in points]
+        dr.line(pts, fill=fill, width=round(width * k))
+        for x, y in pts:
+            dr.ellipse((x - r, y - r, x + r, y + r), fill=fill)
+
+    if course:
+        # dash 1, gap 8 along the line, width 4, round caps: each dash is a capsule of length 1 every 9 units,
+        # painted white at 45% over the navy
+        layer = Image.new('RGBA', (S, S), (0, 0, 0, 0))
+        dl = ImageDraw.Draw(layer)
+        (x0, y0), (x1, y1) = START, COURSE_END
+        length = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** .5
+        ux, uy = (x1 - x0) / length, (y1 - y0) / length
+        t = 0.0
+        while t <= length:
+            e = min(t + 1, length)
+            stroke(dl, [(x0 + ux * t, y0 + uy * t), (x0 + ux * e, y0 + uy * e)], 4, PAPER)
+            t += 9
+        layer.putalpha(layer.getchannel('A').point(lambda a: round(a * .45)))
+        im.alpha_composite(layer)
+    n = 200
+    curve = []
+    for i in range(n + 1):
+        u = i / n
+        (ax, ay), (bx, by), (cx, cy), (ex, ey) = BEZIER
+        w = ((1 - u) ** 3, 3 * (1 - u) ** 2 * u, 3 * (1 - u) * u * u, u ** 3)
+        curve.append((w[0] * ax + w[1] * bx + w[2] * cx + w[3] * ex, w[0] * ay + w[1] * by + w[2] * cy + w[3] * ey))
+    stroke(d, curve, 6, CURVE)
+    r = 5 * k
+    d.ellipse((START[0] * k - r, START[1] * k - r, START[0] * k + r, START[1] * k + r), fill=PAPER)
+    return im.convert('RGBa').reduce(16).convert('RGBA')  # premultiplied: each pixel the average of its 16 x 16 block (area coverage, as a browser draws an SVG)
 
 
 # ---------------------------------------------------------------- the link-preview image, 1200 x 630
@@ -99,10 +140,11 @@ def main():
     OUT.mkdir(exist_ok=True)
     (OUT / 'favicon.svg').write_text(SVG, encoding='utf-8')
     icon(180, rounded=False).convert('RGB').save(OUT / 'apple-touch-icon.png', optimize=True)  # the phone rounds it
-    icon(32).save(OUT / 'favicon.ico', sizes=[(16, 16), (32, 32)], append_images=[icon(16)])
-    with tempfile.TemporaryDirectory() as tmp:
-        for lang in TEXT:
-            preview(lang, tmp).save(OUT / f'og-{lang}.png', optimize=True)
+    icon(32).save(OUT / 'favicon.ico', sizes=[(16, 16), (32, 32)], append_images=[icon(16, course=ICO16_COURSE)])
+    if '--icons' not in sys.argv:
+        with tempfile.TemporaryDirectory() as tmp:
+            for lang in TEXT:
+                preview(lang, tmp).save(OUT / f'og-{lang}.png', optimize=True)
     for p in sorted(OUT.iterdir()):
         print(f'{p.name}: {p.stat().st_size} bytes')
 

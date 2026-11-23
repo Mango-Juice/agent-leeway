@@ -63,7 +63,7 @@ quietly changing the example.
 | `example.py` | made-up sessions and hand-written judgments (en, ko); log writer; stand-in judge; frame; check |
 | `build.sh` | the whole build, offline |
 | `frame.html` | the bar around the report (no external assets, no trackers, CSP `default-src 'none'`), with the icon links and link-preview tags |
-| `static/` | `favicon.svg`, `favicon.ico` (16 and 32 px), `apple-touch-icon.png` (180 px), `og-en.png` and `og-ko.png` (link previews, 1200 × 630) |
+| `static/` | `favicon.svg` (the mark: intended course dotted, actual path in amber, on navy), `favicon.ico` (16 and 32 px), `apple-touch-icon.png` (180 px, full-bleed), `og-en.png` and `og-ko.png` (link previews, 1200 × 630) |
 | `images.py` | makes the files in `static/`; run by hand when the design changes, then commit them and update their hashes in `BINARY_OK` (`scripts/export_public.py`). Needs Pillow, and Chrome for the previews' text. Link previews cache an image by its URL, so a changed preview needs a new file name |
 
 ## Where it is published
