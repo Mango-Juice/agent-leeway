@@ -66,6 +66,9 @@ $Server = Start-Job -ArgumentList $Serve, $Port -ScriptBlock {
   $l.Start()
   while ($l.IsListening) {
     $c = $l.GetContext()
+    if ($c.Request.Url.AbsolutePath -eq '/__quit') {   # the test is done: answer, then end the loop and the job
+      $c.Response.Close(); $l.Stop(); break
+    }
     $p = Join-Path $root ($c.Request.Url.AbsolutePath.TrimStart('/') -replace '/', '\')
     if (Test-Path $p -PathType Leaf) {
       $b = [IO.File]::ReadAllBytes($p); $c.Response.ContentLength64 = $b.Length
@@ -79,6 +82,8 @@ for ($i = 0; $i -lt 50; $i++) {
   try { Invoke-WebRequest -UseBasicParsing "$Url/install.ps1" | Out-Null; break } catch { Start-Sleep -Milliseconds 200 }
 }
 
+$ProgressPreference = 'Continue'   # a known value, so the check below cannot pass by accident
+$ProgressBefore = $ProgressPreference
 $UserPathBefore = [Environment]::GetEnvironmentVariable('Path', 'User')
 $MachinePathBefore = [Environment]::GetEnvironmentVariable('Path', 'Machine')
 try {
@@ -95,6 +100,7 @@ try {
   $up = [Environment]::GetEnvironmentVariable('Path', 'User')
   $hits = @($up -split ';' | Where-Object { $_.TrimEnd('\') -ieq $GoodDest.TrimEnd('\') })
   Check ($hits.Count -eq 1) 'install folder added to the user Path once'
+  Check ($ProgressPreference -eq $ProgressBefore) "the caller's progress setting is unchanged ($ProgressPreference)"
   Check ([Environment]::GetEnvironmentVariable('Path', 'Machine') -eq $MachinePathBefore) 'machine Path unchanged'
   irm "$Url/install.ps1" | iex   # reinstall
   $up = [Environment]::GetEnvironmentVariable('Path', 'User')
@@ -186,9 +192,18 @@ try {
   Check (-not (Test-Path $GoodDest)) 'install folder removed'
   Check (-not (([Environment]::GetEnvironmentVariable('Path', 'User') -split ';') | Where-Object { $_.TrimEnd('\') -ieq $GoodDest.TrimEnd('\') })) 'install folder no longer on the user Path'
 } finally {
+  # teardown, timed step by step: stopping a job blocked in GetContext() used to wait 120 s, so the server is asked to
+  # quit and its job ends on its own
+  $t = [Diagnostics.Stopwatch]::StartNew()
   [Environment]::SetEnvironmentVariable('Path', $UserPathBefore, 'User')
-  Stop-Job $Server -ErrorAction SilentlyContinue; Remove-Job $Server -Force -ErrorAction SilentlyContinue
+  Write-Host ("teardown: user Path restored in {0:N1} s" -f $t.Elapsed.TotalSeconds); $t.Restart()
+  try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 "$Url/__quit" | Out-Null } catch { }
+  $done = Wait-Job $Server -Timeout 10
+  Write-Host ("teardown: server stopped in {0:N1} s ({1})" -f $t.Elapsed.TotalSeconds, $(if ($done) { 'quit' } else { 'still running' })); $t.Restart()
+  Remove-Job $Server -Force -ErrorAction SilentlyContinue
+  Write-Host ("teardown: job removed in {0:N1} s" -f $t.Elapsed.TotalSeconds); $t.Restart()
   Remove-Item -Recurse -Force $Work -ErrorAction SilentlyContinue
+  Write-Host ("teardown: work folder removed in {0:N1} s" -f $t.Elapsed.TotalSeconds)
 }
 if ($fail -gt 0) { Write-Host "$fail check(s) failed"; exit 1 }
 Write-Host 'all install.ps1 checks passed'

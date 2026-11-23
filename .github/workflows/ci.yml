@@ -7,6 +7,10 @@ on:
   pull_request:
 permissions:
   contents: read
+# a new push to a pull request cancels that pull request's older run; runs on main are never cancelled
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test:
     strategy:

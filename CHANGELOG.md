@@ -2,7 +2,7 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.8] - 2026-11-23
 
 ### Added
 - "Your setup" in the basic report: each tool's skill list and instruction file against the line its own docs publish (Claude Code: skill descriptions dropped from the list, `CLAUDE.md` over 200 lines; Codex: `AGENTS.md` at `project_doc_max_bytes`). An item over its line is a fix, ranked after the firm and measured fixes; every item is a row in Look things up, with the tool's page. Offline, no model call; see docs/privacy.md for what is read.
@@ -11,6 +11,7 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 ### Changed
 - Cost records now name the set of causes they counted, and are saved under a new file name that 0.1.7 does not read. A cost saved by 0.1.7 or earlier is not compared with this version's numbers ("this version counts one more cause").
 - `leak --json` gained `cause_set` (2 in this version); `compare` says when two files count different causes and then compares each cause on its own.
+- The Windows installer downloads faster in Windows PowerShell 5.1: it no longer draws a progress bar during the download, which slowed it several times over. Your session's own progress setting is left as it was.
 
 ## [0.1.7] - 2026-11-23
 

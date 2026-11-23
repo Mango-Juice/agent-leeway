@@ -10,6 +10,9 @@
 # session when it is run as `irm ... | iex`.
 & {
   $ErrorActionPreference = 'Stop'
+  # no progress bar: Windows PowerShell 5.1 draws it for every chunk and downloads several times slower with it
+  # (set inside the script block, so the caller's own setting is unchanged afterwards)
+  $ProgressPreference = 'SilentlyContinue'
   $Owner = 'Mango-Juice'   # keep in sync with internal/meta/meta.go
   $Repo = 'agent-leeway'
   $Name = 'agent-leeway'
