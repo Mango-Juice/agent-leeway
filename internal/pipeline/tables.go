@@ -61,6 +61,15 @@ type CommitRow struct {
 	SessionID logs.NS
 }
 
+// SetupRow is what one log file says about the setup sent with every request (docs/33).
+type SetupRow struct {
+	Tool, ThreadID string
+	Key            logs.NS // the session
+	Cwd            logs.NS
+	Start, End     int64
+	Setup          logs.Setup
+}
+
 // Tables holds every table, in the reference's row order.
 type Tables struct {
 	// OldestClaude is the oldest Claude Code transcript's time (UnixNano; 0 when none was read): Claude Code
@@ -80,6 +89,7 @@ type Tables struct {
 	ResetEv      []ResetEvent
 	ResetSteps   []ResetStep
 	Stats        logs.Stats
+	Setups       []SetupRow // files with setup facts, in discovery order
 	Files        int
 	Skipped      int
 }
@@ -111,6 +121,9 @@ func FromFiles(files []*logs.File) *Tables {
 			t.Commits = append(t.Commits, CommitRow{Commit: c, Tool: th.Tool, ThreadID: th.ThreadID, SessionID: th.SessionID})
 		}
 		t.Events[th.ThreadID] = f.Events
+		if f.Setup != nil {
+			t.Setups = append(t.Setups, SetupRow{Tool: th.Tool, ThreadID: th.ThreadID, Key: k, Cwd: th.Cwd, Start: th.Start, End: th.End, Setup: *f.Setup})
+		}
 		t.Stats.Add(f.Stats)
 	}
 	t.Files = len(files)

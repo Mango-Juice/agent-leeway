@@ -73,6 +73,15 @@ The rubric was validated with two models: Claude Opus 5.5 (`claude-opus-5-5`) fo
 - **The report** names the model that judged ("checked by GPT-6.2 Astra"); a version not yet tested with our test set gets "(this version not yet tested)".
 - **Prices:** a model without a row in the price table gets no dollar estimate, only the plan-usage note.
 
+## Your setup
+
+The report checks what loads into every session against the line each tool's own docs publish, with no model call:
+
+- **Claude Code skill list.** Claude Code gives the list about 1% of the context window and drops descriptions past it; the report counts the skills listed without one, minus those you set to `"name-only"` in `skillOverrides`. The Codex skill list is not checked: in the logs, a skill Codex left out cannot be told from one you turned off.
+- **Instruction file.** Claude Code's docs say to keep each `CLAUDE.md` under 200 lines; the count is of the lines Claude Code loaded (it strips block comments first), so it can be lower than in an editor. Your user-level `CLAUDE.md` is counted once. Codex stops reading `AGENTS.md` files once their combined size reaches `project_doc_max_bytes` (32 KiB unless set at the top of `config.toml`); the report says "At the limit" when the text Codex sent was cut there. When that text is longer than the limit allows, a different limit was in force (a profile or a `-c` option) and the row is left out.
+
+Per project, it reads the latest session in the period, and each row shows the project furthest over. Only the sessions the report covers count: direct conversations (automations with `--include-auto`), and `--tool` and `--project` as given. An item over its line becomes a fix, ranked after every firm and measured fix, at most one in the top three. Every item is a row of "Your setup" in Look things up, with a link to the tool's page. A row is left out when its log record is missing or shaped differently. Not compared with before.
+
 ## Compared with the previous period
 
 Each card on the first screen compares with its own baseline and says which, in a few words. Lower is better on both sides. Windows shorter than a day are not compared.

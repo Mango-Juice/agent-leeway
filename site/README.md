@@ -40,6 +40,8 @@ these:
 - a cost leak with a dollar amount (sessions resumed after long breaks);
 - a "going well" section, and exactly one problem that was never fixed;
 - evidence dialogs with the person's own words;
+- a setup fix: the Claude Code skill list over its budget (22 of 72 skills without a description) as Fix 3, and "Your setup"
+  with three rows, one over the line;
 - a comparison on both cards: cost "Better" against the previous 30 days; in-depth both rates against the first check
   without a word (the change is within normal swings for 21 sessions on each side); some kinds of problem fewer than
   at the first check, some more;

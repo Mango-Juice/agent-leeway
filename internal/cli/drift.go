@@ -693,6 +693,7 @@ func cmdReport(args []string, out, errw io.Writer) int {
 	}
 	m := newModel(x.R, recs, config.Language(o.lang), now, since, *quoteChars, shownGroups(drift.LoadGroups(o.cacheDir()), groupOn), nil, errw)
 	m.Tool, m.Unjudged, m.OtherJudged = o.tool, unjudged, otherJudged
+	m.Setup = setupItems(&o, tb, since, now)
 	m.Compare = compareWithPrevious(&o, tb, x, m, since, now, tools, inWin, keys, all)
 	md, html, err := report.Build(m)
 	if err != nil {

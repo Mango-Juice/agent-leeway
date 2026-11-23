@@ -182,7 +182,7 @@ func (s *Story) sourcesHTML(f *Finding) string {
 		b.WriteString(`</ul>`)
 	}
 	for _, x := range f.Against {
-		fmt.Fprintf(&b, `<p class="against">%s: %s — %s</p>`, E(s.X.T["against"]), E(pickLabel(x.Note, s.Lang)), aLink(x.URL, x.Title))
+		fmt.Fprintf(&b, `<p class="against">%s: %s — %s</p>`, E(s.againstLabel(x)), ticks(E(pickLabel(x.Note, s.Lang))), aLink(x.URL, x.Title))
 	}
 	return b.String()
 }
@@ -589,7 +589,9 @@ func (s *Story) HTML() string {
 		q := s.Plain(f)
 		th := s.Thing(f)
 		var viz string
-		if f.Side == "drift" {
+		if f.Side == "setup" {
+			viz = s.setupViz(f)
+		} else if f.Side == "drift" {
 			nn, capKey := f.Sessions, "sess_cap" // theme mode too: the finding's size; the theme count is under it
 			viz = dots(nn, m.J, "f-agent_drift", 15, 6, 4) + `<p class="cap">` + E(s.T(capKey, "n", nn, "j", m.J)) + `</p>`
 		} else {
@@ -629,8 +631,12 @@ func (s *Story) HTML() string {
 		sid := secs[i+1].id
 		evid := "ev-" + f.ID
 		btn := s.T("show_ev")
-		if f.Side == "leak" {
+		if f.Side != "drift" {
 			btn = s.T("how_fix")
+		}
+		body := s.evidenceBody(f, s.CasesFor(f, th), true)
+		if f.Side == "setup" {
+			body = s.setupEvidence(f)
 		}
 		big := "big"
 		if f.Side == "leak" {
@@ -638,7 +644,7 @@ func (s *Story) HTML() string {
 		}
 		inner := fmt.Sprintf(`<p class="step">%s</p><div class="fix"><div><p class="%s">%s</p><p class="hk">%s</p>%s</div><div>%s<div class="act6"><p class="lab">%s</p><h2 id="%s-h">%s</h2>%s<p class="why">%s %s</p><a class="btn5" href="#%s" data-ev="%s">%s <span aria-hidden="true">→</span></a></div></div></div><div class="ev6" id="%s" data-title="%s" data-kick="%s">%s</div>`,
 			E(secs[i+1].name), big, E(s.BigNum(f)), E(ctx), viz, qhtml, E(s.T("do")), sid, E(q.Action), s.draftBox(dr), E(q.Why),
-			aLink(q.SrcURL, s.T("source")+": "+q.SrcName), evid, evid, E(btn), evid, E(q.Action), E(secs[i+1].name), s.evidenceBody(f, s.CasesFor(f, th), true))
+			aLink(q.SrcURL, s.T("source")+": "+q.SrcName), evid, evid, E(btn), evid, E(q.Action), E(secs[i+1].name), body)
 		h := ""
 		if i+2 < N {
 			txt := secs[i+2].name
@@ -686,7 +692,7 @@ func (s *Story) HTML() string {
 	return `<!doctype html><html lang="` + s.Lang + `"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
 		`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">` +
 		`<meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><title>` + E(s.T("kicker")+" · "+m.To) + `</title><style>` + pageCSS + css8 + cmpCSS +
-		`</style></head><body>` + body + `<script>(function(){` + pageJS + `})();</script></body></html>`
+		setupCSS + `</style></head><body>` + body + `<script>(function(){` + pageJS + `})();</script></body></html>`
 }
 
 func firstLabel(rows []barRow) string {

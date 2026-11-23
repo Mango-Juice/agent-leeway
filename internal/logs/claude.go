@@ -41,6 +41,7 @@ func ParseClaude(path string) (*File, error) {
 	compaction := false
 	var events []Event
 	var lastModel, lastShape py.Value
+	su := newSetup()
 	err := ReadLines(path, &st, func(o py.Value) {
 		if o.K != py.Obj {
 			st.NotObject++
@@ -83,6 +84,10 @@ func ParseClaude(path string) (*File, error) {
 		if isStr(typ, "system") && isStr(o.Get("subtype"), "compact_boundary") {
 			b.meta.nCompactions++
 			compaction = true
+			return
+		}
+		if isStr(typ, "attachment") {
+			su.claudeAttachment(o.Get("attachment"), tsOf(ts))
 			return
 		}
 		if !inStrs(typ, "user", "assistant") {
@@ -157,6 +162,8 @@ func ParseClaude(path string) (*File, error) {
 					}
 				case nameV.K == py.Str && claudeSearchTools[name]:
 					kind, target = "search", Some("search:"+H(py.DumpsOpt(inp, py.DumpOpts{EnsureASCII: true, SortKeys: true})))
+				case name == "Skill" && nameV.K == py.Str:
+					su.skillUse(inp)
 				case inStrs(nameV, "Agent", "Task", "SendMessage"):
 					kind = "agent"
 				case nameV.K == py.Str && strings.HasPrefix(name, "mcp__"):
@@ -250,6 +257,12 @@ func ParseClaude(path string) (*File, error) {
 	f := b.finish()
 	f.Events = events
 	f.Stats = st
+	if sub { // a sub-agent's listing and files are its parent's; only its skill use counts
+		su = &Setup{SkillsAt: NaT, InstrAt: NaT, AgentsAt: NaT, SkillUses: su.SkillUses}
+	}
+	if !su.Empty() {
+		f.Setup = su
+	}
 	return f, nil
 }
 

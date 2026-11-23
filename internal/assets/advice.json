@@ -1,6 +1,6 @@
 {
  "about": "Advice catalogue for the report (docs/24 section 6). One entry per finding id, with per-tool text (claude, codex): 'action' is one plain sentence a person can act on without knowing setting names, 'how' lists the exact command or setting shown after it, 'instruction' is a standing rule that may be copied into an instruction file. Each tool has a basis (official | study | ours | heuristic) and sources with the date read and the exact claim. A copy named advice.json in the settings folder replaces the built-in one; the report flags it when the oldest 'read' date is older than stale_after_days.",
- "version": "2026-11-22-r6",
+ "version": "2026-11-23-r7",
  "stale_after_days": 180,
  "entries": [
   {
@@ -703,6 +703,119 @@
      }
     }
    ]
+  },
+  {
+   "id": "setup.skills",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Take skills you only start yourself, and skills you no longer use, out of the list.",
+      "ko": "직접 부를 때만 쓰는 스킬과 더 안 쓰는 스킬은 목록에서 빼세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Extend Claude with skills",
+       "url": "https://code.claude.com/docs/en/skills.md",
+       "read": "2026-11-23",
+       "claim": "if you have many skills, Claude Code drops some descriptions to fit the listing's character budget, which removes the keywords Claude needs to match your request. The budget scales at 1% of the model's context window. When the listing overflows, Claude Code drops descriptions starting with the skills you invoke least"
+      },
+      {
+       "title": "Claude Code docs: Extend Claude with skills",
+       "url": "https://code.claude.com/docs/en/skills.md",
+       "read": "2026-11-23",
+       "claim": "`disable-model-invocation: true` | Yes | Not on its own | Description not in context, full skill loads when invoked"
+      },
+      {
+       "title": "Claude Code docs: Extend Claude with skills",
+       "url": "https://code.claude.com/docs/en/skills.md",
+       "read": "2026-11-23",
+       "claim": "Run `/skill-doctor` to see what each of your skills costs and how often it gets used, so you can decide which ones to turn off."
+      }
+     ],
+     "how": [
+      "disable-model-invocation: true",
+      "/skill-doctor"
+     ]
+    }
+   },
+   "against": [
+    {
+     "title": "Claude Code docs: Extend Claude with skills",
+     "url": "https://code.claude.com/docs/en/skills.md",
+     "tool": "claude",
+     "kind": "another_way",
+     "note": {
+      "en": "Raising the budget with `skillListingBudgetFraction` also brings the descriptions back, but the list then takes more of every request.",
+      "ko": "`skillListingBudgetFraction`로 예산을 늘려도 설명이 돌아오지만, 그만큼 모든 요청에 실리는 목록이 커집니다."
+     }
+    }
+   ]
+  },
+  {
+   "id": "setup.instr",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Move multi-step procedures into skills, and rules for one part of the code into rules with paths.",
+      "ko": "여러 단계로 된 절차는 스킬로, 코드 일부에만 해당하는 규칙은 경로를 지정한 규칙으로 옮기세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: How Claude remembers your project",
+       "url": "https://code.claude.com/docs/en/memory.md",
+       "read": "2026-11-23",
+       "claim": "target under 200 lines per CLAUDE.md file. Longer files consume more context and reduce adherence."
+      },
+      {
+       "title": "Claude Code docs: How Claude remembers your project",
+       "url": "https://code.claude.com/docs/en/memory.md",
+       "read": "2026-11-23",
+       "claim": "Imports help you organize a long file but don't reduce its context cost, because imported files load together with the CLAUDE.md that imports them."
+      },
+      {
+       "title": "Claude Code docs: Manage costs",
+       "url": "https://code.claude.com/docs/en/costs.md",
+       "read": "2026-11-23",
+       "claim": "moving specialized instructions into skills keeps your base context smaller. Aim to keep CLAUDE.md under 200 lines by including only essentials."
+      }
+     ],
+     "how": [
+      ".claude/rules/"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "Move repeatable workflows into skills, and put each rule in the folder where it applies.",
+      "ko": "되풀이하는 작업은 스킬로 옮기고, 규칙은 그 규칙이 적용되는 폴더에 두세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Custom instructions with AGENTS.md",
+       "url": "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+       "read": "2026-11-23",
+       "claim": "Codex skips empty files and stops adding files once the combined size reaches the limit defined by `project_doc_max_bytes` (32 KiB by default)."
+      },
+      {
+       "title": "Codex docs: Customization",
+       "url": "https://learn.chatgpt.com/docs/customization/overview",
+       "read": "2026-11-23",
+       "claim": "Keep it small."
+      },
+      {
+       "title": "Codex docs: Customization",
+       "url": "https://learn.chatgpt.com/docs/customization/overview",
+       "read": "2026-11-23",
+       "claim": "Start with only the instructions that matter."
+      }
+     ],
+     "how": [
+      "project_doc_max_bytes"
+     ]
+    }
+   }
   }
  ]
 }

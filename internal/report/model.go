@@ -154,6 +154,8 @@ type Finding struct {
 	Against  []advice.Against
 	Copy     []CopyScope
 	Settings []SettingExample
+
+	Setup *SetupItem // setup: the item over its vendor line
 }
 
 // NCopy counts the lines and settings offered for copying.
@@ -199,6 +201,7 @@ type Model struct {
 	Tool                      string
 	Unjudged, OtherJudged     map[string]int
 	Compare                   *Compare
+	Setup                     []SetupItem // "Your setup" rows (docs/33); set by the caller like Compare
 	Records                   []*Record
 	J                         int // judged sessions (records)
 	Verdicts                  []JudgeVerdicts
@@ -700,7 +703,7 @@ func Top(findings, leaks []*Finding) []*Finding {
 // AdviceID is the catalogue id of a finding: BROKE_SAID uses the "file" variant only when more of its events
 // cite an instruction-file line (I#) than a user turn (U#).
 func AdviceID(f *Finding) string {
-	if f.Side == "leak" {
+	if f.Side == "leak" || f.Side == "setup" {
 		return f.AdviceID
 	}
 	switch f.Kind {

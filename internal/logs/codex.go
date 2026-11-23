@@ -101,6 +101,7 @@ func ParseCodex(path string) (*File, error) {
 	var lastTotal, curModel py.Value
 	compaction := false
 	callByID := map[string]int{}
+	su := newSetup()
 	for _, o := range lines {
 		typ := o.Get("type")
 		p := o.Get("payload")
@@ -153,6 +154,8 @@ func ParseCodex(path string) (*File, error) {
 		}
 		b.ts(ts)
 		switch {
+		case isStr(typ, "world_state"):
+			su.codexWorldState(p, tsOf(ts))
 		case isStr(typ, "turn_context"):
 			b.meta.model = b.meta.model.Or(p.Get("model"))
 			if p.Get("model").Truthy() {
@@ -343,6 +346,9 @@ func ParseCodex(path string) (*File, error) {
 	f := b.finish()
 	f.Events = codexEvents(lines, fid, maxOrd)
 	f.Stats = st
+	if !isStr(b.meta.source, "subagent") && !su.Empty() {
+		f.Setup = su
+	}
 	return f, nil
 }
 

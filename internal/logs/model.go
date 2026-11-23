@@ -146,6 +146,7 @@ type File struct {
 	Commits []Commit
 	Events  []Event
 	Stats   Stats
+	Setup   *Setup // nil when the file says nothing about the setup
 }
 
 // H is the reference's h(): the first 16 hex digits of the SHA-1 of the UTF-8 text

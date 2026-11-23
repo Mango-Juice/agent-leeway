@@ -43,6 +43,21 @@ AGENTS_MD = T('Ask before running migrations or anything that writes to the shar
 AGENTS_RULE = T('Ask before running migrations or anything that writes to the shared staging database.',
                 '마이그레이션이나 공유 스테이징 DB에 쓰는 작업은 실행하기 전에 물어볼 것.')
 
+# The made-up person's skills (docs/33): 72 Claude Code skills, too many for the listing's budget, so Claude Code sent
+# 22 without a description; 18 Codex skills, all in Codex's list.
+SKILLS_DROPPED = ['svg-icons', 'changelog-draft', 'pdf-forms', 'old-deploy', 'gif-maker', 'slide-notes', 'csv-clean', 'mock-api', 'icon-font',
+                  'map-tiles', 'trip-ics', 'photo-crop', 'lint-css', 'route-gpx', 'emoji-pick', 'zip-share', 'pwa-check', 'font-subset',
+                  'color-ramp', 'qr-code', 'diff-pdf', 'copy-edit']
+SKILLS_KEPT = [f'{a}-{b}' for a in ('trail', 'react', 'test', 'deploy', 'db', 'api', 'docs', 'ui') for b in ('helper', 'review', 'plan', 'fix', 'check', 'notes', 'guide')][:50]
+CODEX_SKILLS = [f'sync-{x}' for x in ('bank', 'match', 'csv', 'report', 'store', 'cli', 'test', 'lint', 'docs', 'release', 'review', 'plan', 'fix', 'check', 'notes', 'guide', 'audit', 'ops')]
+
+
+def skill_listing():
+    names = SKILLS_KEPT[:25] + SKILLS_DROPPED + SKILLS_KEPT[25:]
+    lines = [f'- {n}' if n in SKILLS_DROPPED else f'- {n}: Use when working on {n.replace("-", " ")}.' for n in names]
+    return {'type': 'skill_listing', 'isInitial': True, 'skillCount': len(names), 'names': names, 'content': '\n'.join(lines)}
+
+
 # A session: tool, day offset from now (negative), user turns (text, minutes after the previous turn), how many
 # agent steps after each turn, failing-command streaks, model switch, and the judgment (events) by hand.
 # Event fields follow the rubric output; loc/locs/evidence locs are U<n> = the n-th user turn.
@@ -230,6 +245,10 @@ def write_claude(root, L, s, now, rng):
                     f'Contents of {cwd}/CLAUDE.md (project instructions, checked into the codebase):\n\n{CLAUDE_MD[L]}\n</system-reminder>'}
     o['isMeta'] = True
     lines.append(o)
+    for att in (skill_listing(), {'type': 'instructions', 'files': [{'path': f'{cwd}/CLAUDE.md', 'type': 'Project', 'content': CLAUDE_MD[L]}]}):
+        x = base('attachment', t)
+        x['attachment'] = att
+        lines.append(x)
     ctx = s['ctx0']
     model = CLAUDE_MODEL
     for ti, (text, gap) in enumerate(s['turns']):
@@ -288,6 +307,9 @@ def write_codex(root, L, s, now, rng):
         n[0] += 1
     add('session_meta', {'id': sid_, 'session_id': sid_, 'cwd': cwd, 'originator': 'codex_cli_rs', 'cli_version': '0.171.0', 'source': 'cli'}, t)
     add('event_msg', {'type': 'task_started', 'turn_attribution': {'turn_trigger': 'composer'}}, t)
+    add('world_state', {'full': True, 'state': {'host_skills': {'version': 1, 'entries': {
+        json.dumps(['host', 'host', f'{HOME}/.agents/skills/{n}/SKILL.md'], separators=(',', ':')): {'fingerprint': hashlib.sha256(n.encode()).hexdigest(), 'shown': True}
+        for n in CODEX_SKILLS}}, 'agents_md': {'directory': cwd, 'text': AGENTS_MD[L]}}}, t)
     add('turn_context', {'model': CODEX_MODEL, 'cwd': cwd, 'effort': 'medium'}, t)
     add('response_item', {'type': 'message', 'role': 'user', 'content': [{'type': 'input_text', 'text': f'# AGENTS.md instructions for {cwd}\n\n<INSTRUCTIONS>\n{AGENTS_MD[L]}\n</INSTRUCTIONS>'}]}, t)
     add('response_item', {'type': 'message', 'role': 'user', 'content': [{'type': 'input_text', 'text': f'<environment_context>\n  <cwd>{cwd}</cwd>\n</environment_context>'}]}, t)
@@ -451,6 +473,8 @@ def cmd_check(out, raw):
             'going-well section': 'id="s-good"' in html,
             'one problem was never fixed': md.count(c['unfixed']) == 1,
             'evidence dialog': 'data-ev=' in html,
+            'a setup fix: the skill list over its budget, as Fix 3': re.search(r'<a id="f-setup-skills-claude"></a>\n## [^\n:]*3[^\n:]*3: ', md) is not None,
+            'your setup: three rows, one over the line': html.count('<li class="ok"><span class="ci"') == 2 and html.count('<li class="over"><span class="ci"') == 1,
             'in-depth card: both rates, no word (within normal swings), against the first check': len(cards) == 2 and cards[0][0] == 'neutral' and label[1] in cards[0][1],
             'cost card: Better, against the previous 30 days': len(cards) == 2 and cards[1][0] == 'better' and label[0] in cards[1][1],
             'some kinds of problem fewer than at the first check, some more': any(b < a for a, b in counts[1:]) and any(b > a for a, b in counts[1:]),

@@ -43,7 +43,8 @@ type ToolAdvice struct {
 type Against struct {
 	Title string            `json:"title"`
 	URL   string            `json:"url"`
-	Tool  string            `json:"tool"` // "" = both tools
+	Tool  string            `json:"tool"`           // "" = both tools
+	Kind  string            `json:"kind,omitempty"` // "another_way": an alternative to the advice, not evidence against it
 	Note  map[string]string `json:"note"`
 }
 

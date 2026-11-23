@@ -114,6 +114,7 @@ type Story struct {
 	St                  Status
 	Top                 []*Finding // the fixes, at most 3
 	Good                []GoodStat
+	Setup               []*Finding // setup items over their vendor line (docs/33)
 }
 
 // T is a story message with {name} placeholders filled.
@@ -121,6 +122,11 @@ func (s *Story) T(key string, kv ...any) string {
 	m := map[string]any{"docs": docsURL()}
 	for i := 0; i+1 < len(kv); i += 2 {
 		m[kv[i].(string)] = kv[i+1]
+	}
+	if n, ok := m["n"].(int); ok && n == 1 { // a singular form, where the language has one ("<key>.one")
+		if _, ok := s.S[key+".one"]; ok {
+			key += ".one"
+		}
 	}
 	v, ok := s.S[key]
 	if !ok {
@@ -183,6 +189,7 @@ func NewStory(m *Model) *Story {
 		s.Leak = append(s.Leak, &g)
 	}
 	s.St = s.status()
+	s.Setup = s.setupFindings()
 	s.Top = s.firstThree()
 	s.Good = s.goingWell()
 	return s
@@ -267,15 +274,18 @@ func (s *Story) firstThree() []*Finding {
 		a, b = l, d
 	}
 	var out []*Finding
-	for (len(a) > 0 || len(b) > 0) && len(out) < 3 {
+	for len(a) > 0 || len(b) > 0 {
 		for _, q := range []*[]*Finding{&a, &b} {
-			if len(*q) > 0 && len(out) < 3 {
+			if len(*q) > 0 {
 				out = append(out, (*q)[0])
 				*q = (*q)[1:]
 			}
 		}
 	}
-	return out
+	if len(s.Setup) > 0 {
+		return withSetup(out, s.Setup)
+	}
+	return out[:min(3, len(out))]
 }
 
 // Others are the ranked findings that are not fixes, then the leftovers.
@@ -295,7 +305,7 @@ func (s *Story) Others() []*Finding {
 			out = append(out, f)
 		}
 	}
-	return append(out, s.Leftovers...)
+	return withSetupOthers(append(out, s.Leftovers...), s.Setup, s.Top)
 }
 
 // Key is the copy key of a finding: its kind or habit.
@@ -327,6 +337,9 @@ func (s *Story) join(xs []string, en, ko string) string {
 
 // Plain is the plain copy of a finding (§16, §17.6): the action follows from the specific thing.
 func (s *Story) Plain(f *Finding) Plain {
+	if f.Side == "setup" {
+		return s.setupPlain(f)
+	}
 	k := Key(f)
 	th := s.Thing(f)
 	if k == "BROKE_CHAT" {
@@ -710,6 +723,9 @@ func (s *Story) Draft(f *Finding, th *Thing) *Draft {
 
 // BigNum is the fix section's number: sessions hit, or dollars.
 func (s *Story) BigNum(f *Finding) string {
+	if f.Side == "setup" {
+		return s.setupBig(f)
+	}
 	if f.Side == "leak" {
 		return Money(f.USD)
 	}

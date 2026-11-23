@@ -156,12 +156,18 @@ func (s *Story) lookSection() string {
 		for _, f := range others {
 			p := s.Plain(f)
 			evid := "ev-" + f.ID
+			if f.Side == "setup" {
+				fmt.Fprintf(&b, `<article class="card8" id="%s"><p class="k">%s</p><h4>%s</h4><p class="hk8">%s</p><p class="why8">%s %s</p><a class="btn8 noprint" href="#%s" data-ev="%s">%s →</a><div class="ev6" id="%s" data-title="%s">%s</div></article>`,
+					f.ID, E(s.setupCardK(f)), E(p.Action), E(p.Hook), E(p.Why), aLink(p.SrcURL, s.T("source")+": "+p.SrcName), evid, evid, E(s.T("how_fix")), evid, E(p.Action), s.setupEvidence(f))
+				continue
+			}
 			fmt.Fprintf(&b, `<article class="card8" id="%s"><p class="k">%s · %s</p><h4>%s</h4><p class="why8">%s %s</p><a class="btn8 noprint" href="#%s" data-ev="%s">%s →</a><div class="ev6" id="%s" data-title="%s">%s</div></article>`,
 				f.ID, E(s.prob(f)), E(s.unit(f)), E(p.Action), E(p.Why), aLink(p.SrcURL, s.T("source")+": "+p.SrcName),
 				evid, evid, E(s.T("show_ev")), evid, E(p.Action), s.evidenceBody(f, PickEvents(f, 3), true))
 		}
 		b.WriteString(`</div></div>`)
 	}
+	b.WriteString(s.setupBlock())
 	rs := sessionsWorstFirst(m)
 	if len(rs) > 0 {
 		fmt.Fprintf(&b, `<div><h3>%s<span class="n">%d</span></h3><p class="lsub">%s</p><ul class="sl8">`, E(s.T("look_sess")), len(rs),

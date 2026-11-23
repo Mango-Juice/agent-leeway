@@ -40,6 +40,9 @@ func (s *Story) axisRows() []axisRow {
 }
 
 func (s *Story) unit(f *Finding) string {
+	if f.Side == "setup" {
+		return s.setupFact(f)
+	}
 	if f.Side == "drift" {
 		return s.T("unit_s", "n", f.Sessions, "j", s.M.J)
 	}
@@ -228,7 +231,7 @@ func Markdown(m *Model) string {
 		if d := s.Draft(f, th); d != nil {
 			r = append(r, d.Label, "", "```text", d.Line, "```", "")
 		}
-		return r
+		return append(r, s.setupFixMD(f)...)
 	}
 	evMD := func(f *Finding) []string {
 		var r []string
@@ -324,9 +327,11 @@ func Markdown(m *Model) string {
 			x := s.Plain(f)
 			md = append(md, `<a id="`+f.ID+`"></a>`, "#### "+x.Action, "", "**"+x.Hook+"** "+x.Why+" "+x.SrcMD(x.SrcName), "",
 				"_"+s.T("how_sure")+": "+s.X.Level(f.Level)+joinPre(s.X.Notes(f), " · ")+"_", "")
+			md = append(md, s.setupFixMD(f)...)
 			md = append(md, evMD(f)...)
 		}
 	}
+	md = append(md, s.setupMD()...)
 	if len(sessionsWorstFirst(m)) > 0 {
 		md = append(md, "### "+s.T("look_sess"), "", s.T("look8_sess_lead", "n", len(sessionsWorstFirst(m)), "j", m.J), "")
 	}

@@ -2,6 +2,11 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- "Your setup" in the basic report: each tool's skill list and instruction file against the line its own docs publish (Claude Code: skill descriptions dropped from the list, `CLAUDE.md` over 200 lines; Codex: `AGENTS.md` at `project_doc_max_bytes`). An item over its line is a fix, ranked after the firm and measured fixes; every item is a row in Look things up, with the tool's page. Offline, no model call; see docs/privacy.md for what is read.
+
 ## [0.1.7] - 2026-11-23
 
 ### Changed

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -424,4 +425,62 @@ func Grouping(flag string) (map[string]bool, error) {
 		}
 	}
 	return out, nil
+}
+
+// SkillNameOnly is the skills set to "name-only" in "skillOverrides" of the Claude Code settings that apply in a
+// folder: the user's settings.json, and the folder's .claude/settings.json and .claude/settings.local.json. Such a
+// skill is listed without a description on purpose. Only this one setting is read; nothing else is kept.
+func SkillNameOnly(cwd string) map[string]bool {
+	paths := []string{filepath.Join(ClaudeConfigDir(), "settings.json")}
+	if cwd != "" {
+		paths = append(paths, filepath.Join(cwd, ".claude", "settings.json"), filepath.Join(cwd, ".claude", "settings.local.json"))
+	}
+	out := map[string]bool{}
+	for _, p := range paths {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		var s struct {
+			Overrides map[string]any `json:"skillOverrides"`
+		}
+		if json.Unmarshal(b, &s) != nil {
+			continue
+		}
+		for name, v := range s.Overrides {
+			if v == "name-only" {
+				out[name] = true
+			} else {
+				delete(out, name) // a later file (project, then local) overrides an earlier one
+			}
+		}
+	}
+	return out
+}
+
+// CodexDocMaxBytes is "project_doc_max_bytes" from Codex's config.toml, or 0 when it is not set or cannot be read.
+// Only that one top-level line is looked at: the file can hold secrets, so nothing else in it is parsed or kept.
+func CodexDocMaxBytes() int {
+	b, err := os.ReadFile(filepath.Join(CodexHome(), "config.toml"))
+	if err != nil {
+		return 0
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		l := strings.TrimSpace(line)
+		if strings.HasPrefix(l, "[") {
+			return 0 // a table starts: top-level keys come before it
+		}
+		k, v, ok := strings.Cut(l, "=")
+		if !ok || strings.TrimSpace(k) != "project_doc_max_bytes" {
+			continue
+		}
+		v, _, _ = strings.Cut(v, "#")
+		v = strings.ReplaceAll(strings.TrimSpace(v), "_", "")
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			return 0
+		}
+		return n
+	}
+	return 0
 }
