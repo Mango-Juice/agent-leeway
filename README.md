@@ -13,6 +13,8 @@ Then it shows what to fix first, in one report. It is a single executable for ma
 
 ![The first screen of a report, made from the synthetic test logs in testdata/](docs/img/report-en.png)
 
+See a whole report: [example report](https://mango-juice.github.io/agent-leeway/), made from made-up sessions.
+
 ## Install
 
 **Ask Claude Code or Codex:**
@@ -70,7 +72,7 @@ By default it looks at the last 30 days and judges at most the 50 most recent se
 
 `report` writes an HTML file and a Markdown file with the same content to `~/.cache/agent-leeway/reports` (`%LOCALAPPDATA%\agent-leeway\reports` on Windows), and prints a short summary. The report has:
 
-- an overall rating for cost and for drift
+- an overall rating for cost and for drift, compared with the previous period of the same length
 - the three changes that would help most, each labelled with its source, such as official docs or a study
 - what is going well
 - where the agent went off course, and where the money went, grouped by the habit behind it

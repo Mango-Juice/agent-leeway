@@ -132,7 +132,8 @@ func (o *logOpts) explicitDirs() (claude, codex bool) {
 func loadTables(o *logOpts, from time.Time, errw io.Writer) (*pipeline.Tables, error) {
 	claude, _, codexDirs := o.dirs()
 	srcs, folders := logs.DiscoverReport(logs.Discovery{CodexDirs: codexDirs, ClaudeDir: claude, SinceEpoch: float64(from.Add(-24*time.Hour).UnixNano()) / 1e9})
-	if err := reportFolders(o, folders, from, errw); err != nil {
+	oldestClaude, err := reportFolders(o, folders, from, errw)
+	if err != nil {
 		return nil, err
 	}
 	fc := logs.NewFileCache(o.cacheDir())
@@ -148,6 +149,7 @@ func loadTables(o *logOpts, from time.Time, errw io.Writer) (*pipeline.Tables, e
 	files, skipped := logs.LoadReport(srcs, o.workers, fc)
 	tb := pipeline.FromFiles(files)
 	tb.Skipped = len(skipped)
+	tb.OldestClaude = oldestClaude
 	tb.Build()
 	warnStats(tb, errw)
 	for i, p := range skipped {
@@ -161,7 +163,7 @@ func loadTables(o *logOpts, from time.Time, errw io.Writer) (*pipeline.Tables, e
 }
 
 // reportFolders prints what each log folder held and turns missing or unreadable folders into errors.
-func reportFolders(o *logOpts, folders []logs.Folder, from time.Time, errw io.Writer) error {
+func reportFolders(o *logOpts, folders []logs.Folder, from time.Time, errw io.Writer) (int64, error) {
 	exClaude, exCodex := o.explicitDirs()
 	total, inWindow := 0, 0
 	var newest, oldestClaude int64
@@ -206,10 +208,10 @@ func reportFolders(o *logOpts, folders []logs.Folder, from time.Time, errw io.Wr
 		}
 	}
 	if len(problems) > 0 {
-		return fmt.Errorf("%s", strings.Join(problems, "\n"))
+		return 0, fmt.Errorf("%s", strings.Join(problems, "\n"))
 	}
 	if total == 0 {
-		return fmt.Errorf("%s", messages.Cli["no_logs"])
+		return 0, fmt.Errorf("%s", messages.Cli["no_logs"])
 	}
 	if inWindow == 0 {
 		fmt.Fprintln(errw, py.Format(messages.Cli["none_in_window"], map[string]any{"date": time.Unix(0, newest).In(time.Local).Format("2006-01-02")}))
@@ -218,7 +220,7 @@ func reportFolders(o *logOpts, folders []logs.Folder, from time.Time, errw io.Wr
 	if oldestClaude > 0 && from.UnixNano() < oldestClaude {
 		fmt.Fprintln(errw, py.Format(messages.Cli["claude_retention"], map[string]any{"date": time.Unix(0, oldestClaude).In(time.Local).Format("2006-01-02")}))
 	}
-	return nil
+	return oldestClaude, nil
 }
 
 // warnStats reports what could not be used instead of dropping it silently.
@@ -247,7 +249,10 @@ func warnStats(tb *pipeline.Tables, errw io.Writer) {
 	}
 }
 
-type leakSet struct{ R, H, A, P, PH, PA *leak.Report }
+type leakSet struct {
+	R, H, A, P, PH, PA *leak.Report
+	E                  *leak.Events // the events behind them, for per-tool sums without reading the tables again
+}
 
 func leakReports(o *logOpts, since, now time.Time, withPrev bool, errw io.Writer) (leakSet, *pipeline.Tables, error) {
 	span := now.Sub(since)
@@ -264,7 +269,7 @@ func leakReports(o *logOpts, since, now time.Time, withPrev bool, errw io.Writer
 	until := now.Add(time.Minute)
 	loc := time.Local
 	run := func(s, u time.Time, origin string) *leak.Report { return leak.Compute(E, s, u, o.tool, origin, loc) }
-	x := leakSet{R: run(since, until, ""), H: run(since, until, "human"), A: run(since, until, "auto")}
+	x := leakSet{R: run(since, until, ""), H: run(since, until, "human"), A: run(since, until, "auto"), E: E}
 	if withPrev {
 		x.P, x.PH, x.PA = run(prevSince, since, ""), run(prevSince, since, "human"), run(prevSince, since, "auto")
 	}

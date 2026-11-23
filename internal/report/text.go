@@ -3,6 +3,7 @@ package report
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 
 	"golang.org/x/text/width"
@@ -34,7 +35,30 @@ func (x Text) Tr(key string, kv ...any) string {
 	for i := 0; i+1 < len(kv); i += 2 {
 		m[kv[i].(string)] = kv[i+1]
 	}
-	return py.Format(x.T[key], m)
+	return Number(x.Lang, py.Format(x.T[key], m))
+}
+
+var (
+	oneNoun   = regexp.MustCompile(`\b1 (session|time|thing|rule|problem|request|day|theme)s\b`)
+	maybeMany = regexp.MustCompile(`\b(\d+) ([a-z]+)\(s\)`)
+	oneWere   = regexp.MustCompile(`\b1 (?:different )?(thing|rule)s?( you had said)? were\b`)
+)
+
+// Number fixes English nouns after a count: "1 sessions" and "1 session(s)" become "1 session", "3 session(s)"
+// becomes "3 sessions". Other languages are returned as they are.
+func Number(lang, s string) string {
+	if lang != "en" {
+		return s
+	}
+	s = maybeMany.ReplaceAllStringFunc(s, func(m string) string {
+		p := maybeMany.FindStringSubmatch(m)
+		if p[1] == "1" {
+			return p[1] + " " + p[2]
+		}
+		return p[1] + " " + p[2] + "s"
+	})
+	s = oneNoun.ReplaceAllString(s, "1 $1")
+	return oneWere.ReplaceAllString(s, "1 $1$2 was")
 }
 
 // Money is "$1,234.56".

@@ -55,6 +55,7 @@ type Partial struct {
 	Mid      float64
 	ThreadID string
 	Origin   string
+	Tool     string
 }
 
 // Events is everything compute() needs, loaded once and filtered per window.
@@ -149,7 +150,7 @@ func LoadEvents(t *pipeline.Tables, tool string) *Events {
 			if (tool != "" && s.Tool != tool) || s.Cls != "partial" {
 				continue
 			}
-			p := Partial{TS: s.TS, Mid: s.Mid, ThreadID: s.ThreadID, Origin: "human"}
+			p := Partial{TS: s.TS, Mid: s.Mid, ThreadID: s.ThreadID, Origin: "human", Tool: s.Tool}
 			if r, ok := first[tsk{s.ThreadID, s.TS}]; ok {
 				p.Origin = r.Origin
 			}
@@ -157,6 +158,28 @@ func LoadEvents(t *pipeline.Tables, tool string) *Events {
 		}
 	}
 	return E
+}
+
+// ForTool is E limited to one tool's events, the same as LoadEvents(t, tool) without reading the tables again.
+// The session and origin maps are shared: they are looked up by session key only.
+func (E *Events) ForTool(tool string) *Events {
+	out := &Events{Sessions: E.Sessions, Uncertain: E.Uncertain}
+	for _, e := range E.Ev {
+		if e.Tool == tool {
+			out.Ev = append(out.Ev, e)
+		}
+	}
+	for _, r := range E.SW {
+		if r.Tool == tool {
+			out.SW = append(out.SW, r)
+		}
+	}
+	for _, p := range E.Partial {
+		if p.Tool == tool {
+			out.Partial = append(out.Partial, p)
+		}
+	}
+	return out
 }
 
 // Cause is one row of the by-cause table.

@@ -9,9 +9,10 @@ The in-depth check is the only step that sends session content. Claude Code sess
 | `leak`, `idle`, `compare` | Claude Code transcripts in `~/.claude/projects` (or `$CLAUDE_CONFIG_DIR/projects`). Codex sessions in `~/.codex/sessions` and `archived_sessions` (or under `$CODEX_HOME`), including `*.jsonl.zst` | Nothing |
 | `drift`: judging | From the logs: your requests and a summary of the agent's actions (commands, edited files, failures, final answers), and instruction files recorded in the log. For Claude Code sessions without them, your current `CLAUDE.md`, `CLAUDE.local.md` and `AGENTS.md` (`--no-current-instructions` turns this off) | The session excerpt, to the provider that produced the session, through your own CLI login |
 | `drift`: grouping (after judging; `--no-grouping` turns it off) | That tool's judged problems: short ids, rule and cause codes, the cited instruction, your own quoted words, and the judge's summaries. The agent's turns are not sent | One call per tool, to the same provider's CLI, under the same lock-down |
-| `report` | The results above | Nothing. The HTML file loads nothing from the network |
+| `report` | The results above. From Claude Code's `settings.json`, only `cleanupPeriodDays` and the file's date, to tell deleted logs from no use | Nothing. The HTML file loads nothing from the network |
 
 - The cache and reports stay in `~/.cache/agent-leeway` (`%LOCALAPPDATA%\agent-leeway` on Windows).
+- `report` saves each window's cost in numbers only (spend, waste, per-habit amounts, session count; no text) as `compare/*.json` in the cache. A later report compares with it when Claude Code has deleted that window's logs.
 - `self-update --check` asks GitHub for the latest release tag. Prices come from a local table.
 - Every command runs `git rev-parse` (read-only) in project folders found in the logs, to name the projects.
 - The program never reads or stores credentials, and never calls a provider API with its own key.

@@ -13,6 +13,8 @@ Leeway(`agent-leeway`)는 내 컴퓨터에 쌓인 Claude Code와 Codex 세션 �
 
 ![testdata/의 합성 테스트 로그로 만든 리포트 첫 화면](docs/img/report-ko.png)
 
+리포트 전체 예시: [예시 리포트](https://mango-juice.github.io/agent-leeway/ko/). 지어낸 세션으로 만들었습니다.
+
 ## 설치
 
 **Claude Code나 Codex에 이렇게 말하면 됩니다.**
@@ -70,7 +72,7 @@ agent-leeway report --lang ko            # 리포트: 비용 점검 + 지금까�
 
 `report`는 HTML 파일과 같은 내용의 Markdown 파일을 `~/.cache/agent-leeway/reports`(Windows는 `%LOCALAPPDATA%\agent-leeway\reports`)에 만들고, 터미널에 짧은 요약을 출력합니다. 리포트에는 이런 내용이 들어갑니다.
 
-- 비용 점검과 정밀 점검의 총평
+- 비용 점검과 정밀 점검의 총평, 그리고 같은 길이의 직전 기간과 비교
 - 가장 효과가 큰 개선점 3가지와 각각의 근거
 - 잘하고 있는 것
 - 에이전트가 요청에서 벗어난 곳과 비용이 샌 곳(원인이 된 사용 습관별로 묶음)

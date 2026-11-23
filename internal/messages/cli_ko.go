@@ -113,6 +113,7 @@ var cliKO = map[string]string{
 		"  - 점검 CLI는 내 환경을 물려받으므로 ANTHROPIC_BASE_URL, OPENAI_BASE_URL, 프록시 같은 설정이 적용됩니다.\n" +
 		"  - drift는 로그에 지시 파일이 없는 Claude Code 세션에 프로젝트 폴더의 현재 CLAUDE.md, CLAUDE.local.md, AGENTS.md(와 전역 CLAUDE.md)를 붙입니다. --no-current-instructions로 끌 수 있습니다.\n" +
 		"  - 모든 명령은 로그에 나온 프로젝트 폴더에서 프로젝트 이름을 알려고 `git rev-parse`(읽기만 함)를 실행합니다.\n" +
+		"  - `report`는 지워진 로그와 사용하지 않은 기간을 구분하려고 Claude Code settings.json에서 설정 하나(cleanupPeriodDays, 대화 기록을 두는 기간)와 그 파일의 날짜를 읽습니다. 또 Claude Code가 로그를 지운 뒤에도 비교할 수 있도록 기간마다 비용을 숫자로만(사용액, 샌 비용, 습관별 금액, 세션 수. 글은 없음) 캐시의 compare/*.json에 저장합니다.\n" +
 		"  - LEEWAY_JUDGE_CMD를 설정하면 점검 CLI 대신 로컬 프로그램을 씁니다(drift가 알려 줌). LEEWAY_RELEASE_API는 `self-update --check`가 묻는 곳을 바꿉니다.\n" +
 		"  - 가격은 로컬 가격표({prices})에서 가져오며 아무것도 내려받지 않습니다.",
 	"privacy_paths":         "캐시: {cache}\n리포트: {reports}\n설정: {settings}\nClaude Code 로그: {claude}\nCodex 로그: {codex}",

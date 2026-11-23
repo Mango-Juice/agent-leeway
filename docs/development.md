@@ -136,3 +136,8 @@ The tool was first written in Python during the research phase. The Go program w
 3. Release checklist: check `codex debug models` and the Claude Code model docs for new versions of the preferred families before each release, and run step 1 for any new one.
 
 **Diagnostics.** `drift --debug-log` (or `LEEWAY_DEBUG=1`) writes `<cache>/debug/judge-<time>.log`: per judge call the CLI and its version, the arguments, exit status, stderr (masked) and the event types and error messages of its output, never the prompt, the session or the answer.
+
+## Stand-in judge and fixed clock
+
+- **`LEEWAY_JUDGE_CMD`** replaces the judge CLIs with a local program. Its contract is relied on outside the tests (the example report site in the development repository is judged this way), so keep it stable: the command gets `{"tier", "system", "prompt"}` as JSON on stdin and prints `{"text": ..., "usage": {...}}` on stdout; a non-zero exit is a failed call with stderr as the message.
+- **`LEEWAY_NOW`** (an RFC 3339 time) fixes the clock for `leak`, `drift` and `report`. With the same logs and the same time, a report is byte-identical, which the example build uses.

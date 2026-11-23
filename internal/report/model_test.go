@@ -265,7 +265,7 @@ func TestMaskingCount(t *testing.T) {
 	if strings.Contains(md, secret) || !strings.Contains(md, "[masked github-token]") || !strings.Contains(md, "3f786850e387550fdab836ed7e6dc881de23001b") {
 		t.Fatalf("masking in Markdown")
 	}
-	if !strings.Contains(md, "2 quote(s) had a key or token masked") {
+	if !strings.Contains(md, "2 quotes had a key or token masked") {
 		t.Error("masked count line missing")
 	}
 }

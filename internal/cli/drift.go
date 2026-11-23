@@ -640,8 +640,9 @@ func cmdReport(args []string, out, errw io.Writer) int {
 	for _, s := range sel {
 		keys[s.Key] = true
 	}
+	all := drift.LoadResults(o.cacheDir()) // read once: the window, the per-tool counts and the comparison use it
 	var recs []py.Value
-	for _, r := range drift.LoadResults(o.cacheDir()) {
+	for _, r := range all {
 		if keys[r.Get("key").S] {
 			recs = append(recs, r)
 		}
@@ -649,7 +650,6 @@ func cmdReport(args []string, out, errw io.Writer) int {
 	// Per tool: sessions in the window, and how many have a judged result. A report asked for one tool shows
 	// only that tool's drift results and says how many of the other tool's are kept out; the summary ends with
 	// the asked-for tools' sessions that were never judged (an agent offers the drift check from it).
-	all := drift.LoadResults(o.cacheDir())
 	inWin, judged := map[string]int{}, map[string]int{}
 	for _, t := range []string{"claude", "codex"} {
 		ks := map[string]bool{}
@@ -683,6 +683,7 @@ func cmdReport(args []string, out, errw io.Writer) int {
 	}
 	m := newModel(x.R, recs, config.Language(o.lang), now, since, *quoteChars, shownGroups(drift.LoadGroups(o.cacheDir()), groupOn), nil, errw)
 	m.Tool, m.Unjudged, m.OtherJudged = o.tool, unjudged, otherJudged
+	m.Compare = compareWithPrevious(&o, tb, x, m, since, now, tools, inWin, keys, all)
 	md, html, err := report.Build(m)
 	if err != nil {
 		say(errw, err.Error())

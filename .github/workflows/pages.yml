@@ -1,0 +1,79 @@
+# Builds the example report site (site/) with the binary of a published release and deploys it to GitHub Pages
+# (https://mango-juice.github.io/agent-leeway/). Runs when a release is published, or by hand for an existing release
+# tag. The site is made from made-up sessions (site/example.py) and judged by the hand-written stand-in through
+# LEEWAY_JUDGE_CMD: offline, no model calls. Before it runs, the archive is checked against the release's
+# checksums.txt and its build provenance (attested by release.yml). Prereleases are skipped. Nothing generated is
+# committed. Needs, once: Settings → Pages → source "GitHub Actions", and a `v*` tag rule on the github-pages
+# environment (site/README.md).
+name: example site
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: release tag, e.g. v0.1.5
+        required: true
+permissions: {}
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read      # check out the release's sources and download its assets
+      attestations: read  # verify the archive's build provenance
+      pages: read         # check that Pages is enabled
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: check the tag, and that Pages is enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          case "$TAG" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::not a release tag: $TAG"; exit 1;; esac
+          if ! gh api "repos/$GITHUB_REPOSITORY/pages" --jq .build_type > "$RUNNER_TEMP/pages.txt" 2>/dev/null; then
+            echo "::error::GitHub Pages is not enabled for this repository. Settings → Pages → Source: GitHub Actions (site/README.md)."
+            exit 1
+          fi
+          if [ "$(cat "$RUNNER_TEMP/pages.txt")" != workflow ]; then
+            echo "::error::GitHub Pages is set to deploy from a branch. Settings → Pages → Source: GitHub Actions (site/README.md)."
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}   # site/ as released, matching the binary
+          persist-credentials: false
+      - name: download the released binary and check it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rel" && cd "$RUNNER_TEMP/rel"
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p checksums.txt -p agent-leeway_linux_amd64.tar.gz
+          grep ' agent-leeway_linux_amd64.tar.gz$' checksums.txt > want.txt
+          sha256sum -c want.txt
+          gh attestation verify agent-leeway_linux_amd64.tar.gz -R "$GITHUB_REPOSITORY"
+          tar -xzf agent-leeway_linux_amd64.tar.gz agent-leeway
+      - name: build the example from made-up logs (offline, no model calls) and check it
+        run: |
+          set -euo pipefail
+          LEEWAY_EXAMPLE_NOW="$(date -u +%Y-%m-%dT12:00:00Z)" sh site/build.sh "$RUNNER_TEMP/rel/agent-leeway" "$RUNNER_TEMP/site"
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/site
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write        # publish the site
+      id-token: write     # prove the deployment comes from this workflow
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

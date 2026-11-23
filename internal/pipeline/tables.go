@@ -63,22 +63,25 @@ type CommitRow struct {
 
 // Tables holds every table, in the reference's row order.
 type Tables struct {
-	Threads    []logs.Thread
-	Steps      []StepRow // steps (normalize order); priced fields filled by Sessions()
-	Calls      []CallRow
-	Turns      []TurnRow
-	Commits    []CommitRow
-	Events     map[string][]logs.Event // per thread id
-	TurnsHuman []TurnRow
-	Sessions   []Session
-	Waste      []WasteRow
-	Origin     []OriginRow
-	SessOrigin []SessionOrigin
-	ResetEv    []ResetEvent
-	ResetSteps []ResetStep
-	Stats      logs.Stats
-	Files      int
-	Skipped    int
+	// OldestClaude is the oldest Claude Code transcript's time (UnixNano; 0 when none was read): Claude Code
+	// deletes transcripts after 30 days by default, so earlier windows can lack its logs.
+	OldestClaude int64
+	Threads      []logs.Thread
+	Steps        []StepRow // steps (normalize order); priced fields filled by Sessions()
+	Calls        []CallRow
+	Turns        []TurnRow
+	Commits      []CommitRow
+	Events       map[string][]logs.Event // per thread id
+	TurnsHuman   []TurnRow
+	Sessions     []Session
+	Waste        []WasteRow
+	Origin       []OriginRow
+	SessOrigin   []SessionOrigin
+	ResetEv      []ResetEvent
+	ResetSteps   []ResetStep
+	Stats        logs.Stats
+	Files        int
+	Skipped      int
 }
 
 func keyOf(tool string, sid logs.NS) logs.NS {

@@ -548,11 +548,11 @@ func (s *Story) HTML() string {
 
 	// 1 overall: what is rated, the rating, two cards; the hint names the first fix
 	title := fmt.Sprintf(`<div class="title"><p class="kicker" id="s-verdict-h">%s</p><p class="period">%s</p><h1 class="r-%s">%s</h1></div>`,
-		E(s.T("kicker")), E(s.T("period", "a", m.From, "b", m.To)), st.Overall, E(s.T("rating."+st.Overall)))
+		E(s.T("kicker")), E(joinDot(s.T("period", "a", m.From, "b", m.To), s.CmpVs())), st.Overall, E(s.T("rating."+st.Overall)))
 	var c1 string
 	if s.DriftRun() {
-		c1 = fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p>%s<p class="dist">%s</p>`, E(s.T("c_drift")), E(s.T("f_drift", "n", st.Serious, "j", m.J)),
-			dots(st.Serious, m.J, "f-agent_drift", 15, 5, 4), E(st.DDrift))
+		c1 = fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p>%s%s<p class="dist">%s</p>`, E(s.T("c_drift")), E(s.T("f_drift", "n", st.Serious, "j", m.J)),
+			s.cmpPill(s.cmpOn(true)), dots(st.Serious, m.J, "f-agent_drift", 15, 5, 4), E(st.DDrift))
 		if pl := s.PartialLine(); pl != "" {
 			c1 += `<p class="dist">` + E(pl) + `</p>`
 		}
@@ -571,8 +571,8 @@ func (s *Story) HTML() string {
 	kLeak := int(math.Round(st.Share * 100))
 	if m.HasLeak {
 		wf := strings.Replace(waffle([][2]any{{kLeak, "f-agent_drift"}}), `role="img"`, `role="img" title="`+E(s.T("sq"))+`"`, 1)
-		c2 := fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s (%s)</p>%s<p class="dist">%s</p>`, E(s.T("c_cost")),
-			E(s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD))), Pct(st.Share), wf, E(st.DCost))
+		c2 := fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s (%s)</p>%s%s<p class="dist">%s</p>`, E(s.T("c_cost")),
+			E(s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD))), Pct(st.Share), s.cmpPill(s.cmpOn(false)), wf, E(st.DCost))
 		if st.Cost != "na" {
 			c2 += track(st.Share, CostCuts, 0.25, scale, st.Cost)
 		}
@@ -685,7 +685,7 @@ func (s *Story) HTML() string {
 	body := nav.String() + `<main>` + out.String() + `</main>` + dlg
 	return `<!doctype html><html lang="` + s.Lang + `"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
 		`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">` +
-		`<meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><title>` + E(s.T("kicker")+" · "+m.To) + `</title><style>` + pageCSS + css8 +
+		`<meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><title>` + E(s.T("kicker")+" · "+m.To) + `</title><style>` + pageCSS + css8 + cmpCSS +
 		`</style></head><body>` + body + `<script>(function(){` + pageJS + `})();</script></body></html>`
 }
 

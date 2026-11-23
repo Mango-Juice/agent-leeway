@@ -126,7 +126,7 @@ func (s *Story) T(key string, kv ...any) string {
 	if !ok {
 		v = messages.Story["en"][key]
 	}
-	return py.Format(v, m)
+	return Number(s.Lang, py.Format(v, m))
 }
 
 func docsURL() string { return meta.RepoURL() + "/blob/main/docs/validation.md" }

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESC}}">
+<style>
+:root{--paper:#f7f5f0;--card:#fffefb;--t1:#211d18;--t2:#4f4840;--t3:#6c655a;--line:rgba(47,39,28,.14);--amber:#b87814;--ink:#15304d;
+--sans:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{--paper:#161410;--card:#1e1b16;--t1:#efe9dd;--t2:#c4bcad;--t3:#9a9283;--line:rgba(255,244,225,.14);--amber:#e2ac4d;--ink:#a3c6e8}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--t1);font:14px/1.4 var(--sans);display:flex;flex-direction:column}
+:lang(ko){word-break:keep-all}
+.bar{display:flex;align-items:center;gap:14px;padding:0 16px;height:46px;border-bottom:1px solid var(--line);flex:none}
+.wm{font-weight:700;letter-spacing:-.01em;color:var(--t1);text-decoration:none;font-size:15px}
+.tag{font-size:12.5px;color:var(--t1);background:rgba(216,150,42,.14);border:1px solid rgba(216,150,42,.55);border-radius:999px;padding:3px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.tag b{font-weight:650}
+.sp{flex:1}
+.bar a.l,.bar button{font:inherit;font-size:13px;color:var(--t1);background:none;border:0;padding:6px 8px;border-radius:8px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.bar a.l:hover,.bar button:hover{background:var(--line)}
+.bar a.cur{font-weight:650;color:var(--amber)}
+.bar :focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+.inst{position:absolute;top:46px;right:12px;z-index:5;width:min(560px,calc(100% - 24px));background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.inst[hidden]{display:none}.inst p{margin:0 0 6px;font-size:12.5px;color:var(--t2)}.inst p+p,.inst pre+p{margin-top:12px}
+.inst pre{margin:0;font:12.5px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;background:var(--paper);border-radius:8px;padding:8px 10px}
+.inst .priv{color:var(--t1);border-top:1px solid var(--line);padding-top:10px}
+.inst .row{display:flex;gap:8px;align-items:flex-start}.inst .row pre{flex:1}
+iframe{flex:1;width:100%;border:0;display:block}
+@media (max-width:640px){.tag .long{display:none}.tag{flex:none}.bar a.cur{display:none}.bar{gap:6px;padding:0 8px}.bar a.l,.bar button{padding:6px 6px}}
+@media (max-width:420px){.bar{flex-wrap:wrap;height:auto;padding:6px 8px;row-gap:4px}.tag{order:9;flex-basis:100%;text-align:center}.bar a.l,.bar button{padding:4px 5px}.inst{top:78px}}
+</style>
+</head>
+<body>
+<header class="bar">
+<a class="wm" href="{{REPO}}">Leeway</a>
+<span class="tag" title="{{NOTE_LONG}}"><b>{{NOTE_SHORT}}</b><span class="long"> · {{NOTE_TAIL}}</span></span>
+<span class="sp"></span>
+<a class="l{{EN_CUR}}" href="{{EN_HREF}}" hreflang="en" lang="en">English</a>
+<a class="l{{KO_CUR}}" href="{{KO_HREF}}" hreflang="ko" lang="ko">한국어</a>
+<button type="button" id="ib" aria-expanded="false" aria-controls="inst">{{INSTALL}}</button>
+<a class="l" href="{{REPO}}">GitHub</a>
+</header>
+<div class="inst" id="inst" hidden>
+<p>{{INSTALL_UNIX}}</p>
+<div class="row"><pre id="c1">curl -fsSL https://raw.githubusercontent.com/Mango-Juice/agent-leeway/main/install/install.sh | sh</pre><button type="button" data-c="c1">{{COPY}}</button></div>
+<p>{{INSTALL_WIN}}</p>
+<div class="row"><pre id="c2">irm https://raw.githubusercontent.com/Mango-Juice/agent-leeway/main/install/install.ps1 | iex</pre><button type="button" data-c="c2">{{COPY}}</button></div>
+<p>{{INSTALL_THEN}}</p>
+<p class="priv">{{PRIVACY}}</p>
+</div>
+<iframe id="rep" src="{{REPORT}}" title="{{IFRAME_TITLE}}"></iframe>
+<script>
+(function(){var b=document.getElementById('ib'),p=document.getElementById('inst');
+b.addEventListener('click',function(){var o=p.hidden;p.hidden=!o;b.setAttribute('aria-expanded',o)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!p.hidden){p.hidden=true;b.setAttribute('aria-expanded','false');b.focus()}});
+[].forEach.call(document.querySelectorAll('[data-c]'),function(x){x.addEventListener('click',function(){var t=document.getElementById(x.getAttribute('data-c')).textContent;
+if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){var o=x.textContent;x.textContent='{{COPIED}}';setTimeout(function(){x.textContent=o},1500)})})});
+// links to other sites (sources, docs) open in a new tab: inside the frame they would be blocked. The report file
+// itself is left as the binary wrote it; this only sets attributes after it loads (same origin).
+var f=document.getElementById('rep');f.addEventListener('load',function(){var d;try{d=f.contentDocument}catch(e){return}if(!d)return;
+var ext=function(a){return a&&a.href&&a.host&&a.host!==location.host&&/^https?:$/.test(a.protocol)};
+var mark=function(a){a.target='_blank';a.rel='noopener noreferrer'};
+[].forEach.call(d.querySelectorAll('a[href]'),function(a){if(ext(a))mark(a)});
+d.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a[href]'):null;if(ext(a))mark(a)},true)});})();
+</script>
+</body>
+</html>

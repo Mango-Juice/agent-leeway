@@ -70,7 +70,7 @@ _How sure: Measured_
 <a id="f-drift-broke-file"></a>
 ## Fix 3 of 3: Make the rules it broke specific enough to check
 
-**1 different rules were broken, in 1 sessions. For example:**
+**1 rule was broken, in 1 session. For example:**
 
 > Rule in your CLAUDE.md: “표는 지우지 말고 그대로 유지할 것”
 
@@ -104,7 +104,7 @@ Most often: Ignored something you had said, in 4 of 9 sessions.
 
 _Each bar counts the checked sessions that had this problem at least once, big or small. One session can have several problems, so the bars add up to more than the number of sessions._
 
-"A mistake you had to point out" (1 sessions) is not one of the three fixes at the top of this report, because its advice is general. You can find it under Look things up.
+"A mistake you had to point out" (1 session) is not one of the three fixes at the top of this report, because its advice is general. You can find it under Look things up.
 
 ### Where the money went
 
@@ -138,7 +138,7 @@ The rest of the report, in full.
 <a id="f-drift-mistake"></a>
 #### Stop it early, and start over after two failed fixes
 
-**You had to fix its own mistakes in 1 sessions.** In Codex you can press Enter while it works to steer the current turn. [Codex docs](https://learn.chatgpt.com/docs/prompting)
+**You had to fix its own mistakes in 1 session.** In Codex you can press Enter while it works to steer the current turn. [Codex docs](https://learn.chatgpt.com/docs/prompting)
 
 _How sure: Check this · found only by the Codex judge, which flags more_
 
@@ -252,10 +252,10 @@ _How sure: Check this · judges detect this cause least; there are probably more
 - **Where the dollars come from**: API list prices, checked 2026-11-22. A subscription is not billed this way.
 - **Privacy**: This page was made on this computer. Nothing was sent anywhere to build it.
 - Checked with your edited rubric v2.1-b636272b+t2; the validation figures in this report were measured with the bundled rubric v2.1-cf92779d
-- 2 session(s) could not be told apart as your own conversation or an automation; they are counted as your own.
+- 2 sessions could not be told apart as your own conversation or an automation; they are counted as your own.
 - Judge programs: LEEWAY_JUDGE_CMD.
-- Citation check: 17 quotes checked, 1 not found; 1 event(s) dropped because none of their quotes was found.
-- 1 theme(s) come from the grouping step: after checking, one call per tool grouped the problems by meaning; the quotes shown are your own words from the logs.
+- Citation check: 17 quotes checked, 1 not found; 1 event dropped because none of their quotes was found.
+- 1 theme come from the grouping step: after checking, one call per tool grouped the problems by meaning; the quotes shown are your own words from the logs.
 - Not checked in depth yet: 2 Claude Code sessions in this period. To see what would be checked (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
 
 [Full method and known limits](https://github.com/Mango-Juice/agent-leeway/blob/main/docs/validation.md)

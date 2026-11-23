@@ -67,6 +67,7 @@ var Cli = map[string]string{
 		"  - The judge CLIs inherit your environment, so settings such as ANTHROPIC_BASE_URL, OPENAI_BASE_URL or a proxy apply to them.\n" +
 		"  - drift adds the current CLAUDE.md, CLAUDE.local.md and AGENTS.md files of the project folder (and your global CLAUDE.md) to Claude Code sessions whose log has none; --no-current-instructions turns this off.\n" +
 		"  - Every command runs `git rev-parse` (read-only) in project folders found in the logs, to name projects.\n" +
+		"  - `report` reads one setting from Claude Code's settings.json, cleanupPeriodDays (how long Claude Code keeps transcripts), and that file's date, to tell deleted logs from no use. It saves each window's cost in numbers only (spend, waste, per-habit amounts, session count; no text) as compare/*.json in the cache, to compare with later when Claude Code has deleted those logs.\n" +
 		"  - LEEWAY_JUDGE_CMD, when set, replaces the judge CLIs with a local program (drift says so); LEEWAY_RELEASE_API changes where `self-update --check` asks.\n" +
 		"  - Prices come from a local table ({prices}); nothing is fetched.",
 	"privacy_paths":         "Cache: {cache}\nReports: {reports}\nSettings: {settings}\nClaude Code logs: {claude}\nCodex logs: {codex}",

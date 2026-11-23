@@ -29,12 +29,12 @@ type axisRow struct{ label, lv, fact, dist string }
 
 func (s *Story) axisRows() []axisRow {
 	m, st := s.M, s.St
-	rows := []axisRow{{s.T("c_drift"), st.Drift, s.T("f_drift", "n", st.Serious, "j", m.J), st.DDrift}}
+	rows := []axisRow{{s.T("c_drift"), st.Drift, joinDot(s.T("f_drift", "n", st.Serious, "j", m.J), s.CmpTerm(true)), st.DDrift}}
 	if !s.DriftRun() {
 		rows[0] = axisRow{s.T("c_drift"), "none", s.NoneFact(), s.T("drift_none_cmd", "cmd", s.DriftCmd())}
 	}
 	if m.HasLeak {
-		rows = append(rows, axisRow{s.T("c_cost"), st.Cost, s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD)), st.DCost})
+		rows = append(rows, axisRow{s.T("c_cost"), st.Cost, joinDot(s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD)), s.CmpTerm(false)), st.DCost})
 	}
 	return rows
 }
@@ -59,7 +59,7 @@ func joinDot(a, b string) string {
 func Terminal(m *Model, md, html string) string {
 	s := NewStory(m)
 	st := s.St
-	out := []string{s.T("kicker") + ": " + strings.ToUpper(s.T("rating."+st.Overall)) + "   (" + s.T("period", "a", m.From, "b", m.To) + ")", ""}
+	out := []string{s.T("kicker") + ": " + strings.ToUpper(s.T("rating."+st.Overall)) + "   (" + joinDot(s.T("period", "a", m.From, "b", m.To), s.CmpVs()) + ")", ""}
 	if pl := s.PartsLine(); pl != "" { // first, so an agent relaying the summary keeps the order: what is done, what is not
 		out = append([]string{pl, ""}, out...) // one line, not wrapped: agents relay it word for word
 	}
@@ -159,8 +159,17 @@ func Markdown(m *Model) string {
 	if !s.DriftRun() {
 		md[len(md)-1] = "| " + s.T("c_drift") + " | " + s.T("drift_none_word") + " | " + s.NoneFact() + " " + strings.Replace(s.T("drift_none_cmd", "cmd", s.DriftCmd()), s.DriftCmd(), code(s.DriftCmd()), 1) + " |"
 	}
+	if s.CmpVs() != "" { // a column for the comparison with the previous period
+		n := len(md)
+		md[n-3] += " " + s.T("cmp_md_col", "span", s.cmpSpan()) + " |"
+		md[n-2] += ":--|"
+		md[n-1] += " " + s.CmpTerm(true) + " |"
+	}
 	if m.HasLeak {
 		md = append(md, "| "+s.T("c_cost")+" | "+scl(st.Cost)+" | "+joinDot(s.T("f_cost", "leak", Money(m.LeakUSD), "total", Money(m.TotalUSD))+" ("+Pct(st.Share)+")", st.DCost)+" |")
+		if s.CmpVs() != "" {
+			md[len(md)-1] += " " + s.CmpTerm(false) + " |"
+		}
 	}
 	md = append(md, "")
 	if !s.DriftRun() && st.Cost != "na" {

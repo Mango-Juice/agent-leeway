@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/Mango-Juice/agent-leeway/internal/config"
 	"github.com/Mango-Juice/agent-leeway/internal/py"
 )
 
@@ -14,6 +15,8 @@ var update = flag.Bool("update", false, "rewrite testdata/expected-go (outputs o
 // The product's default pricing differs from the Python reference on purpose (docs/17 section 4), so its
 // outputs on the fixtures are pinned by goldens written by this test (go test ./internal/leak -update).
 func TestLeakGoldenCurrentPrices(t *testing.T) {
+	// the price table's age is part of the JSON: measure it on the table's own date, not on the wall clock
+	t.Setenv("LEEWAY_NOW", config.Prices().Read+"T12:00:00Z")
 	tb := fixtureTables(t)
 	x := fixtureReports(t, tb, "")
 	loc := fxLoc(t)

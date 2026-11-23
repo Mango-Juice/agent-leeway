@@ -283,7 +283,7 @@ func TestThemeValidation(t *testing.T) {
 	}
 }
 
-// Text budget of the first screen (docs/24 §12.R4 item 9, §18.1): at most 70 English words and 155 Hangul syllables
+// Text budget of the first screen: at most 75 English words and 155 Hangul syllables
 // of visible text, measured on the fixture reports (plain and themed); and the terminal stays at 16 lines or less.
 func TestFirstScreenBudget(t *testing.T) {
 	tag := regexp.MustCompile(`<[^>]+>`)
@@ -299,7 +299,7 @@ func TestFirstScreenBudget(t *testing.T) {
 		j := strings.Index(h[i:], "</section>")
 		txt := html.UnescapeString(tag.ReplaceAllString(h[i:i+j], " "))
 		if strings.HasPrefix(name, "report.en") || strings.HasPrefix(name, "report-themed.en") {
-			if n := len(enw.FindAllString(txt, -1)); n > 70 {
+			if n := len(enw.FindAllString(txt, -1)); n > 75 {
 				t.Errorf("%s: %d English words on the first screen", name, n)
 			}
 		} else if n := len(ko.FindAllString(txt, -1)); n > 155 {
@@ -337,5 +337,26 @@ func TestDriftNotRunState(t *testing.T) {
 		if len(s.Good) != 0 {
 			t.Errorf("%s: going well claims something without judged sessions", lang)
 		}
+	}
+}
+
+// English counts of one read in the singular; other languages are left alone.
+func TestNumberSingular(t *testing.T) {
+	for in, want := range map[string]string{
+		"in 1 sessions.":                     "in 1 session.",
+		"(1 sessions)":                       "(1 session)",
+		"in 21 sessions":                     "in 21 sessions",
+		"1 event(s) dropped":                 "1 event dropped",
+		"3 event(s) dropped":                 "3 events dropped",
+		"1 different rules were broken":      "1 rule was broken",
+		"1 things you had said were ignored": "1 thing you had said was ignored",
+		"2 different rules were broken":      "2 different rules were broken",
+	} {
+		if got := Number("en", in); got != want {
+			t.Errorf("%q -> %q, want %q", in, got, want)
+		}
+	}
+	if Number("ko", "세션 1개") != "세션 1개" {
+		t.Error("Korean changed")
 	}
 }

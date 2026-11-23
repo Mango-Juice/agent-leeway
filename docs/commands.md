@@ -8,7 +8,7 @@ Every command prints its options with `-h`.
 |---|---|---|
 | `agent-leeway leak` | Cost leaks by cause and habit, direct conversations vs automation, compared with the previous window | No |
 | `agent-leeway drift` | Judges recent sessions for drift, then groups the problems by meaning. Asks before it starts | Session excerpts, to that session's own provider |
-| `agent-leeway report` | The cost check plus the drift results judged so far, as an HTML file, a Markdown file and a terminal summary | Only with `--run-drift` |
+| `agent-leeway report` | The cost check plus the drift results judged so far, compared with the previous period of the same length, as an HTML file, a Markdown file and a terminal summary | Only with `--run-drift` |
 | `agent-leeway compare <before.json> <after.json>` | Compares two `leak --json` outputs by habit and automation | No |
 | `agent-leeway idle [--days 3]` | Recent sessions whose prompt cache has probably expired, and what resuming would cost | No |
 | `agent-leeway rubric` | Shows the rubric and its settings S1–S10, or copies it for editing | No |
@@ -54,6 +54,15 @@ Every command prints its options with `-h`.
 | `--group-only` | Judge nothing; group the sessions already judged |
 
 `report` also takes `--run-drift` (judge first), `--out DIR` (default: `reports` in the cache folder) and `--quote-chars 160` (longest excerpt).
+
+`report` compares the window with the one just before it, of the same length (`--since 30d`: the 30 days before). Each card on the first screen says Better, Worse or Similar with the two rates, and the whole picture lists what changed most. A part is not compared when:
+
+- the window is under a day;
+- cost: the previous period spent under $5 or had fewer than 3 sessions;
+- in-depth: either period has fewer than 8 checked sessions, or under 60% of its sessions checked, or the two periods were checked with different judging models or rubric versions;
+- Claude Code has deleted the older logs and no saved numbers cover them (the comparison then covers Codex only, or nothing).
+
+The whole picture then says why. Details: [how-it-works.md](how-it-works.md#compared-with-the-previous-period).
 
 ## Settings file
 

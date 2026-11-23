@@ -177,6 +177,30 @@ func ClaudeConfigDir() string {
 	return filepath.Join(Home(), ".claude")
 }
 
+// ClaudeCleanupDays is how many days Claude Code keeps transcripts: "cleanupPeriodDays" in its settings.json,
+// 30 when unset, unreadable or negative; 0 keeps none (code.claude.com/docs/en/settings.md). changed is the
+// file's modification time (zero when there is no file): a raised setting does not bring back logs deleted before.
+// Only this one setting is read.
+func ClaudeCleanupDays() (days int, changed time.Time) {
+	p := filepath.Join(ClaudeConfigDir(), "settings.json")
+	fi, err := os.Stat(p)
+	if err != nil {
+		return 30, time.Time{}
+	}
+	changed = fi.ModTime()
+	b, err := os.ReadFile(p)
+	if err != nil {
+		return 30, changed
+	}
+	var s struct {
+		Days *int `json:"cleanupPeriodDays"`
+	}
+	if json.Unmarshal(b, &s) != nil || s.Days == nil || *s.Days < 0 {
+		return 30, changed
+	}
+	return *s.Days, changed
+}
+
 // CodexHome is $CODEX_HOME or <home>/.codex.
 func CodexHome() string {
 	if v := env("CODEX_HOME"); v != "" {

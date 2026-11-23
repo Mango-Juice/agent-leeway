@@ -11,6 +11,7 @@ import (
 // section shown outright. Only the session list is cut, to the five worst, with "show all" for the rest.
 
 const css8 = `.sec.tall8{padding-bottom:120px}
+.sec.fix6{padding-bottom:124px}
 .lead8{font-size:19px;line-height:1.45;margin-top:6px;max-width:34em}.lead8 b{font-weight:650}
 .pic8{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-top:28px}
 .blk8{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 24px 20px}
@@ -73,7 +74,7 @@ func (s *Story) pictureSection() string {
 			fmt.Fprintf(&b, `<li class="d"><span class="bl">%s</span><span class="bv">%s</span><span class="bt" role="img" aria-label="%s"><i style="width:%s"></i></span></li>`,
 				E(r.Label), E(s.T("pic8_drift_val", "n", int(r.Value), "j", m.J)), E(r.Label+": "+s.T("pic8_drift_val", "n", int(r.Value), "j", m.J)), pctW(r.Value/math.Max(float64(m.J), 1)))
 		}
-		fmt.Fprintf(&b, `</ul><p class="cap8">%s</p>`, E(s.T("pic8_drift_cap")))
+		fmt.Fprintf(&b, `</ul>%s<p class="cap8">%s</p>`, s.cmpDetail(true), E(s.T("pic8_drift_cap")))
 		if f := s.mistakeNotOnTop(); f != nil {
 			fmt.Fprintf(&b, `<p class="note8">%s</p>`, E(s.T("mistake_note", "n", f.Sessions)))
 		}
@@ -91,7 +92,7 @@ func (s *Story) pictureSection() string {
 			fmt.Fprintf(&b, `<li class="%s"><span class="bl">%s</span><span class="bv">%s<small>%s</small></span><span class="bt" role="img" aria-label="%s"><i style="width:%s"></i></span></li>`,
 				cls, E(r.Label), E(Money(r.Value)), E(Pct(r.Value/lt)), E(r.Label+": "+Money(r.Value)), pctW(r.Value/lt))
 		}
-		fmt.Fprintf(&b, `</ul><p class="cap8">%s</p></div>`, E(s.T("pic8_cost_cap", "total", Money(m.LeakUSD))))
+		fmt.Fprintf(&b, `</ul>%s<p class="cap8">%s</p></div>`, s.cmpDetail(false), E(s.T("pic8_cost_cap", "total", Money(m.LeakUSD))))
 	}
 	b.WriteString(`</div>`)
 	// each judge on its own line, never on a shared axis

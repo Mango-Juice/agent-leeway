@@ -4,6 +4,15 @@ All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follo
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-23
+
+### Added
+- The report compares this period with the previous period of the same length: one line per card on the first screen ("✓ Better · 33% → 21%") and, in the whole picture, the rates that changed most. It is shown only when the comparison is sound (enough spend and sessions; for the in-depth side, the same judging model and rubric and enough checked sessions in both periods), and otherwise the whole picture says why.
+- An example report site, built from made-up sessions with the released binary and published on GitHub Pages at each release: https://mango-juice.github.io/agent-leeway/ (Korean: https://mango-juice.github.io/agent-leeway/ko/). `site/` holds how it is made; CI builds and checks it on every change.
+
+### Fixed
+- English report text no longer says "in 1 sessions" or "1 event(s)": counts of one read in the singular, others in the plural.
+
 ## [0.1.4] - 2026-11-23
 
 ### Fixed

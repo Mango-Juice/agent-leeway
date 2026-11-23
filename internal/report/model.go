@@ -54,6 +54,7 @@ func KindOf(rule, cause string) string {
 type Record struct {
 	Key, Tool, Tier, Project, Verdict string
 	RubricVersion, RubricSource       string
+	Model                             string // the exact judging model the CLI reported ("" when not recorded)
 	JudgeCLI, Origin                  string
 	Partial                           bool
 	OmittedChars                      int
@@ -179,6 +180,7 @@ type Input struct {
 	Tool          string         // the tool the report was asked for (--tool); "" = both
 	Unjudged      map[string]int // the asked-for tools' sessions in the window with no judged result (tool -> count)
 	OtherJudged   map[string]int // with Tool set: the other tool's judged sessions, left out of this report
+	Compare       *Compare       // the comparison with the previous period of the same length (nil: none)
 }
 
 // Model is everything the renderers show.
@@ -195,6 +197,7 @@ type Model struct {
 	LeftOut                   map[string]int
 	Tool                      string
 	Unjudged, OtherJudged     map[string]int
+	Compare                   *Compare
 	Records                   []*Record
 	J                         int // judged sessions (records)
 	Verdicts                  []JudgeVerdicts
@@ -339,6 +342,7 @@ func Records(raw []py.Value, quoteChars int) (recs []*Record, masked int) {
 		}
 		rec := &Record{Key: str(r.Get("key")), Tool: str(r.Get("tool")), Tier: str(r.Get("tier")), Project: str(r.Get("project")), Verdict: verdict,
 			RubricVersion: str(r.Get("rubric_version")), RubricSource: str(r.Get("rubric_source")), JudgeCLI: str(r.Get("judge_cli")),
+			Model:  str(r.Get("usage").Get("model").Or(r.Get("model"))),
 			Origin: str(r.Get("origin")), InstrWarning: r.Get("instr_warning").Truthy(),
 			Quotes: num(r.Get("verify").Get("quotes")), BadQuotes: num(r.Get("verify").Get("bad_quotes")), Dropped: num(r.Get("dropped_events"))}
 		if p := r.Get("partial"); p.K == py.Obj {
@@ -896,6 +900,7 @@ func NewModel(in Input) *Model {
 	m.RubricVersions, m.Custom, m.CLIs = sortedKeys(vers), sortedKeys(custom), sortedKeys(clis)
 	m.Themes = Themes(in.Groups, m.Records)
 	m.LeftOut, m.Tool, m.Unjudged, m.OtherJudged = in.LeftOut, in.Tool, in.Unjudged, in.OtherJudged
+	m.Compare = in.Compare
 	m.Findings, m.Leftovers = Findings(m.Records)
 	m.Leak = LeakFindings(in.Leak)
 	m.Top = Top(m.Findings, m.Leak)
