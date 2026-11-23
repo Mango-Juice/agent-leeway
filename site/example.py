@@ -171,6 +171,20 @@ def scenario(L):
         S('p07', 'codex', -50, [(t(T('Parse the bank CSV files.', '은행 CSV 파일을 읽게 해 줘.')), 0), (t(T('Handle the old format too.', '옛 형식도 처리해 줘.')), 100)], steps=7, breaks=[1], fails=5, ctx0=30000),
         S('p08', 'codex', -41, [(t(T('Speed up the sync job.', '동기화 작업을 빠르게 해 줘.')), 0)], steps=8, fails=4, ctx0=30000),
         S('p09', 'codex', -36, [(t(T('Add metrics for failed syncs.', '실패한 동기화에 지표를 붙여 줘.')), 0), (t(T('Export them to the dashboard.', '대시보드로 내보내 줘.')), 85)], steps=6, breaks=[1], ctx0=30000),
+        S('p13', 'claude', -55, [(t(T('Add a trail difficulty badge.', '산책로 난이도 배지를 넣어 줘.')), 0), (t(T('The badge colours are swapped.', '배지 색이 서로 바뀌었어.')), 7)], steps=6,
+          events=[ev('U2', 'R2a', 'agent_error', 'agent_side', 'major', 'U2', t(T('The badge colours are swapped.', '배지 색이 서로 바뀌었어.')), 'resolved', t(T('The agent swapped the badge colours for easy and hard trails.', '에이전트가 쉬움과 어려움 배지 색을 서로 바꿔 놓았습니다.')))], verdict='agent_drift'),
+        S('p14', 'claude', -52, [(t(T('Show the trail length in miles too.', '산책로 길이를 마일로도 보여 줘.')), 0), (t(T('Miles are rounded to whole numbers now. Keep one decimal.', '마일이 정수로 반올림돼. 소수점 한 자리는 남겨.')), 7)], steps=6,
+          events=[ev('U2', 'R2a', 'agent_error', 'agent_side', 'major', 'U2', t(T('Miles are rounded to whole numbers now. Keep one decimal.', '마일이 정수로 반올림돼. 소수점 한 자리는 남겨.')), 'resolved', t(T('The agent rounded the miles to whole numbers.', '에이전트가 마일을 정수로 반올림했습니다.')))], verdict='agent_drift'),
+        S('p15', 'codex', -48, [(t(T('How is the invoice total computed?', '인보이스 합계는 어떻게 계산돼?')), 0), (t(T('I only asked. Why did you change total.go?', '물어보기만 했는데 total.go는 왜 고쳤어?')), 7)], steps=6,
+          events=[ev('U2', 'R3a', 'agent_error', 'agent_side', 'major', 'U2', t(T('I only asked. Why did you change total.go?', '물어보기만 했는데 total.go는 왜 고쳤어?')), 'resolved', t(T('You asked how the total is computed; the agent edited total.go.', '합계 계산 방식을 물었는데, 에이전트가 total.go를 고쳤습니다.')))], verdict='agent_drift'),
+        S('p16', 'claude', -56, [(t(T('Add a map legend.', '지도 범례를 넣어 줘.')), 0), (t(T('Thanks.', '고마워.')), 95)], steps=6, breaks=[1], ctx0=36000),
+        S('p17', 'claude', -51, [(t(T('Cache the elevation tiles.', '고도 타일을 캐시해 줘.')), 0), (t(T('Thanks.', '고마워.')), 95)], steps=6, breaks=[], ctx0=36000),
+        S('p18', 'codex', -47, [(t(T('Add a dry-run flag to the sync.', '동기화에 dry-run 옵션을 넣어 줘.')), 0), (t(T('Thanks.', '고마워.')), 95)], steps=6, breaks=[1], ctx0=36000),
+        S('p19', 'claude', -43, [(t(T('Fix the footer links.', '푸터 링크를 고쳐 줘.')), 0), (t(T('Thanks.', '고마워.')), 95)], steps=6, breaks=[], ctx0=36000),
+        S('p20', 'codex', -39, [(t(T('Log the sync duration.', '동기화 시간을 로그에 남겨 줘.')), 0), (t(T('Thanks.', '고마워.')), 95)], steps=6, breaks=[1], ctx0=36000),
+        S('p21', 'claude', -35, [(t(T('Add an empty state to the trip list.', '여행 목록이 비었을 때 화면을 넣어 줘.')), 0), (t(T('Thanks.', '고마워.')), 95)], steps=6, breaks=[1], ctx0=36000),
+        S('c13', 'claude', -11, [(t(T('Add keyboard shortcuts to the map.', '지도에 단축키를 넣어 줘.')), 0), (t(T('Looks good.', '좋아 보여.')), 6)], steps=5),
+        S('c14', 'codex', -7, [(t(T('Retry the export when the bank API times out.', '은행 API가 시간 초과되면 내보내기를 다시 시도해 줘.')), 0), (t(T('Looks good.', '좋아 보여.')), 6)], steps=5),
     ]
     themes = [{'tool': 'claude', 'label': t(T('Leave existing migrations unchanged', '기존 마이그레이션은 그대로 두기')),
                'stated': [t(T('Keep the existing migration files as they are.', '기존 마이그레이션 파일은 그대로 둬.')),
@@ -407,7 +421,16 @@ def cmd_check(out, raw):
         words = len(re.findall(r"[A-Za-z][A-Za-z'’.-]*", first)) if L == 'en' else len(re.findall(r'[가-힣]', first))
         table = [x for x in md.split('\n')[:10] if x.startswith('| ') and '**' in x]
         fix1, leak = section(md, 'f-drift-broke-chat'), section(md, 'f-leak-long-break')
-        cmp_rows = re.findall(r'<li class="(better|worse|same)">', html)
+        row = r'(\d+) of (\d+) → (\d+) of (\d+)' if L == 'en' else r'(\d+)개 중 (\d+)개 → (\d+)개 중 (\d+)개'
+        counts = []  # each row as (rate then, rate now)
+        for b in re.findall(r'<li class="cnt"><span>[^<]*</span><span class="cv"><b>([^<]*)</b>', html):
+            m = re.fullmatch(row, b)
+            if m:
+                x = [int(v) for v in m.groups()]
+                then, now = (x[0] / x[1], x[2] / x[3]) if L == 'en' else (x[1] / x[0], x[3] / x[2])
+                counts.append((then, now))
+        cards = re.findall(r'<p class="chg (\w+)">(.*?)</p>', html)
+        label = {'en': ('vs prior 30 days', 'check'), 'ko': ('직전 30일 대비', '점검 대비')}[L]
         # what the stand-in judged: every session once, with its hand-written verdict
         by_key = {f"{x['tool']}:{sid(L, x['name'])}": x for x in sess}
         got = {}
@@ -428,8 +451,9 @@ def cmd_check(out, raw):
             'going-well section': 'id="s-good"' in html,
             'one problem was never fixed': md.count(c['unfixed']) == 1,
             'evidence dialog': 'data-ev=' in html,
-            'better than the previous period on both cards': re.findall(r'<p class="chg (\w+)"', html) == ['better', 'better'],
-            'some kinds of problem better than before, some worse': 'better' in cmp_rows and 'worse' in cmp_rows,
+            'in-depth card: both rates, no word (within normal swings), against the first check': len(cards) == 2 and cards[0][0] == 'neutral' and label[1] in cards[0][1],
+            'cost card: Better, against the previous 30 days': len(cards) == 2 and cards[1][0] == 'better' and label[0] in cards[1][1],
+            'some kinds of problem fewer than at the first check, some more': any(b < a for a, b in counts[1:]) and any(b > a for a, b in counts[1:]),
             f'first screen within budget ({words} of {75 if L == "en" else 155})': words <= (75 if L == 'en' else 155),
             'every session judged once, with its hand-written verdict' + (f' (wrong: {", ".join(wrong)})' if wrong else ''): not wrong and len(got) == len(sess),
             'no real paths': '/Users/' not in html and '/home/dev' not in html.replace('/home/dev/trail-planner', '').replace('/home/dev/invoice-sync', ''),  # privacy-ok: the check for real paths

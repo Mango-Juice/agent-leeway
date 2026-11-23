@@ -59,6 +59,7 @@ var Cli = map[string]string{
 	"rubric_copied":    "Copied the rubric to {path}. Edit it, then pass --rubric {path} or set \"rubric\" in the settings file.",
 	"rubric_file":      "Rubric file: {path} ({ver})",
 
+	"leak_prev_gone": "Claude Code deleted its older logs, so there is no comparison with the previous window.",
 	// self-update --check
 	"upd_no_replace":    "{name} does not replace itself. Run `{name} self-update --check`: it prints the one command that updates this copy.",
 	"upd_failed":        "Could not check for a newer version: {err}",
@@ -83,6 +84,7 @@ var Cli = map[string]string{
 		"  - drift adds the current CLAUDE.md, CLAUDE.local.md and AGENTS.md files of the project folder (and your global CLAUDE.md) to Claude Code sessions whose log has none; --no-current-instructions turns this off.\n" +
 		"  - Every command runs `git rev-parse` (read-only) in project folders found in the logs, to name projects.\n" +
 		"  - `report` reads one setting from Claude Code's settings.json, cleanupPeriodDays (how long Claude Code keeps transcripts), and that file's date, to tell deleted logs from no use. It saves each window's cost in numbers only (spend, waste, per-habit amounts, session count; no text) as compare/*.json in the cache, to compare with later when Claude Code has deleted those logs.\n" +
+		"  - After each in-depth check, drift appends a numbers-only record per tool to compare/checks.jsonl in the cache; report can append one too when it rebuilds a record from a 0.1.5/0.1.6 check. A record holds counts, the judging model and rubric, the window, how sessions were chosen, the scope, and the dates and session ids of the checked sessions (stored as they are; the results cache already holds them). One project is stored as a hash of its name with a random salt made once per install (compare/salt), never the name. Each report also saves its cost in numbers (with the largest single session's share) as compare/*.json. No text, no paths; records older than 400 days are deleted.\n" +
 		"  - LEEWAY_JUDGE_CMD, when set, replaces the judge CLIs with a local program (drift says so); LEEWAY_RELEASE_API changes where `self-update --check` asks.\n" +
 		"  - Prices come from a local table ({prices}); nothing is fetched.",
 	"privacy_paths":         "Cache: {cache}\nReports: {reports}\nSettings: {settings}\nClaude Code logs: {claude}\nCodex logs: {codex}",

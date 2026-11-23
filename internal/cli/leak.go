@@ -314,8 +314,10 @@ func cmdLeak(args []string, out, errw io.Writer) int {
 		printOut(out, py.DumpsOpt(leak.JSON(x.R, x.H, x.A, x.P, x.PH, x.PA), py.DumpOpts{Indent: 1}))
 	} else {
 		printOut(out, leak.Render(x.R, *top, x.P, x.H, x.A, x.PH, x.PA, now, time.Local))
-		if dropped { // why there is no comparison, in the report's words
-			printOut(out, messages.Story[config.Language(o.lang)]["cmp_why_cost_gone"])
+		if dropped { // why there is no comparison
+			messages.SetLang(config.Language(o.lang))
+			printOut(out, messages.Cli["leak_prev_gone"])
+			messages.SetLang("en")
 		}
 		if !config.Legacy {
 			// the leak side of "What to fix first", with what to do per tool

@@ -105,6 +105,7 @@ var cliKO = map[string]string{
 	"rubric_copied":    "규칙집을 {path}에 복사했습니다. 고친 뒤 --rubric {path}로 넘기거나 설정 파일에 \"rubric\"을 적으세요.",
 	"rubric_file":      "규칙집 파일: {path} ({ver})",
 
+	"leak_prev_gone": "Claude Code가 오래된 로그를 지워서 직전 기간과는 비교하지 않습니다.",
 	// self-update --check
 	"upd_no_replace":    "{name}은(는) 스스로를 바꾸지 않습니다. `{name} self-update --check`를 실행하면 이 설치본을 업데이트하는 명령 하나를 알려 줍니다.",
 	"upd_failed":        "새 버전을 확인하지 못했습니다: {err}",
@@ -129,6 +130,7 @@ var cliKO = map[string]string{
 		"  - drift는 로그에 지시 파일이 없는 Claude Code 세션에 프로젝트 폴더의 현재 CLAUDE.md, CLAUDE.local.md, AGENTS.md(와 전역 CLAUDE.md)를 붙입니다. --no-current-instructions로 끌 수 있습니다.\n" +
 		"  - 모든 명령은 로그에 나온 프로젝트 폴더에서 프로젝트 이름을 알려고 `git rev-parse`(읽기만 함)를 실행합니다.\n" +
 		"  - `report`는 지워진 로그와 사용하지 않은 기간을 구분하려고 Claude Code settings.json에서 설정 하나(cleanupPeriodDays, 대화 기록을 두는 기간)와 그 파일의 날짜를 읽습니다. 또 Claude Code가 로그를 지운 뒤에도 비교할 수 있도록 기간마다 비용을 숫자로만(사용액, 샌 비용, 습관별 금액, 세션 수. 글은 없음) 캐시의 compare/*.json에 저장합니다.\n" +
+		"  - 정밀 점검을 할 때마다 drift는 도구별로 숫자만 담은 기록을 캐시의 compare/checks.jsonl에 덧붙입니다. 0.1.5/0.1.6에서 한 점검의 결과로 기록을 다시 만들 때는 report도 덧붙입니다. 기록에는 개수, 판정 모델과 규칙집, 기간, 세션을 고른 방식, 범위, 점검한 세션의 날짜와 세션 id가 들어갑니다(id는 그대로 저장하며, 결과 캐시에 이미 있는 것과 같습니다). 프로젝트 하나를 고른 범위는 설치마다 한 번 만드는 임의의 솔트(compare/salt)를 섞은 해시로만 저장하고, 이름은 저장하지 않습니다. 리포트도 비용을 숫자로만 compare/*.json에 저장합니다(가장 큰 세션 하나의 비중 포함). 글이나 경로는 없고, 400일보다 오래된 기록은 지웁니다.\n" +
 		"  - LEEWAY_JUDGE_CMD를 설정하면 점검 CLI 대신 로컬 프로그램을 씁니다(drift가 알려 줌). LEEWAY_RELEASE_API는 `self-update --check`가 묻는 곳을 바꿉니다.\n" +
 		"  - 가격은 로컬 가격표({prices})에서 가져오며 아무것도 내려받지 않습니다.",
 	"privacy_paths":         "캐시: {cache}\n리포트: {reports}\n설정: {settings}\nClaude Code 로그: {claude}\nCodex 로그: {codex}",

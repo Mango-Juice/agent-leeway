@@ -548,7 +548,7 @@ func (s *Story) HTML() string {
 
 	// 1 overall: what is rated, the rating, two cards; the hint names the first fix
 	title := fmt.Sprintf(`<div class="title"><p class="kicker" id="s-verdict-h">%s</p><p class="period">%s</p><h1 class="r-%s">%s</h1></div>`,
-		E(s.T("kicker")), E(joinDot(s.T("period", "a", m.From, "b", m.To), s.CmpVs())), st.Overall, E(s.T("rating."+st.Overall)))
+		E(s.T("kicker")), E(s.T("period", "a", m.From, "b", m.To)), st.Overall, E(s.T("rating."+st.Overall)))
 	var c1 string
 	if s.DriftRun() {
 		c1 = fmt.Sprintf(`<div class="card5"><p class="lab">%s</p><p class="fact">%s</p>%s%s<p class="dist">%s</p>`, E(s.T("c_drift")), E(s.T("f_drift", "n", st.Serious, "j", m.J)),

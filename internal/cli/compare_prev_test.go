@@ -1,6 +1,9 @@
 package cli
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -128,149 +131,17 @@ func TestCompareSnapshotOnlyForCoveredWindows(t *testing.T) {
 // retention setting reaches back past it and was not changed since before it began.
 func TestCompareCoverageRule(t *testing.T) {
 	tmp := cmpEnv(t, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 40, 42, 44)
-	if c := runCompare(t, 30, nil); c.Cost != nil || c.CostWhy != "cmp_why_cost_gone" {
-		t.Errorf("default 30 days, logs from 44 days back, no snapshot: %+v", c)
+	if c := runCompare(t, 30, nil); c.Cost != nil || c.CostWhy != "cmp_first" {
+		t.Errorf("default 30 days, logs from 44 days back, no earlier report: %+v", c)
 	}
 	claudeSettings(t, tmp, `{"cleanupPeriodDays": 90}`, cmpNow.AddDate(0, 0, -1))
 	if c := runCompare(t, 30, nil); c.Cost != nil || c.CostWhy != "cmp_why_cost_gone" {
 		t.Errorf("retention raised yesterday must not count: %+v", c)
 	}
 	claudeSettings(t, tmp, `{"cleanupPeriodDays": 90}`, cmpNow.AddDate(0, 0, -100))
-	if c := runCompare(t, 30, nil); c.Cost == nil || c.CostWhy != "" {
+	// the logs cover the previous window, which has 3 sessions: compared from the logs, too little use
+	if c := runCompare(t, 30, nil); c.Cost != nil || c.CostWhy != "cmp_why_cost_few" {
 		t.Errorf("retention 90 days, set 100 days ago: the logs cover the previous window: %+v", c)
-	}
-}
-
-// A2: the in-depth side leaves out Claude Code when its logs do not cover the previous window (the survivors would
-// be a biased subset), and says why.
-func TestCompareInDepthLeavesOutDeletedClaude(t *testing.T) {
-	days := []int{40, 41, 42, 43, 44, 45, 46, 47, 48}
-	for i := 1; i <= 20; i++ {
-		days = append(days, i)
-	}
-	tmp := cmpEnv(t, days...)
-	o := &driftOpts{}
-	all := judgedAll(t, o, cmpNow.AddDate(0, 0, -30))
-	c := runCompare(t, 30, all)
-	if c.Drift != nil || c.DriftWhy != "cmp_why_drift_gone" {
-		t.Errorf("9 surviving previous sessions, logs not covering: %+v %q", c.Drift, c.DriftWhy)
-	}
-	claudeSettings(t, tmp, `{"cleanupPeriodDays": 365}`, cmpNow.AddDate(0, 0, -400))
-	if c := runCompare(t, 30, all); c.Drift == nil || c.DriftWhy != "" {
-		t.Errorf("covered by the retention setting: compared: %+v %q", c.Drift, c.DriftWhy)
-	}
-}
-
-// A14: a session with turns on both sides of the boundary counts once, in the period of its last turn.
-func TestCompareBoundarySessionCountsOnce(t *testing.T) {
-	tmp := cmpEnv(t)
-	cl := filepath.Join(tmp, "claude", "-tmp-cmp")
-	id := "00000000-0000-4000-8000-000000000999"
-	at := func(d int) string { return cmpNow.AddDate(0, 0, -d).Format("2006-01-02T15:04:05.000Z") }
-	body := fmt.Sprintf(`{"type":"user","sessionId":%q,"cwd":"/tmp/cmp","timestamp":%q,"uuid":"u1","message":{"role":"user","content":"Start."},"origin":{"kind":"human"}}`+"\n"+
-		`{"type":"user","sessionId":%q,"cwd":"/tmp/cmp","timestamp":%q,"uuid":"u2","message":{"role":"user","content":"Go on."},"origin":{"kind":"human"}}`+"\n", id, at(35), id, at(25))
-	_ = os.WriteFile(filepath.Join(cl, id+".jsonl"), []byte(body), 0o600)
-	claudeSettings(t, tmp, `{"cleanupPeriodDays": 365}`, cmpNow.AddDate(0, 0, -400)) // the logs cover both windows
-	o := &driftOpts{}
-	since := cmpNow.AddDate(0, 0, -30)
-	_, tb, err := leakReports(&o.logOpts, since, cmpNow, true, io.Discard)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cur := map[string]bool{}
-	for _, s := range drift.Select(tb, since, cmpNow.Add(time.Minute), nil, "", false, 0) {
-		cur[s.Key] = true
-	}
-	prev := drift.Select(tb, since.AddDate(0, 0, -30), since, nil, "", false, 0)
-	if len(cur) != 1 || len(prev) != 1 || !cur[prev[0].Key] {
-		t.Fatalf("fixture: the session should touch both windows (%d, %d)", len(cur), len(prev))
-	}
-	keys, n := prevSessions(tb, since.AddDate(0, 0, -30), since, nil, o, cur, true)
-	if len(keys) != 0 || n["claude"] != 0 {
-		t.Errorf("the boundary session was counted in the previous period too: %v", keys)
-	}
-	if keys, _ := prevSessions(tb, since.AddDate(0, 0, -30), since, nil, o, map[string]bool{}, true); len(keys) != 1 {
-		t.Error("fixture: without this window's sessions the previous period has it")
-	}
-}
-
-// The cost branches: logs, snapshot, Codex alone (named), nothing; and the right reason for each.
-func TestCompareCostBranches(t *testing.T) {
-	a := func(total, leak float64, n int) report.Agg {
-		return report.Agg{Total: total, Leak: leak, Sessions: n, Habits: map[string]float64{}}
-	}
-	none := func() (report.Agg, bool) { return report.Agg{}, false }
-	if c, why := costCompare(true, a(100, 8, 10), a(100, 15, 10), a(40, 2, 4), a(40, 6, 4), none); c == nil || c.Tool != "" || why != "" {
-		t.Errorf("logs cover: %+v %q", c, why)
-	}
-	if c, why := costCompare(true, a(100, 8, 10), a(3, 1, 10), a(0, 0, 0), a(0, 0, 0), none); c != nil || why != "cmp_why_cost_few" {
-		t.Errorf("too little use: %+v %q", c, why)
-	}
-	snap := func() (report.Agg, bool) { return a(60, 9, 6), true }
-	if c, why := costCompare(false, a(100, 8, 10), report.Agg{}, a(40, 2, 4), a(40, 6, 4), snap); c == nil || c.Tool != "" || why != "" || c.Prev != 15.0/100 {
-		t.Errorf("snapshot plus Codex logs: %+v %q", c, why)
-	}
-	if c, why := costCompare(false, a(100, 8, 10), report.Agg{}, a(40, 2, 4), a(40, 6, 4), none); c == nil || c.Tool != "codex" || why != "cmp_why_cost_deleted" {
-		t.Errorf("Codex alone: %+v %q", c, why)
-	}
-	// deleted Claude Code logs and too little Codex use: the reason is the deletion, not "too little use"
-	if c, why := costCompare(false, a(100, 8, 10), report.Agg{}, a(4, 1, 2), a(4, 1, 2), none); c != nil || why != "cmp_why_cost_gone" {
-		t.Errorf("Codex too small: %+v %q", c, why)
-	}
-}
-
-// A8: snapshots are kept apart by log folders, and a read checks the window, the tolerance, the values and that
-// it is not this window itself.
-func TestCompareSnapshotRead(t *testing.T) {
-	cache := t.TempDir()
-	start := time.Date(2026, 9, 24, 0, 0, 0, 0, time.UTC)
-	cur := start.AddDate(0, 0, 30)
-	ok := map[string]bool{"claude": true}
-	good := report.Agg{Total: 80, Leak: 12, MaxLeak: 4, Sessions: 9, Habits: map[string]float64{"long_break": 10}}
-	saveSnapshots(cache, map[string]string{"claude": "aaaa"}, start, 720, map[string]report.Agg{"claude": good}, ok)
-	if a, found := readSnapshot(cache, "claude", "aaaa", start.AddDate(0, 0, 2), cur, 720); !found || a.Total != 80 || a.Habits["long_break"] != 10 || a.MaxLeak != 4 {
-		t.Errorf("within 2 days: %+v %v", a, found)
-	}
-	if _, found := readSnapshot(cache, "claude", "aaaa", start.AddDate(0, 0, 3), cur, 720); found {
-		t.Error("3 days off must not match a 30-day window")
-	}
-	if _, found := readSnapshot(cache, "claude", "bbbb", start, cur, 720); found {
-		t.Error("other log folders must not match")
-	}
-	if _, found := readSnapshot(cache, "claude", "aaaa", start, cur, 168); found {
-		t.Error("another window length must not match")
-	}
-	if _, found := readSnapshot(cache, "claude", "aaaa", start, start, 720); found {
-		t.Error("a snapshot starting at this window's start is this window itself")
-	}
-	// a 7-day window: at most 10% (16.8 hours)
-	saveSnapshots(cache, map[string]string{"claude": "aaaa"}, start, 168, map[string]report.Agg{"claude": good}, ok)
-	if _, found := readSnapshot(cache, "claude", "aaaa", start.Add(20*time.Hour), cur, 168); found {
-		t.Error("20 hours off a 7-day window is beyond 10%")
-	}
-	// values that cannot be right
-	for _, bad := range []report.Agg{{Total: 10, Leak: 12}, {Total: -1}, {Total: 10, Leak: 2, Sessions: -3}, {Total: 10, Leak: 2, Habits: map[string]float64{"x": 5}}} {
-		c := t.TempDir()
-		saveSnapshots(c, map[string]string{"claude": "aaaa"}, start, 720, map[string]report.Agg{"claude": bad}, ok)
-		if bad.Total <= 0 {
-			continue // never written
-		}
-		if _, found := readSnapshot(c, "claude", "aaaa", start, cur, 720); found {
-			t.Errorf("impossible values accepted: %+v", bad)
-		}
-	}
-	// not written when the window is not covered
-	c2 := t.TempDir()
-	saveSnapshots(c2, map[string]string{"claude": "aaaa"}, start, 720, map[string]report.Agg{"claude": good}, map[string]bool{})
-	if f, _ := filepath.Glob(filepath.Join(c2, "compare", "*")); len(f) != 0 {
-		t.Errorf("uncovered window saved: %v", f)
-	}
-	files, _ := filepath.Glob(filepath.Join(cache, "compare", "*.json"))
-	for _, f := range files {
-		b, _ := os.ReadFile(f)
-		if strings.Contains(string(b), "quote") || strings.Contains(string(b), "/") {
-			t.Errorf("snapshot holds more than numbers: %s", b)
-		}
 	}
 }
 
@@ -282,9 +153,20 @@ func TestCompareSnapshotSources(t *testing.T) {
 	if a["claude"] == b["claude"] || a["codex"] != b["codex"] {
 		t.Errorf("per-tool folder hash: %v %v", a, b)
 	}
+	// without a fixed clock the name is the one 0.1.5 and 0.1.6 used, so their saved numbers still count
+	abs, _ := filepath.Abs("/x/claude")
+	sum := sha256.Sum256([]byte(abs + "\x00now="))
+	if a["claude"] != hex.EncodeToString(sum[:])[:10] {
+		t.Error("the name changed for real runs")
+	}
 	t.Setenv("LEEWAY_NOW", "2026-01-20T00:00:00Z")
-	if c := snapSources(&logOpts{claudeDir: "/x/claude", codexDir: "/x/codex"}); c["claude"] == a["claude"] {
-		t.Error("a fixed clock must not share snapshots with real runs")
+	c := snapSources(&logOpts{claudeDir: "/x/claude", codexDir: "/x/codex"})
+	if c["claude"] == a["claude"] {
+		t.Error("a fixed clock must not share records with real runs")
+	}
+	t.Setenv("LEEWAY_NOW", "2026-03-01T00:00:00Z")
+	if d := snapSources(&logOpts{claudeDir: "/x/claude", codexDir: "/x/codex"}); d["claude"] != c["claude"] {
+		t.Error("runs at different made-up times share records (the example site and simulations need that)")
 	}
 }
 
@@ -343,7 +225,7 @@ func TestLeakPreviousWindowNeedsCoverage(t *testing.T) {
 	if rc != 0 || strings.Contains(out, `"previous"`) {
 		t.Errorf("logs from 44 days back, default retention: no previous window (rc %d)", rc)
 	}
-	if out, _, _ := run(t, "leak"); !strings.Contains(out, "Claude Code deleted its older logs, so there is no cost comparison.") {
+	if out, _, _ := run(t, "leak"); !strings.Contains(out, "Claude Code deleted its older logs, so there is no comparison with the previous window.") {
 		t.Error("text output: the reason, in the report's words")
 	}
 	// some Codex logs (the fixtures; their dates do not matter here)
@@ -360,5 +242,62 @@ func TestLeakPreviousWindowNeedsCoverage(t *testing.T) {
 	claudeSettings(t, tmp, `{"cleanupPeriodDays": 90}`, cmpNow.AddDate(0, 0, -100))
 	if out, _, _ := run(t, "leak", "--json"); !strings.Contains(out, `"previous"`) {
 		t.Error("covered by the retention setting: the previous window is compared")
+	}
+}
+
+// The cost baseline when the logs are gone: the most recent earlier report of the same length, at most 60 days old,
+// whose window ends before this one starts. A 0.1.5/0.1.6 file (no "end") ends at start + length.
+func TestCostRecordPick(t *testing.T) {
+	cache := t.TempDir()
+	src := map[string]string{"claude": "aaaa", "codex": "bbbb"}
+	now := time.Date(2026, 10, 16, 20, 0, 0, 0, time.UTC)
+	since := now.AddDate(0, 0, -30)
+	a := func(total, leak float64, n int) report.Agg {
+		return report.Agg{Total: total, Leak: leak, Sessions: n, Habits: map[string]float64{}}
+	}
+	nowAll := a(100, 8, 20)
+	pick := func() (*report.CmpSide, string) {
+		return costCompare(cache, src, false, true, nowAll, report.Agg{}, since, now, 720, map[string]any{})
+	}
+	if c, why := pick(); c != nil || why != "cmp_first" {
+		t.Errorf("no report saved yet: %v %q", c, why)
+	}
+	d0 := now.AddDate(0, 0, -45)
+	saveSnapshots(cache, src, d0.AddDate(0, 0, -30), d0, 720, map[string]report.Agg{"claude": a(80, 16, 15), "codex": a(20, 4, 5)}, map[string]bool{"claude": true, "codex": true})
+	c, why := pick()
+	if c == nil || why != "" || c.Base != report.BaseReport || !c.BaseAt.Equal(d0) || c.Prev != 0.2 || c.NPrv != 20 {
+		t.Errorf("45-day-old report with both tools: %+v %q", c, why)
+	}
+	// a later report whose window overlaps this one is not a baseline; the earlier one still is
+	saveSnapshots(cache, src, now.AddDate(0, 0, -40), now.AddDate(0, 0, -10), 720, map[string]report.Agg{"claude": a(50, 1, 12)}, map[string]bool{"claude": true})
+	if c, _ := pick(); c == nil || !c.BaseAt.Equal(d0) {
+		t.Errorf("overlapping report chosen: %+v", c)
+	}
+	// 61 days: too old
+	cache = t.TempDir()
+	old := now.AddDate(0, 0, -61)
+	saveSnapshots(cache, src, old.AddDate(0, 0, -30), old, 720, map[string]report.Agg{"claude": a(80, 16, 15)}, map[string]bool{"claude": true})
+	if c, why := pick(); c != nil || why != "cmp_why_cost_old" {
+		t.Errorf("61 days: %v %q", c, why)
+	}
+	// another window length: no baseline
+	cache = t.TempDir()
+	saveSnapshots(cache, src, d0.AddDate(0, 0, -14), d0, 336, map[string]report.Agg{"claude": a(80, 16, 15)}, map[string]bool{"claude": true})
+	if c, why := pick(); c != nil || why != "cmp_why_cost_gone" {
+		t.Errorf("14-day report: %v %q", c, why)
+	}
+	// a file written by 0.1.6 (no end, no share): ends at start + length
+	cache = t.TempDir()
+	_ = os.MkdirAll(filepath.Join(cache, "compare"), 0o700)
+	st := d0.AddDate(0, 0, -30)
+	b, _ := json.Marshal(map[string]any{"start": st.Format(time.RFC3339), "hours": 720, "total_usd": 80, "leak_usd": 16, "max_session_leak_usd": 2, "sessions": 15, "habits_usd": map[string]float64{}})
+	_ = os.WriteFile(filepath.Join(cache, "compare", snapName("claude", "aaaa", st, 720)), b, 0o600)
+	if c, _ := pick(); c == nil || !c.BaseAt.Equal(d0) {
+		t.Errorf("0.1.6 file: %+v", c)
+	}
+	// numbers that cannot be right are ignored
+	_ = os.WriteFile(filepath.Join(cache, "compare", snapName("claude", "aaaa", st, 720)), []byte(`{"start":"`+st.Format(time.RFC3339)+`","hours":720,"total_usd":10,"leak_usd":12,"sessions":15}`), 0o600)
+	if c, _ := pick(); c != nil {
+		t.Error("leak above total accepted")
 	}
 }

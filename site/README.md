@@ -14,7 +14,9 @@ It needs python3 3.7 or later, and Go when no binary is given.
 1. `example.py logs` writes made-up Claude Code transcripts and Codex sessions in the formats the tools write.
    The made-up person works on two projects: a web app with Claude Code and a Go service with Codex.
    The logs cover the last 60 days, so the report also has a previous period to compare with.
-2. `agent-leeway drift` judges them. The judge is `example.py judge`, plugged in through `LEEWAY_JUDGE_CMD`, the
+2. Two visits a month apart, as a person would make them: 30 days before the build date, `agent-leeway drift` checks
+   that month and `agent-leeway report` runs; on the build date the same again. The first check's record is what the
+   in-depth side compares with. `drift` judges the sessions. The judge is `example.py judge`, plugged in through `LEEWAY_JUDGE_CMD`, the
    tool's own stand-in hook. It answers each session with a judgment written by hand in `example.py`. It never calls
    a model and costs nothing. The answers go through the same checks as a real judge's: every quote must be found
    in the session, and a theme must be stated in the person's own words in two sessions.
@@ -38,8 +40,9 @@ these:
 - a cost leak with a dollar amount (sessions resumed after long breaks);
 - a "going well" section, and exactly one problem that was never fixed;
 - evidence dialogs with the person's own words;
-- a previous period that was worse on cost and on serious misses, so both cards say "Better"; some kinds of problem
-  got better since, others worse;
+- a comparison on both cards: cost "Better" against the previous 30 days; in-depth both rates against the first check
+  without a word (the change is within normal swings for 21 sessions on each side); some kinds of problem fewer than
+  at the first check, some more;
 - the first screen within its text budget (75 English words, 155 Hangul syllables);
 - every session judged once with its hand-written verdict, and the same verdicts in English and Korean;
 - no real paths and no external assets; every file readable by everyone.

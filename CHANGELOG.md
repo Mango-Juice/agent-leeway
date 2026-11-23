@@ -2,7 +2,15 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.7] - 2026-11-23
+
+### Changed
+- "Compared with" is rebuilt on records. The in-depth card compares with your last in-depth check made the same way (selection, scope, window length, judging model family, rubric; at most 60 days old; no shared session), labelled with its date ("vs 1 Sep check"); a heavy user whose checks cover the 50 most recent sessions now gets a comparison too. The cost card compares with the previous period from the logs ("vs prior 30 days"), or, when Claude Code has deleted them, with an earlier report ("vs 1 Sep report").
+- Each card line always shows both rates and its baseline; the word Better or Worse appears only when the change is bigger than normal swings for that many sessions (twice the standard error and a Fisher exact test, p < 0.05). The in-depth card line needs 15 checked sessions on each side. "Similar" is gone. The detail lists problem kinds as counts, with each side's number of sessions and the baseline's dates.
+- A first visit says "Next report compares with this one." instead of blaming deleted Claude Code logs.
+
+### Added
+- After each in-depth check, a numbers-only record per tool in `compare/checks.jsonl` (see docs/privacy.md). Results of checks made with 0.1.5 or 0.1.6 are turned into records when it is safe to assume they used the defaults, so a later report can compare with them.
 
 ## [0.1.6] - 2026-11-23
 

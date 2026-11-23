@@ -55,6 +55,7 @@ type Record struct {
 	Key, Tool, Tier, Project, Verdict string
 	RubricVersion, RubricSource       string
 	Model                             string // the exact judging model the CLI reported ("" when not recorded)
+	RequestedTier                     string // the tier asked for, when the CLI answered with another model
 	JudgeCLI, Origin                  string
 	Partial                           bool
 	OmittedChars                      int
@@ -342,7 +343,7 @@ func Records(raw []py.Value, quoteChars int) (recs []*Record, masked int) {
 		}
 		rec := &Record{Key: str(r.Get("key")), Tool: str(r.Get("tool")), Tier: str(r.Get("tier")), Project: str(r.Get("project")), Verdict: verdict,
 			RubricVersion: str(r.Get("rubric_version")), RubricSource: str(r.Get("rubric_source")), JudgeCLI: str(r.Get("judge_cli")),
-			Model:  str(r.Get("usage").Get("model").Or(r.Get("model"))),
+			Model: str(r.Get("usage").Get("model").Or(r.Get("model"))), RequestedTier: str(r.Get("requested_tier")),
 			Origin: str(r.Get("origin")), InstrWarning: r.Get("instr_warning").Truthy(),
 			Quotes: num(r.Get("verify").Get("quotes")), BadQuotes: num(r.Get("verify").Get("bad_quotes")), Dropped: num(r.Get("dropped_events"))}
 		if p := r.Get("partial"); p.K == py.Obj {

@@ -8,7 +8,7 @@ Every command prints its options with `-h`.
 |---|---|---|
 | `agent-leeway leak` | Cost leaks by cause and habit, direct conversations vs automation, compared with the previous window | No |
 | `agent-leeway drift` | Judges recent sessions for drift, then groups the problems by meaning. Asks before it starts | Session excerpts, to that session's own provider |
-| `agent-leeway report` | The cost check plus the drift results judged so far, compared with the previous period of the same length, as an HTML file, a Markdown file and a terminal summary | Only with `--run-drift` |
+| `agent-leeway report` | The cost check plus the drift results judged so far, compared with the previous period (cost) and your last in-depth check (drift), as an HTML file, a Markdown file and a terminal summary | Only with `--run-drift` |
 | `agent-leeway compare <before.json> <after.json>` | Compares two `leak --json` outputs by habit and automation | No |
 | `agent-leeway idle [--days 3]` | Recent sessions whose prompt cache has probably expired, and what resuming would cost | No |
 | `agent-leeway rubric` | Shows the rubric and its settings S1–S10, or copies it for editing | No |
@@ -55,14 +55,13 @@ Every command prints its options with `-h`.
 
 `report` also takes `--run-drift` (judge first), `--out DIR` (default: `reports` in the cache folder) and `--quote-chars 160` (longest excerpt).
 
-`report` compares the window with the one just before it, of the same length (`--since 30d`: the 30 days before). Each card on the first screen says Better, Worse or Similar with the two rates, and the whole picture lists what changed most. A part is not compared when:
+`report` compares each card with its own baseline and says which: the cost side with the previous period of the same length ("vs prior 30 days"), or, when Claude Code has deleted those logs, with an earlier report ("vs 1 Sep report"); the in-depth side with your last in-depth check made the same way ("vs 1 Sep check"). The line always shows both rates; the word Better or Worse is shown only when the change is bigger than normal swings for this many sessions (twice the standard error, and a Fisher exact test with p < 0.05). Nothing is compared when:
 
 - the window is under a day;
-- cost: the previous period spent under $5 or had fewer than 3 sessions;
-- in-depth: either period has fewer than 8 checked sessions, or under 60% of its sessions checked, or the two periods were checked with different judging models or rubric versions;
-- Claude Code has deleted the older logs and no saved numbers cover them (the comparison then covers Codex only, or nothing).
+- cost: the previous period spent under $5, or either period had fewer than 10 sessions, or the logs are gone and no report of the same length from the last 60 days ended before this period;
+- in-depth: no earlier check with the same selection, scope, window length, judging model family and rubric from the last 60 days shares no session with this one; or this report's `--project`, `--include-auto` or window differs from the check that made its results; or this period's sessions were checked with more than one model family; or either side has fewer than 10 checked sessions (the card line needs 15).
 
-The whole picture then says why. Details: [how-it-works.md](how-it-works.md#compared-with-the-previous-period).
+The whole picture then says why in one line. Details: [how-it-works.md](how-it-works.md#compared-with-the-previous-period).
 
 ## Settings file
 

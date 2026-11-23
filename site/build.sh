@@ -30,12 +30,19 @@ for L in en ko; do
   "$PY" "$WORK/example.py" logs "$WORK/$L/logs" --lang $L --now "$NOW"
   # a clean environment with an isolated home: nothing is read from or written to the developer's own settings,
   # logs or cache (CLAUDE_CONFIG_DIR, CODEX_HOME, XDG_*, LEEWAY_* of the caller do not reach the binary)
-  run() { env -i PATH="$PATH" HOME="$H" LEEWAY_NOW="$NOW" "$@"; }
-  run LEEWAY_EXAMPLE_LANG=$L LEEWAY_JUDGE_CMD="$PY $WORK/example.py judge" \
-    "$BIN" drift --claude-dir "$WORK/$L/logs/claude" --codex-dir "$WORK/$L/logs/codex" --cache "$H/cache" \
-      --since 60d --max-sessions 0 --concurrency 1 --yes --lang $L >"$WORK/$L/drift.txt" 2>&1 || { cat "$WORK/$L/drift.txt"; exit 1; }
-  run "$BIN" report --claude-dir "$WORK/$L/logs/claude" --codex-dir "$WORK/$L/logs/codex" --cache "$H/cache" \
-      --since 30d --lang $L --out "$WORK/$L/report" >"$WORK/$L/report.txt" 2>&1 || { cat "$WORK/$L/report.txt"; exit 1; }
+  # two visits a month apart, as a person would make them: a check and a report 30 days ago (its check record is the
+  # in-depth baseline), then the check and the report shown
+  for V in first last; do
+    WHEN=$NOW
+    [ $V = first ] && WHEN=$("$PY" -c 'import sys,datetime as d; t=d.datetime.fromisoformat(sys.argv[1].replace("Z","+00:00"))-d.timedelta(days=30); print(t.strftime("%Y-%m-%dT%H:%M:%SZ"))' "$NOW")
+    run() { env -i PATH="$PATH" HOME="$H" LEEWAY_NOW="$WHEN" "$@"; }
+    run LEEWAY_EXAMPLE_LANG=$L LEEWAY_JUDGE_CMD="$PY $WORK/example.py judge" \
+      "$BIN" drift --claude-dir "$WORK/$L/logs/claude" --codex-dir "$WORK/$L/logs/codex" --cache "$H/cache" \
+        --since 30d --max-sessions 0 --concurrency 1 --yes --lang $L >"$WORK/$L/drift-$V.txt" 2>&1 || { cat "$WORK/$L/drift-$V.txt"; exit 1; }
+    run "$BIN" report --claude-dir "$WORK/$L/logs/claude" --codex-dir "$WORK/$L/logs/codex" --cache "$H/cache" \
+        --since 30d --lang $L --out "$WORK/$L/report-$V" >"$WORK/$L/report-$V.txt" 2>&1 || { cat "$WORK/$L/report-$V.txt"; exit 1; }
+  done
+  mv "$WORK/$L/report-last" "$WORK/$L/report" && mv "$WORK/$L/report-last.txt" "$WORK/$L/report.txt"
   mkdir -p "$OUT/report"
   cp "$(ls "$WORK/$L/report"/*.html | head -1)" "$OUT/report/$L.html"   # the report, byte for byte as the binary wrote it
   cp "$(ls "$WORK/$L/report"/*.md | head -1)" "$WORK/raw/$L.md"

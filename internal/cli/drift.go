@@ -458,6 +458,7 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 				say(errw, fmtT(T["debug_on"], "path", p))
 			}
 		}
+		runStart := float64(time.Now().UnixNano()) / 1e9 // results written from here on are this run's
 		if len(todo) > 0 {
 			res = drift.JudgeAll(ctx, cache, todo, rb, drift.Options{Concurrency: o.concurrency, Timeout: o.timeout, Budget: o.budget, CLIVersions: versions,
 				Log: func(s string) { say(errw, s) }})
@@ -466,6 +467,15 @@ func runDrift(o *driftOpts, out, errw io.Writer, quietSummary bool) int {
 				reason = fmtT(T["stopped"], "reason", res.StoppedReason)
 			}
 			say(errw, fmtT(T["judged"], "n", res.Done, "usd", res.Spent, "reason", reason))
+			if res.Done > 0 && !config.Legacy { // a numbers-only record of this check, for later comparisons
+				judgedTiers := map[string]string{}
+				for _, it := range todo {
+					if t, ok := tiers[it.Tool]; ok {
+						judgedTiers[it.Tool] = t
+					}
+				}
+				saveCheckRecords(o, tb, since, now, judgedTiers, rb, runStart)
+			}
 			if res.StoppedReason != "" {
 				say(errw, T["resume_hint"])
 			}
