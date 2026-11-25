@@ -2,6 +2,12 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.13] - 2026-11-26
+
+### Fixed
+- Unused skills (Codex): a skill used through a relative path in a call that runs in its skills folder, home or `$CODEX_HOME` (`cd …/skills && python foo/run.py`, `../foo/run.py` from a sibling skill, `-C` after `env`, `make`, `git` or `tar`, or the call's working folder: `workdir` or `cwd`, also in a code-mode script, and the command's recorded `cwd`), a folder named only that way with characters a plain-text key cannot hold, a custom-root skill named by a `file:///` URL, a custom-root skill named late in a very long session, and a skill shown only by a `world_state` entry under a custom root were reported as not used. A `file:` URL's percent escapes are all decoded.
+- A test that changed the clock's time zone while its local web server could still read it failed under `go test -race`; each case now runs on its own.
+
 ## [0.1.12] - 2026-11-26
 
 ### Added

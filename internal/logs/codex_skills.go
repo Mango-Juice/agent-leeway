@@ -2,6 +2,7 @@ package logs
 
 import (
 	"hash/fnv"
+	"os"
 	"path"
 	"regexp"
 	"sort"
@@ -35,6 +36,8 @@ type codexSkills struct {
 	hidden     bool              // world_state host_skills.includeInstructions is false
 	hiddenEver bool
 	entries    map[string]bool // delta form: SKILL.md path -> shown, patches applied
+	// listedHash are the hash keys of this file's listed folders (also written from home), kept past the bound
+	listedHash map[string]bool
 	shown      map[string]bool // folders an entry showed at some point in the session
 	shownAt    int64
 }
@@ -101,6 +104,9 @@ func (s *Setup) codexSkillList(text string, ts int64) {
 			loc = roots[a] + "/" + rest
 		}
 		dir := path.Dir(loc)
+		if _, seen := c.dirs[dir]; !seen {
+			c.listHashes(dir)
+		}
 		c.dirs[dir] = m[1]
 		if _, ok := c.by[m[1]]; ok {
 			continue
@@ -122,6 +128,29 @@ func (s *Setup) codexSkillList(text string, ts int64) {
 		s.SkillsAt = ts
 	}
 	s.Skills = len(s.Listed)
+}
+
+// listHashes keeps the hash keys a listed folder answers to (SkillKeys with this computer's home).
+func (c *codexSkills) listHashes(dir string) {
+	if c.listedHash == nil {
+		c.listedHash = map[string]bool{}
+	}
+	home, _ := os.UserHomeDir()
+	for _, k := range SkillKeys(dir, home) {
+		if strings.HasPrefix(k, "#") {
+			c.listedHash[k] = true
+		}
+	}
+}
+
+// hasString says xs holds s.
+func hasString(xs []string, s string) bool {
+	for _, x := range xs {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }
 
 // cxSource is a listed skill's group: the plugin it came with (".../plugins/cache/<marketplace>/<plugin>/..."),
@@ -200,7 +229,10 @@ func (s *Setup) codexHostSkills(p py.Value, ts int64) {
 			if c.shown == nil {
 				c.shown = map[string]bool{}
 			}
-			c.shown[path.Dir(pth)] = true
+			if d := path.Dir(pth); !c.shown[d] {
+				c.shown[d] = true
+				c.listHashes(d) // a skill shown only here is listed too: its hashes join and pass the bound as well
+			}
 			if c.shownAt == 0 {
 				c.shownAt = ts
 			}
@@ -324,10 +356,32 @@ func normArg(s string) string {
 // cxMaxHashes bounds the folder hashes one file keeps.
 const cxMaxHashes = 20000
 
-// mentions keeps the keys of the skill folders a call's input (decoded text) names.
-func (s *Setup) mentions(text string) {
+// mentions keeps the keys of the skill folders a call's input (decoded text) names. runIn are the folders the call
+// runs in, as its record gives them (a JSON workdir or cwd, a command's cwd; a file URL is read as its path).
+func (s *Setup) mentions(text string, runIn ...string) {
 	if text == "" || !strings.Contains(text, "/") && !strings.Contains(text, `\`) && !strings.Contains(text, "%") {
 		return
+	}
+	var cp callPaths
+	for _, d := range runIn {
+		d = strings.TrimSpace(d)
+		if strings.HasPrefix(strings.ToLower(d), "file:") {
+			d = fileURLPath(normArg(d))
+		} else {
+			d = normArg(d)
+		}
+		if c, abs := cleanTok(d); abs {
+			cp.anchor(c)
+		}
+	}
+	// -C, --chdir and --directory name the folder only after env, make, git and tar (ls -C and wc -c do not); read
+	// before case is folded
+	if strings.Contains(text, "-C") || strings.Contains(text, "--chdir") || strings.Contains(text, "--directory") {
+		for _, m := range cxDashC.FindAllStringSubmatch(text, cxMaxRoots) {
+			if c, abs := cleanTok(normArg(strings.Trim(m[1], `"'`))); abs {
+				cp.anchor(c)
+			}
+		}
 	}
 	t := normArg(text)
 	if strings.Contains(t, "{") {
@@ -344,18 +398,205 @@ func (s *Setup) mentions(text string) {
 			return strings.Join(out, " ")
 		})
 	}
-	s.pathTokens(t, 0)
+	s.pathTokens(t, 0, &cp)
+	// the value of a workdir or cwd key inside a code-mode script ({cmd:"…", workdir:'…'})
+	if strings.Contains(t, "dir") || strings.Contains(t, "cwd") {
+		for _, m := range cxDirKeyRE.FindAllStringSubmatch(t, cxMaxRoots) {
+			if c, abs := cleanTok(m[1] + m[2] + m[3]); abs {
+				cp.anchor(c)
+			}
+		}
+	}
+	// a relative path in a call that says which folder it runs in (workdir or cwd, cd, -C): its leading parts (up
+	// to three, after one leading ".." resolved against the folder), joined to that folder, are folders the call may
+	// name (only hashes: matched to listed folders). A folder the call only names is not one it runs in:
+	// "rg x ~/.codex/skills review/notes.md" names no "review" skill. Kept when it can matter: the joined folder is
+	// one of this file's listed folders, or the root is a skills folder, home or $CODEX_HOME (a sub-agent's file
+	// has no list of its own)
+	for i, root := range cp.roots {
+		if !cp.anchored[i] {
+			continue
+		}
+		up := path.Dir(root)
+		if root == "~" || root == "$codex_home" || up == "." {
+			up = ""
+		}
+		for _, rel := range cp.rels {
+			base := root
+			if r, ok := strings.CutPrefix(rel, "../"); ok {
+				if up == "" {
+					continue
+				}
+				base, rel = up, r
+			}
+			any := base == "~" || base == "$codex_home" || strings.HasSuffix(base, "/skills") || strings.HasSuffix(base, "/.system")
+			k := fnvMore(fnvMore(fnvOffset, strings.TrimRight(base, "/")+"/"), rel)
+			if any || (s.cx != nil && s.cx.listedHash["#"+strconv.FormatUint(k, 16)]) {
+				s.joinedKey(k)
+			}
+		}
+	}
+}
+
+// fileURLPath is the path of a normalized file URL (file:///C:/… is C:/…).
+func fileURLPath(u string) string {
+	p := strings.TrimPrefix(pctDecode(strings.TrimPrefix(u, "file:")), "/localhost")
+	if len(p) > 3 && p[0] == '/' && p[2] == ':' && p[3] == '/' {
+		p = p[1:]
+	}
+	return p
+}
+
+// runDirs are the folders a JSON tool input says its call runs in (workdir, cwd, working_directory).
+func runDirs(v py.Value) []string {
+	if v.K == py.Str {
+		j, err := py.Loads(v.S)
+		if err != nil {
+			return nil
+		}
+		v = j
+	}
+	if v.K != py.Obj {
+		return nil
+	}
+	var out []string
+	for _, k := range []string{"workdir", "cwd", "working_directory", "workingDirectory"} {
+		if x := v.Get(k); x.K == py.Str && x.S != "" {
+			out = append(out, x.S)
+		}
+	}
+	return out
+}
+
+// callPaths are one call's folders that relative paths may be under (absolute, from home, from $CODEX_HOME), whether
+// the call runs in each (anchored), and the leading parts of its relative paths (up to three deep), bounded.
+type callPaths struct {
+	roots    []string
+	anchored []bool
+	rels     []string
+	afterCd  bool // the previous token was cd (or pushd, Set-Location, git -C)
+}
+
+const cxMaxRoots, cxMaxRels, cxRelDepth = 16, 64, 3
+
+// cxCdWords are the commands whose next path is the folder the rest of the call runs in ("cd -- <path>" too).
+var cxCdWords = map[string]bool{"cd": true, "pushd": true, "set-location": true, "sl": true, "chdir": true}
+
+// cxDashC is env, make, git or tar with a -C, --chdir or --directory folder (original case: ls -C is no folder).
+var cxDashC = regexp.MustCompile(`(?:^|[\s;&|(])(?:env|make|gmake|git|tar)\s[^;&|\n]*?(?:-C\s*|--chdir[=\s]\s*|--directory[=\s]\s*)("[^"\n]*"|'[^'\n]*'|[^\s;&|)]+)`)
+
+// cxDirKeyRE is a working-folder key and its string value in a script or object literal (normalized text): the
+// key spellings seen in Codex tool-call inputs (workdir, cwd; dir), and their longer variants.
+var cxDirKeyRE = regexp.MustCompile("(?:^|[^a-z0-9_$])(?:workdir|cwd|working_?dir(?:ectory)?|dir)[\"']?\\s*[:=]\\s*(?:\"([^\"\\n]*)\"|'([^'\\n]*)'|`([^`\\n]*)`)")
+
+// cleanTok is a path token without "." parts and trailing punctuation, and whether it is absolute (from the root,
+// a drive, home or $CODEX_HOME).
+func cleanTok(tok string) (string, bool) {
+	var parts []string
+	for _, p := range strings.Split(strings.ReplaceAll(tok, cxSpace, " "), "/") {
+		if p != "." {
+			parts = append(parts, p)
+		}
+	}
+	clean := strings.TrimRight(strings.Join(parts, "/"), "/.:,;")
+	abs := clean == "~" || clean == "$codex_home" || strings.HasPrefix(clean, "/") || strings.HasPrefix(clean, "~/") ||
+		strings.HasPrefix(clean, "$codex_home/") || (len(clean) > 2 && clean[1] == ':' && clean[2] == '/')
+	return clean, abs
+}
+
+// anchor marks a root as a folder the call runs in (added when new, within the bound).
+func (cp *callPaths) anchor(root string) {
+	for i, r := range cp.roots {
+		if r == root {
+			cp.anchored[i] = true
+			return
+		}
+	}
+	if len(cp.roots) < cxMaxRoots {
+		cp.roots, cp.anchored = append(cp.roots, root), append(cp.anchored, true)
+	}
+}
+
+func (cp *callPaths) add(tok string) {
+	afterCd := cp.afterCd
+	cp.afterCd = cxCdWords[tok] || (afterCd && tok == "--") // "cd -- <path>"
+	if tok == "" || len(tok) > cxMaxToken {
+		return
+	}
+	clean, abs := cleanTok(tok)
+	switch {
+	case abs:
+		if afterCd {
+			cp.anchor(clean)
+		} else if len(cp.roots) < cxMaxRoots && !hasString(cp.roots, clean) {
+			cp.roots, cp.anchored = append(cp.roots, clean), append(cp.anchored, false)
+		}
+	case strings.Contains(tok, "/") && !strings.Contains(tok, "://"): // "foo/" counts: the slash says it is a folder
+		rp := strings.Split(clean, "/")
+		lead := ""
+		if len(rp) > 1 && rp[0] == ".." { // one leading "..": the folder above the root
+			lead, rp = "../", rp[1:]
+		}
+		for d := 1; d <= cxRelDepth && d <= len(rp); d++ {
+			last := strings.TrimRight(rp[d-1], ".:,;")
+			if last == "" || last == ".." || last == "~" {
+				break
+			}
+			pre := lead + strings.Join(append(append([]string(nil), rp[:d-1]...), last), "/")
+			if len(cp.rels) < cxMaxRels && !hasString(cp.rels, pre) {
+				cp.rels = append(cp.rels, pre)
+			}
+		}
+	}
 }
 
 // pathTokens reads the path tokens of normalized text; a quoted string is a token (spaces kept) and is read again
 // for the tokens inside it (a whole command in quotes).
-func (s *Setup) pathTokens(t string, depth int) {
+func (s *Setup) pathTokens(t string, depth int, cp *callPaths) {
 	for _, m := range cxTokRE.FindAllStringSubmatch(t, -1) {
 		if q := m[1] + m[2]; q != "" && depth < 3 {
-			s.pathTokens(q, depth+1)
+			s.pathTokens(q, depth+1, cp)
 		}
-		s.pathToken(m[1] + m[2] + m[3])
+		tok := m[1] + m[2] + m[3]
+		if strings.HasPrefix(tok, "file:/") { // a file URL: the path after the scheme (slashes already folded)
+			tok = strings.TrimPrefix(pctDecode(tok[len("file:"):]), "/localhost")
+			if len(tok) > 3 && tok[0] == '/' && tok[2] == ':' && tok[3] == '/' { // file:///C:/… is the path C:/…
+				tok = tok[1:]
+			}
+		}
+		cp.add(tok)
+		s.pathToken(tok)
 	}
+}
+
+// pctDecode undoes a file URL's percent escapes (%XX; a malformed one is kept as written), as normArg would see
+// the path: NFC, lower case, a space as cxSpace, a backslash as a slash.
+func pctDecode(s string) string {
+	if !strings.Contains(s, "%") {
+		return s
+	}
+	var b []byte
+	for i := 0; i < len(s); i++ {
+		if s[i] == '%' && i+2 < len(s) {
+			if v, err := strconv.ParseUint(s[i+1:i+3], 16, 8); err == nil {
+				b = append(b, byte(v))
+				i += 2
+				continue
+			}
+		}
+		b = append(b, s[i])
+	}
+	d := strings.ToLower(norm.NFC.String(string(b)))
+	d = strings.ReplaceAll(strings.ReplaceAll(d, " ", cxSpace), `\`, "/")
+	return cxSlashes.ReplaceAllString(d, "/")
+}
+
+// fnvMore runs FNV-1a on from state h over s (from fnvOffset it is the hash of s, as pathToken computes it).
+func fnvMore(h uint64, s string) uint64 {
+	for j := 0; j < len(s); j++ {
+		h = (h ^ uint64(s[j])) * fnvPrime
+	}
+	return h
 }
 
 // cxMaxToken is the longest token read for folder hashes (a long blob names no folder).
@@ -420,11 +661,27 @@ func plainName(s, punct string, max int) bool {
 	return n > 0
 }
 
+// cxMaxJoined bounds the joined relative-path hashes one file keeps, apart from cxMaxHashes.
+const cxMaxJoined = 2000
+
+// joinedKey keeps a hash of a relative path joined to its call's folder, on a budget of its own, so the hashes
+// paths name themselves keep all of cxMaxHashes.
+func (s *Setup) joinedKey(h uint64) {
+	key := "#" + strconv.FormatUint(h, 16)
+	if s.SkillMentions[key] == 0 {
+		if s.joined >= cxMaxJoined && (s.cx == nil || !s.cx.listedHash[key]) {
+			return
+		}
+		s.joined++
+	}
+	s.mention(key)
+}
+
 // hashKey keeps a folder hash, up to cxMaxHashes distinct ones per file (a repeat costs nothing).
 func (s *Setup) hashKey(h uint64) {
 	key := "#" + strconv.FormatUint(h, 16)
 	if s.SkillMentions[key] == 0 {
-		if s.hashes >= cxMaxHashes {
+		if s.hashes >= cxMaxHashes && (s.cx == nil || !s.cx.listedHash[key]) { // this file's own listed folders always count
 			return
 		}
 		s.hashes++

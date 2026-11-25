@@ -269,3 +269,92 @@ func TestCodexHomeRootByHash(t *testing.T) {
 		t.Errorf("unused %v, want [idle]", got)
 	}
 }
+
+// Relative paths within one call: a skill root named in the call (cd, workdir) plus a relative path whose first part
+// is a listed skill's folder; a file:/// URL to a custom root; folder names a plain-text key cannot hold. And the
+// reverse: the root alone, another folder under the root, a folder whose name only shares a prefix.
+func TestCodexUseRelativeInOneCall(t *testing.T) {
+	t.Setenv("HOME", "/home/u")        // privacy-ok: made-up path
+	t.Setenv("USERPROFILE", "/home/u") // privacy-ok: made-up path
+	list := []logs.SkillLine{
+		{Name: "foo", Dir: "/home/u/.codex/skills/foo"},           // privacy-ok: made-up path
+		{Name: "foo-bar", Dir: "/home/u/.codex/skills/foo-bar"},   // privacy-ok: made-up path
+		{Name: "my-skill", Dir: "/home/u/.codex/skills/My Skill"}, // privacy-ok: made-up path
+		{Name: "odd", Dir: "/home/u/.codex/skills/odd (v2) #1"},   // privacy-ok: made-up path
+		{Name: "kit", Dir: "/opt/team-kit/kit"},                   // privacy-ok: made-up path
+		{Name: "idle", Dir: "/home/u/.codex/skills/idle"},         // privacy-ok: made-up path
+	}
+	all := []string{"foo", "foo-bar", "idle", "kit", "my-skill", "odd"}
+	for _, c := range []struct {
+		name string
+		recs []map[string]any
+		used []string
+	}{
+		{"cd root, relative script", []map[string]any{cmdDone("cd ~/.codex/skills && python foo/run.py")}, []string{"foo"}},
+		{"workdir root, relative SKILL.md", []map[string]any{call("exec_command", `{"cmd":"cat foo/SKILL.md","workdir":"/home/u/.codex/skills"}`)}, []string{"foo"}},            // privacy-ok: made-up path
+		{"quoted relative with a space", []map[string]any{call("exec_command", `{"cmd":"cat \"My Skill/SKILL.md\"","workdir":"/home/u/.codex/skills"}`)}, []string{"my-skill"}}, // privacy-ok: made-up path
+		{"odd characters, relative", []map[string]any{call("exec_command", `{"cmd":"cat 'odd (v2) #1/notes.md'","workdir":"/home/u/.codex/skills"}`)}, []string{"odd"}},         // privacy-ok: made-up path
+		{"file URL to a custom root", []map[string]any{call("open", `{"url":"file:///opt/team-kit/kit/references/guide.md"}`)}, []string{"kit"}},
+		{"the root alone", []map[string]any{cmdDone("ls ~/.codex/skills")}, nil},
+		{"another folder under the root", []map[string]any{cmdDone("cd ~/.codex/skills && cat other/README.md")}, nil},
+		{"a longer name sharing a prefix", []map[string]any{cmdDone("cd ~/.codex/skills && python foo-bar/run.py")}, []string{"foo-bar"}},
+		{"a relative path with no root in the call", []map[string]any{cmdDone("python foo/run.py")}, nil},
+	} {
+		got := codexUnusedWith(t, func(int) []logs.SkillLine { return list }, c.recs...)
+		var want []string
+		for _, n := range all {
+			used := false
+			for _, u := range c.used {
+				used = used || u == n
+			}
+			if !used {
+				want = append(want, n)
+			}
+		}
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Errorf("%s: unused %v, want %v", c.name, got, want)
+		}
+	}
+}
+
+// Review of the relative-path change: a Windows file URL, a bare ~ or $CODEX_HOME as the folder a relative path is
+// under, a root two levels above the skill, a relative folder with only a trailing slash; and an install command
+// run elsewhere (the skills folder is not where it runs, and not its only folder) is no use.
+func TestCodexUseRelativeReview(t *testing.T) {
+	t.Setenv("HOME", "/home/u")        // privacy-ok: made-up path
+	t.Setenv("USERPROFILE", "/home/u") // privacy-ok: made-up path
+	list := []logs.SkillLine{
+		{Name: "foo", Dir: "/home/u/.codex/skills/foo"},         // privacy-ok: made-up path
+		{Name: "odd", Dir: "/home/u/.codex/skills/odd (v2) #1"}, // privacy-ok: made-up path
+		{Name: "win", Dir: "c:/Users/u/kit/win"},                // privacy-ok: made-up path
+		{Name: "deep", Dir: "/opt/team-kit/odd kit"},            // privacy-ok: made-up path
+		{Name: "idle", Dir: "/home/u/.codex/skills/idle"},       // privacy-ok: made-up path
+	}
+	all := []string{"deep", "foo", "idle", "odd", "win"}
+	for _, c := range []struct {
+		name, cmd, used string
+	}{
+		{"Windows file URL", "open file:///C:/Users/u/kit/win/x.md", "win"},
+		{"bare $CODEX_HOME root", `cd $CODEX_HOME && cat 'skills/odd (v2) #1/SKILL.md'`, "odd"},
+		{"bare ~ root", `cd ~ && cat '.codex/skills/odd (v2) #1/notes.md'`, "odd"},
+		{"root two levels up", `cd /opt && cat 'team-kit/odd kit/x.md'`, "deep"},
+		{"trailing slash only", "cd ~/.codex/skills && ls foo/", "foo"},
+		{"an install command", "cp -r ./foo ~/.codex/skills/", ""},
+	} {
+		recs := []map[string]any{cmdDone(c.cmd)}
+		if c.used == "deep" { // a custom root two levels up counts through the session's own list
+			recs = append([]map[string]any{{"type": "response_item", "payload": map[string]any{"type": "message", "role": "developer",
+				"content": []any{map[string]any{"type": "input_text", "text": "<skills_instructions>\n### Available skills\n- deep: Deep kit (file: /opt/team-kit/odd kit/SKILL.md)\n</skills_instructions>"}}}}}, recs...) // privacy-ok: made-up path
+		}
+		got := codexUnusedWith(t, func(int) []logs.SkillLine { return list }, recs...)
+		var want []string
+		for _, n := range all {
+			if n != c.used {
+				want = append(want, n)
+			}
+		}
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Errorf("%s: unused %v, want %v", c.name, got, want)
+		}
+	}
+}

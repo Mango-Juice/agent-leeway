@@ -160,7 +160,7 @@ func ParseCodex(path string) (*File, error) {
 		case isStr(typ, "response_item") && isStr(pt, "message") && isStr(p.Get("role"), "developer"):
 			codexDevList(su, typ, pt, p, tsOf(ts))
 		case isStr(typ, "response_item") && isStr(pt, "local_shell_call"):
-			su.mentions(argText(p.Get("action")))
+			su.mentions(argText(p.Get("action")), runDirs(p.Get("action"))...)
 		case isStr(typ, "turn_context"):
 			b.meta.model = b.meta.model.Or(p.Get("model"))
 			if p.Get("model").Truthy() {
@@ -265,9 +265,9 @@ func ParseCodex(path string) (*File, error) {
 			}
 			// every call's input, whatever the tool and whether item_completed records exist, decoded as written
 			if argsV.K == py.Str {
-				su.mentions(argTextRaw(argsV.S))
+				su.mentions(argTextRaw(argsV.S), runDirs(argsV)...)
 			} else {
-				su.mentions(argText(argsV))
+				su.mentions(argText(argsV), runDirs(argsV)...)
 			}
 			kind, path_, target := "tool", NS{}, FromValue(name)
 			switch {
@@ -334,7 +334,7 @@ func ParseCodex(path string) (*File, error) {
 			switch {
 			case isStr(t, "CommandExecution"):
 				cmd := joinCmd(it.Get("command"))
-				su.mentions(argText(it.Get("command")) + "\n" + py.PyStr(it.Get("cwd")))
+				su.mentions(argText(it.Get("command")), py.PyStr(it.Get("cwd")))
 				parsed := it.Get("parsed_cmd")
 				if !parsed.Truthy() {
 					parsed = py.Value{K: py.Arr}

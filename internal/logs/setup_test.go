@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -625,5 +626,66 @@ func TestCodexDeltaNewEntryWithoutShown(t *testing.T) {
 		`["host","host","/home/u/.agents/skills/quiet/SKILL.md"]`: map[string]any{"fingerprint": "a"}}}}})) // privacy-ok: made-up path
 	if f, _ := ParseCodex(p); f.Setup != nil && len(f.Setup.Listed) > 0 {
 		t.Errorf("an entry without shown was listed: %+v", f.Setup.Listed)
+	}
+}
+
+// A file's own listed folders keep their hash keys after the bound is full: a custom-root skill named late in a
+// long session still matches.
+func TestListedFolderHashPastTheBound(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "rollout-2026-11-20T10-00-00-thread-one.jsonl")
+	recs := []any{cxDev("<skills_instructions>\n### Available skills\n- kit: Team kit (file: /opt/team-kit/kit/SKILL.md)\n</skills_instructions>")}
+	for i := 0; i < cxMaxHashes/3+100; i++ {
+		recs = append(recs, cxLine("event_msg", map[string]any{"type": "item_completed", "item": map[string]any{"type": "CommandExecution", "id": "c",
+			"command": "ls /w/a" + strconv.Itoa(i) + "/b/c", "cwd": "/w", "exit_code": 0}}))
+	}
+	recs = append(recs, cxLine("event_msg", map[string]any{"type": "item_completed", "item": map[string]any{"type": "CommandExecution", "id": "c",
+		"command": "python /opt/team-kit/kit/tool.py", "cwd": "/w", "exit_code": 0}}))
+	codexFile(t, p, recs...)
+	f, err := ParseCodex(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Setup.SkillMentions[folderHash("/opt/team-kit/kit")] == 0 {
+		t.Errorf("the listed folder's hash was dropped past the bound (%d hashes)", len(f.Setup.SkillMentions))
+	}
+}
+
+// Review of PR #15: a skill shown only by a delta host_skills entry (no list text) gets the same list hashes as a
+// listed one: a relative path under a custom root joins it, and its folder's hash is kept past the bound.
+func TestCodexDeltaEntryListHashes(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "rollout-2026-11-20T10-00-00-thread-one.jsonl")
+	recs := []any{cxLine("world_state", map[string]any{"full": true, "state": map[string]any{"host_skills": map[string]any{"version": 1, "entries": map[string]any{
+		`["host","host","/opt/team-kit/kit/SKILL.md"]`: map[string]any{"fingerprint": "a", "shown": true},
+	}}}})}
+	for i := 0; i < cxMaxHashes/3+100; i++ {
+		recs = append(recs, cxLine("event_msg", map[string]any{"type": "item_completed", "item": map[string]any{"type": "CommandExecution", "id": "c",
+			"command": "ls /w/a" + strconv.Itoa(i) + "/b/c", "cwd": "/w", "exit_code": 0}}))
+	}
+	recs = append(recs, cxLine("event_msg", map[string]any{"type": "item_completed", "item": map[string]any{"type": "CommandExecution", "id": "c",
+		"command": "cd /opt/team-kit && python kit/tool.py", "cwd": "/w", "exit_code": 0}}))
+	codexFile(t, p, recs...)
+	f, err := ParseCodex(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Setup.SkillMentions[folderHash("/opt/team-kit/kit")] == 0 {
+		t.Errorf("a delta-only skill under a custom root, past the bound: not matched (%d hashes)", len(f.Setup.SkillMentions))
+	}
+}
+
+// Joined relative-path hashes have a budget of their own: a file that reaches the bound keeps every folder hash the
+// paths themselves name, as before the joining existed.
+func TestJoinedHashesKeepTheBound(t *testing.T) {
+	t.Setenv("HOME", "/home/u") // privacy-ok: made-up path
+	s := &Setup{}
+	for i := 0; i < 3000; i++ {
+		s.mentions("cd ~ && ls a" + strconv.Itoa(i) + "/")
+	}
+	for j := 0; j < (cxMaxHashes-10)/3; j++ {
+		s.mentions("ls /w/b" + strconv.Itoa(j) + "/c/d")
+	}
+	s.mentions("ls /w/last/c/d")
+	if s.SkillMentions[folderHash("/w/last/c/d")] == 0 {
+		t.Errorf("a path's own hash was pushed out by joined hashes (%d keys)", len(s.SkillMentions))
 	}
 }

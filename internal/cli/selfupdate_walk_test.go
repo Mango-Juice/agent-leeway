@@ -58,36 +58,42 @@ func TestSkillUpdateWalkthrough(t *testing.T) {
 		{"ko", "codex", methodInstaller, "linux", "Mango-Juice/agent-leeway 최신 버전으로 업데이트해줘"},
 		{"en", "claude", methodBrew, "darwin", "Update Mango-Juice/agent-leeway to the latest version"},
 	} {
-		fixtureEnv(t)
-		oldV, oldExe, oldOS := meta.Version, executablePath, hostOS
-		meta.Version, hostOS = "0.1.3", c.goos
-		executablePath = func() string {
-			if c.method == methodBrew {
-				return "/opt/homebrew/Cellar/agent-leeway/" + meta.Version + "/bin/agent-leeway"
-			}
-			return "/home/u/.local/bin/agent-leeway" // privacy-ok: made-up paths
-		}
-		t.Setenv("HOME", "/home/u")        // privacy-ok: made-up paths
-		t.Setenv("USERPROFILE", "/home/u") // privacy-ok: made-up paths
-		tag := "v0.1.6"
-		releaseServer(t, &tag)
-		a := &fakeAgent{t: t, lang: c.lang, tool: c.tool}
-		toNew := func() { meta.Version = strings.TrimPrefix(tag, "v") }
-		reset := func() { meta.Version = "0.1.3"; tag = "v0.1.6" }
-
-		a.b.WriteString("### 1. a newer version exists\n")
-		a.user(c.upd)
-		a.update(toNew)
-		a.user(c.upd)
-		a.update(toNew)
-
-		a.b.WriteString("\n### 2. offline\n")
-		reset()
-		tag = ""
-		a.user(c.upd)
-		a.update(toNew)
-
-		golden(t, "walkthrough-"+c.lang+"-"+c.tool+".txt", a.b.String())
-		meta.Version, executablePath, hostOS = oldV, oldExe, oldOS
+		// each case is a subtest, so its release server closes (cleanups run last-in, first-out) before the clock
+		// zone is put back and before the next case changes it: no server goroutine reads time.Local meanwhile
+		t.Run(c.lang+"-"+c.tool, func(t *testing.T) { walkthroughCase(t, c) })
 	}
+}
+
+func walkthroughCase(t *testing.T, c struct{ lang, tool, method, goos, upd string }) {
+	fixtureEnv(t)
+	oldV, oldExe, oldOS := meta.Version, executablePath, hostOS
+	t.Cleanup(func() { meta.Version, executablePath, hostOS = oldV, oldExe, oldOS }) // also when the case fails
+	meta.Version, hostOS = "0.1.3", c.goos
+	executablePath = func() string {
+		if c.method == methodBrew {
+			return "/opt/homebrew/Cellar/agent-leeway/" + meta.Version + "/bin/agent-leeway"
+		}
+		return "/home/u/.local/bin/agent-leeway" // privacy-ok: made-up paths
+	}
+	t.Setenv("HOME", "/home/u")        // privacy-ok: made-up paths
+	t.Setenv("USERPROFILE", "/home/u") // privacy-ok: made-up paths
+	tag := "v0.1.6"
+	releaseServer(t, &tag)
+	a := &fakeAgent{t: t, lang: c.lang, tool: c.tool}
+	toNew := func() { meta.Version = strings.TrimPrefix(tag, "v") }
+	reset := func() { meta.Version = "0.1.3"; tag = "v0.1.6" }
+
+	a.b.WriteString("### 1. a newer version exists\n")
+	a.user(c.upd)
+	a.update(toNew)
+	a.user(c.upd)
+	a.update(toNew)
+
+	a.b.WriteString("\n### 2. offline\n")
+	reset()
+	tag = ""
+	a.user(c.upd)
+	a.update(toNew)
+
+	golden(t, "walkthrough-"+c.lang+"-"+c.tool+".txt", a.b.String())
 }

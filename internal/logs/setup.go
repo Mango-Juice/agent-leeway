@@ -37,6 +37,7 @@ type Setup struct {
 	// "omitted" body); the session's list is not counted
 	SkillsUncertain bool
 	hashes          int // folder hashes kept in SkillMentions (bounded)
+	joined          int // of those, hashes of a relative path joined to the folder its call runs in (bounded apart)
 
 	cx *codexSkills // Codex: the list being read (not kept)
 }
