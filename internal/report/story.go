@@ -23,7 +23,7 @@ import (
 // show, in that order. Python reference: docs/mockups/round6/build_round6.py (with round 5 and round 3).
 
 // Status cut-offs (docs/24 §15.3): serious-miss sessions at most 10% good, at most 25% fair; money lost to
-// habits under 5% good... (inclusive: exactly 5% is good), at most 15% fair. Fewer than MinJudged judged sessions
+// habits at most 5% good, at most 15% fair (all inclusive: exactly 5% is good). Fewer than MinJudged judged sessions
 // gives no drift rating.
 var (
 	DriftCuts = [2]float64{0.10, 0.25}

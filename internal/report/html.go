@@ -5,6 +5,7 @@ import (
 	"html"
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -89,7 +90,22 @@ func track(value float64, cuts [2]float64, vmax float64, words [3]string, lv str
 		}
 		fmt.Fprintf(&b, `<text class="zl%s" x="%s" y="34" text-anchor="middle">%s</text>`, on, fmt1((pos(x[0].(float64))+pos(x[1].(float64)))/2), E(words[i]))
 	}
-	return `<svg class="track" viewBox="0 -2 300 40" aria-hidden="true">` + b.String() + `</svg>`
+	// the cut-offs, like axis ticks: a short tick under each gap between zones, the number centred under it on the
+	// row of the zone labels (same baseline); a cut-off off the axis has no gap to mark
+	for _, c := range cuts {
+		if c <= 0 || c >= vmax {
+			continue
+		}
+		x := fmt1(pos(c) - 1)
+		fmt.Fprintf(&b, `<line class="ztk" x1="%s" y1="20" x2="%s" y2="25"/><text class="zt" x="%s" y="34" text-anchor="middle">%s</text>`, x, x, x, cutPct(c))
+	}
+	return `<svg class="track" viewBox="0 -2 300 41" aria-hidden="true">` + b.String() + `</svg>`
+}
+
+// cutPct is a cut-off as a percent without trailing zeros ("5%", "12.5%"), the way the rating table in Look things
+// up writes it.
+func cutPct(x float64) string {
+	return strconv.FormatFloat(math.Round(x*1000)/10, 'f', -1, 64) + "%"
 }
 
 type barRow struct {

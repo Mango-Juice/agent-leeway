@@ -2,6 +2,14 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.11] - 2026-11-25
+
+### Added
+- The two cards on the report's first screen show the rating cut-offs on their scale (10% and 25% of sessions; 5% and 15% of spend), so you can see why a number is Good, Fair or Poor.
+
+### Fixed
+- Look things up said money lost to habits is Good "under 5% of spend"; the rating counts exactly 5% as Good, and the table now says "5% of spend or less".
+
 ## [0.1.10] - 2026-11-24
 
 ### Added

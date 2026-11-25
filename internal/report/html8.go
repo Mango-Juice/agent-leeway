@@ -240,7 +240,9 @@ func (s *Story) methodBlock() string {
 	for r := 0; r < 3; r++ {
 		lv.WriteString(`<tr>`)
 		for c := 0; c < 3; c++ {
-			fmt.Fprintf(&lv, `<td>%s</td>`, E(s.S[fmt.Sprintf("m_level_rows.%d.%d", r, c)]))
+			// the cut-off each row names: Good and Fair end at the lower and upper cut, Poor starts past the upper
+			cuts := [3][2]float64{{}, DriftCuts, CostCuts}[c]
+			fmt.Fprintf(&lv, `<td>%s</td>`, E(s.T(fmt.Sprintf("m_level_rows.%d.%d", r, c), "cut", cutPct(cuts[min(r, 1)]))))
 		}
 		lv.WriteString(`</tr>`)
 	}

@@ -360,3 +360,55 @@ func TestNumberSingular(t *testing.T) {
 		t.Error("Korean changed")
 	}
 }
+
+// Each rated card's track shows its two cut-offs under the gaps between zones, taken from DriftCuts and CostCuts;
+// a card without a rating has no track and so no cut-offs.
+func TestTrackCutOffs(t *testing.T) {
+	first := func(s *Story) string {
+		h := s.HTML()
+		i := strings.Index(h, `<section class="sec verdict"`)
+		return h[i : i+strings.Index(h[i:], "</section>")]
+	}
+	ticks := func(v string) string {
+		var b strings.Builder
+		for _, m := range regexp.MustCompile(`<text class="zt" x="([\d.]+)" y="34" text-anchor="middle">([^<]*)</text>`).FindAllStringSubmatch(v, -1) {
+			b.WriteString(m[1] + "=" + m[2] + " ")
+		}
+		return b.String()
+	}
+	s := storyOf(t, leakReport(100, leak.Habit{Habit: "long_break", Causes: []string{"expiry"}, USD: 8, Count: 1}), nil, judged(t, 10, 1)...)
+	if got, want := ticks(first(s)), "74.0=10% 186.5=25% 59.0=5% 179.0=15% "; got != want {
+		t.Errorf("cut-offs %q, want %q", got, want)
+	}
+	old := DriftCuts
+	DriftCuts = [2]float64{0.125, 0.3}
+	defer func() { DriftCuts = old }()
+	if got := ticks(first(s)); !strings.HasPrefix(got, "92.8=12.5% 224.0=30% ") {
+		t.Errorf("the drift cut-offs do not follow DriftCuts: %q", got)
+	}
+	DriftCuts = [2]float64{0.1, 0.4} // a cut-off at the end of the axis has no gap to mark
+	if got := ticks(first(s)); !strings.HasPrefix(got, "74.0=10% 59.0=5% ") {
+		t.Errorf("a cut-off off the axis is drawn: %q", got)
+	}
+	DriftCuts = old
+	if v := first(storyOf(t, nil, nil, judged(t, 4, 4)...)); strings.Contains(v, `class="zt"`) || strings.Contains(v, `class="track"`) {
+		t.Error("a card without a rating shows a track or cut-offs")
+	}
+}
+
+// The rating table in Look things up names the cut-offs from DriftCuts and CostCuts, inclusive like level():
+// exactly 5% of spend is Good.
+func TestLevelTableCutOffs(t *testing.T) {
+	row := regexp.MustCompile(`<table class="mtab8">.*?</table>`)
+	s := storyOf(t, leakReport(100, leak.Habit{Habit: "long_break", Causes: []string{"expiry"}, USD: 5, Count: 1}), nil, judged(t, 10, 1)...)
+	want := `<tr><td>Good</td><td>Missed in 10% of sessions or fewer</td><td>5% of spend or less</td></tr><tr><td>Fair</td><td>Up to 25%</td><td>Up to 15%</td></tr><tr><td>Poor</td><td>More than 25%</td><td>More than 15%</td></tr>`
+	if got := row.FindString(s.HTML()); !strings.Contains(got, want) || s.St.Cost != "good" {
+		t.Errorf("table %q (cost %s)", got, s.St.Cost)
+	}
+	old := CostCuts
+	CostCuts = [2]float64{0.07, 0.2}
+	defer func() { CostCuts = old }()
+	if got := row.FindString(s.HTML()); !strings.Contains(got, "<td>7% of spend or less</td>") || !strings.Contains(got, "<td>More than 20%</td></tr>") {
+		t.Errorf("the table does not follow CostCuts: %q", got)
+	}
+}
