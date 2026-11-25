@@ -119,7 +119,7 @@ func TestJPEGSegmentCap(t *testing.T) {
 	if _, _, ok := ImageSize(base64.StdEncoding.EncodeToString(raw)); ok {
 		t.Error("read past the segment cap")
 	}
-	if d := time.Since(start); d > 20*time.Millisecond {
+	if d := time.Since(start); d > 500*time.Millisecond { // generous: a slow CI runner took 25 ms; the cap itself is checked above
 		t.Errorf("took %v", d)
 	}
 }

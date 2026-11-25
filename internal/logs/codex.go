@@ -156,6 +156,11 @@ func ParseCodex(path string) (*File, error) {
 		switch {
 		case isStr(typ, "world_state"):
 			su.codexWorldState(p, tsOf(ts))
+			su.codexHostSkills(p, tsOf(ts))
+		case isStr(typ, "response_item") && isStr(pt, "message") && isStr(p.Get("role"), "developer"):
+			codexDevList(su, typ, pt, p, tsOf(ts))
+		case isStr(typ, "response_item") && isStr(pt, "local_shell_call"):
+			su.mentions(argText(p.Get("action")))
 		case isStr(typ, "turn_context"):
 			b.meta.model = b.meta.model.Or(p.Get("model"))
 			if p.Get("model").Truthy() {
@@ -212,6 +217,9 @@ func ParseCodex(path string) (*File, error) {
 				}
 			}
 			text := joinNonEmpty(texts)
+			if strings.Contains(text, "<skill>") {
+				su.codexPick(text)
+			}
 			var human bool
 			if !kinds.IsNull() {
 				human = pyIn("user.text", kinds)
@@ -254,6 +262,12 @@ func ParseCodex(path string) (*File, error) {
 				args = argsV.S
 			} else {
 				args = py.Dumps(argsV.Or(py.String("")))
+			}
+			// every call's input, whatever the tool and whether item_completed records exist, decoded as written
+			if argsV.K == py.Str {
+				su.mentions(argTextRaw(argsV.S))
+			} else {
+				su.mentions(argText(argsV))
 			}
 			kind, path_, target := "tool", NS{}, FromValue(name)
 			switch {
@@ -320,6 +334,7 @@ func ParseCodex(path string) (*File, error) {
 			switch {
 			case isStr(t, "CommandExecution"):
 				cmd := joinCmd(it.Get("command"))
+				su.mentions(argText(it.Get("command")) + "\n" + py.PyStr(it.Get("cwd")))
 				parsed := it.Get("parsed_cmd")
 				if !parsed.Truthy() {
 					parsed = py.Value{K: py.Arr}
@@ -348,6 +363,7 @@ func ParseCodex(path string) (*File, error) {
 						Target: Some("edit:" + fp), Path: Some(fp), Failed: TriOf(!isStr(it.Get("status"), "completed")), InChars: -1}, step)
 				}
 			case isStr(t, "McpToolCall"):
+				su.mentions(argText(it.Get("arguments")))
 				res := it.Get("result").Or(py.Value{K: py.Obj, O: &py.Object{}})
 				c := Call{TS: tsOf(ts), CallID: FromValue(it.Get("id")), Name: Some("mcp:" + py.PyStr(it.Get("server")) + "." + py.PyStr(it.Get("tool"))),
 					Kind: "mcp", Target: Some("mcp:" + H(py.DumpsOpt(it.Get("arguments"), py.DumpOpts{EnsureASCII: true, SortKeys: true}))), InChars: -1}
@@ -369,10 +385,30 @@ func ParseCodex(path string) (*File, error) {
 	}
 	f.Events = codexEvents(lines, fid, maxOrd)
 	f.Stats = st
-	if !isStr(b.meta.source, "subagent") && !su.Empty() {
+	su.codexResolve()
+	su.cx = nil
+	if isStr(b.meta.source, "subagent") { // a sub-agent thread's own list is not counted (no session twice): only its skill use
+		su = &Setup{SkillsAt: NaT, InstrAt: NaT, AgentsAt: NaT, SkillUses: su.SkillUses,
+			SkillMentions: su.SkillMentions}
+	}
+	if !su.Empty() {
 		f.Setup = su
 	}
 	return f, nil
+}
+
+// codexDevList reads the skill list a developer message holds, if any.
+func codexDevList(su *Setup, typ, pt, p py.Value, ts int64) {
+	if !isStr(typ, "response_item") || !isStr(pt, "message") || !isStr(p.Get("role"), "developer") {
+		return
+	}
+	if c := p.Get("content"); c.K == py.Arr {
+		for _, x := range c.A {
+			if t := textOf(x.Get("text")); strings.Contains(t, "<skills_instructions>") {
+				su.codexSkillList(t, ts)
+			}
+		}
+	}
 }
 
 func joinNonEmpty(xs []string) string {

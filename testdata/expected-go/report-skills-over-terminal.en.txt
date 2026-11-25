@@ -1,0 +1,25 @@
+This is the basic report. It covers only money lost to habits.
+
+Your AI coding agents, overall: GOOD   (2026-01-30 – 2026-03-01)
+
+  Did what you asked      not checked yet  The in-depth check has not been run for 22 Claude
+  Code sessions in this period.
+                          To run it: agent-leeway drift --since 30d (it shows what it would send and asks first)
+  Money wasted by habits  [GOOD] fair poor  $0.00 of $0.65 · Already Good
+  Rated on cost only: the in-depth check has not been run yet.
+
+Fix first:
+  1. Take skills you start yourself out of the list
+     The skill list was full, so Claude Code dropped the descriptions of 3 of your 10 skills.
+     Claude may not pick those on its own.
+     Not used in the last 29 days: 5 of 10 skills, 45% of the list.
+     atlas: none of this plugin's 3 skills was used in the last 29 days.
+     Source: https://code.claude.com/docs/en/skills.md
+
+No waste found in 100% of spend
+
+→ <reports>/report-2026-03-01T0000.html
+
+Not checked in depth yet: 22 Claude Code sessions in this period. To see what would be checked (nothing is sent): agent-leeway drift --dry-run --tool claude --since 30d
+
+Run the in-depth check and add "did the agent do what you asked" to the report? It takes longer than the basic report.

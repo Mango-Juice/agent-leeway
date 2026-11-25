@@ -13,7 +13,7 @@ import (
 )
 
 // cacheVersion changes whenever parsing rules change, so old entries are ignored.
-const cacheVersion = 7
+const cacheVersion = 14
 
 // FileCache keeps each parsed log file under <dir>/files, keyed by path and checked against the file's
 // size and modification time: an unchanged file is not read again. Local only.

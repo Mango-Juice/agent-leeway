@@ -115,6 +115,7 @@ type Story struct {
 	Top                 []*Finding // the fixes, at most 3
 	Good                []GoodStat
 	Setup               []*Finding // setup items over their vendor line (docs/33)
+	Idle                []*Finding // unused-skill cards: Other things worth fixing only
 }
 
 // T is a story message with {name} placeholders filled.
@@ -190,6 +191,7 @@ func NewStory(m *Model) *Story {
 	}
 	s.St = s.status()
 	s.Setup = s.setupFindings()
+	s.Idle = s.idleFindings()
 	s.Top = s.firstThree()
 	s.Good = s.goingWell()
 	return s
@@ -305,7 +307,7 @@ func (s *Story) Others() []*Finding {
 			out = append(out, f)
 		}
 	}
-	return withSetupOthers(append(out, s.Leftovers...), s.Setup, s.Top)
+	return append(withSetupOthers(append(out, s.Leftovers...), s.Setup, s.Top), s.Idle...)
 }
 
 // Key is the copy key of a finding: its kind or habit.

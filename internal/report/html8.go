@@ -247,7 +247,11 @@ func (s *Story) methodBlock() string {
 		lv.WriteString(`</tr>`)
 	}
 	lv.WriteString(`</tbody></table>`)
-	fmt.Fprintf(&b, `<div class="m wide"><b>%s</b>%s<p class="xs t3" style="margin-top:6px">%s</p></div>`, E(s.T("m_levels")), lv.String(), E(s.T("m_note")))
+	var rules strings.Builder
+	for _, l := range s.idleRules() {
+		fmt.Fprintf(&rules, `<p class="xs t3" style="margin-top:6px">%s</p>`, E(l))
+	}
+	fmt.Fprintf(&b, `<div class="m wide"><b>%s</b>%s<p class="xs t3" style="margin-top:6px">%s</p>%s</div>`, E(s.T("m_levels")), lv.String(), E(s.T("m_note")), rules.String())
 	if notes := s.Notes(); len(notes) > 0 {
 		var nb strings.Builder
 		for _, n := range notes {

@@ -2,6 +2,7 @@ package report
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strings"
@@ -18,6 +19,7 @@ var setupSrc = map[string][2]string{
 	"claude/skills": {"Claude Code docs", "https://code.claude.com/docs/en/skills.md"},
 	"claude/instr":  {"Claude Code docs", "https://code.claude.com/docs/en/memory.md"},
 	"codex/instr":   {"Codex docs", "https://learn.chatgpt.com/docs/agent-configuration/agents-md"},
+	"codex/idle":    {"Codex docs", "https://learn.chatgpt.com/docs/build-skills"},
 }
 
 // setupShown are the rows this report shows: only the tools it is about (--tool), only tools with logs.
@@ -51,6 +53,65 @@ func (s *Story) setupFindings() []*Finding {
 		}
 		return out[i].Share > out[j].Share
 	})
+	return out
+}
+
+// IdleCardShare is when unused skills become a card of their own: half or more of a tool's listed skills (our rule
+// of thumb, not a vendor's line).
+const IdleCardShare = 0.5
+
+// idleFindings are the cards for unused skills, per tool: half or more of the list went unused, and the list is
+// not already a fix (the skill-list fix carries the count then). They go last in Other things worth fixing and
+// never into the first three fixes or the rating.
+func (s *Story) idleFindings() []*Finding {
+	var out []*Finding
+	for _, x := range s.setupShown() {
+		if x.Idle == nil || x.Idle.Listed == 0 || float64(x.Idle.Unused) < IdleCardShare*float64(x.Idle.Listed) || (x.Kind == "skills" && x.Over) {
+			continue
+		}
+		f := &Finding{Side: "setup", Kind: "SETUP_IDLE", ID: "f-setup-idle-" + x.Tool, AdviceID: "setup.unused", Tools: []string{x.Tool},
+			Level: "measured", Tier: "A", Share: x.Idle.Share(), Setup: x}
+		Advise(f, s.M.Advice)
+		out = append(out, f)
+	}
+	return out
+}
+
+// idleAlso are the tools whose unused skills get the terminal's "also" line: each card, and an over-budget skill
+// list with half or more unused whose fix is not among the first three (in them, its own lines say it).
+func (s *Story) idleAlso() []*SetupItem {
+	var out []*SetupItem
+	for _, f := range s.Idle {
+		out = append(out, f.Setup)
+	}
+	top := map[*Finding]bool{}
+	for _, f := range s.Top {
+		top[f] = true
+	}
+	for _, f := range s.Setup {
+		x := f.Setup
+		if f.Kind == "SETUP_SKILLS" && !top[f] && x.Idle != nil && x.Idle.Listed > 0 && float64(x.Idle.Unused) >= IdleCardShare*float64(x.Idle.Listed) {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
+// idleRules are the method's lines for unused skills: the card's cut-off (ours) and, with a Codex row, what counts
+// as a Codex use.
+func (s *Story) idleRules() []string {
+	var out []string
+	for _, x := range s.setupShown() {
+		if x.Idle == nil {
+			continue
+		}
+		if len(out) == 0 {
+			out = append(out, s.T("su.idle.rule", "pct", int(IdleCardShare*100)))
+		}
+		if x.Tool == "codex" {
+			out = append(out, s.T("su.idle.rule.codex"))
+		}
+	}
 	return out
 }
 
@@ -129,6 +190,9 @@ func (s *Story) setupNum(x *SetupItem) int {
 
 func (s *Story) setupPlain(f *Finding) Plain {
 	kv := s.setupArgs(f.Setup)
+	if f.Kind == "SETUP_IDLE" {
+		kv = append(s.idleArgs(f.Setup.Idle), "tool", s.X.Tool(f.Setup.Tool))
+	}
 	src := setupSrc[f.Setup.Tool+"/"+f.Setup.Kind]
 	return Plain{Action: s.T(s.setupKey(f, "action"), kv...), Short: s.T(s.setupKey(f, "short"), kv...), Hook: s.T(s.setupKey(f, "hook"), kv...),
 		Why: s.T(s.setupKey(f, "why"), kv...), SrcName: src[0], SrcURL: src[1]}
@@ -148,12 +212,19 @@ func (s *Story) setupBig(f *Finding) string {
 
 // setupFact is the terminal's fact after a setup fix ("22 of 72 skills lost their description").
 func (s *Story) setupFact(f *Finding) string {
-	return s.T(s.setupKey(f, "term"), s.setupArgs(f.Setup)...)
+	out := s.T(s.setupKey(f, "term"), s.setupArgs(f.Setup)...)
+	if x := f.Setup.Idle; f.Setup.Kind == "skills" && x != nil && x.Unused > 0 {
+		out += " · " + s.T("su.idle.term", s.idleArgs(x)...)
+	}
+	return out
 }
 
 // setupCardK is the small line over a setup card in Other things worth fixing.
 func (s *Story) setupCardK(f *Finding) string {
 	x := f.Setup
+	if f.Kind == "SETUP_IDLE" {
+		return s.T("su.card.idle", "tool", s.X.Tool(x.Tool))
+	}
 	if x.Kind == "skills" {
 		return s.T("su.card.skills", s.setupArgs(x)...)
 	}
@@ -228,10 +299,17 @@ func (s *Story) setupCount(f *Finding) string {
 
 // setupEvidence is the fix's "How to fix it" drawer: the steps, the names, the details and the vendor's words.
 func (s *Story) setupEvidence(f *Finding) string {
+	if f.Kind == "SETUP_IDLE" {
+		return fmt.Sprintf(`<div class="evb"><h3>%s</h3>%s<details class="more5" data-fold><summary>%s %s</summary><h3>%s</h3>%s</details></div>`,
+			E(s.T("how_fix")), s.idleBody(f.Setup.Tool, f.Setup.Idle, false), iconChev, E(s.T("more")), E(s.T("all_sources")), s.sourcesHTML(f))
+	}
 	var b strings.Builder
 	fmt.Fprintf(&b, `<h3>%s</h3><p class="tooldo">%s</p>`, E(s.T("how_fix")), ticks(E(s.T(s.setupKey(f, "do")))))
 	if n := s.setupNames(f); n != "" {
 		fmt.Fprintf(&b, `<p class="tooldo t2">%s</p>`, E(n))
+	}
+	if l := s.idleFix(f); len(l) > 0 {
+		fmt.Fprintf(&b, `<p class="tooldo t2">%s</p>`, E(strings.Join(l, " ")))
 	}
 	fmt.Fprintf(&b, `<details class="more5" data-fold><summary>%s %s</summary><dl class="facts5"><dt>%s</dt><dd>%s</dd><dt>%s</dt><dd>%s</dd></dl><h3>%s</h3>%s</details>`,
 		iconChev, E(s.T("more")), E(s.T("su.what")), E(s.setupCount(f)), E(s.T("how_sure")), s.badge(f.Level), E(s.T("all_sources")), s.sourcesHTML(f))
@@ -250,6 +328,8 @@ func (s *Story) againstLabel(x advice.Against) string {
 type setupRow struct {
 	Name, Value, State, Line, DocName, URL, FixID string
 	Over                                          bool
+	Tool                                          string
+	Idle                                          *SkillIdle // the unused-skills row
 }
 
 func (s *Story) setupRows() []setupRow {
@@ -262,6 +342,10 @@ func (s *Story) setupRows() []setupRow {
 		kv := s.setupArgs(x)
 		src := setupSrc[x.Tool+"/"+x.Kind]
 		r := setupRow{DocName: s.T("su.docs", "tool", s.X.Tool(x.Tool)), URL: src[1], Over: x.Over, FixID: fix[x]}
+		if x.Kind == "idle" { // a tool whose list is not checked against a budget: only its unused skills
+			rows = append(rows, s.idleRow(x, r))
+			continue
+		}
 		switch {
 		case x.Kind == "skills":
 			r.Name = s.X.Tool(x.Tool) + " · " + s.T("su.skill")
@@ -283,8 +367,158 @@ func (s *Story) setupRows() []setupRow {
 			}
 		}
 		rows = append(rows, r)
+		if x.Idle != nil {
+			rows = append(rows, s.idleRow(x, r))
+		}
 	}
 	return rows
+}
+
+// idleRow is the unused-skills row under a tool's skill list: a count to look at, not a vendor line crossed.
+func (s *Story) idleRow(x *SetupItem, list setupRow) setupRow {
+	kv := s.idleArgs(x.Idle)
+	r := setupRow{Name: s.X.Tool(x.Tool) + " · " + s.T("su.idle.name"), DocName: list.DocName, URL: list.URL, Tool: x.Tool, Idle: x.Idle,
+		Value: s.T("su.idle.val0", kv...), State: s.T("su.idle.state0"), Line: s.T("su.idle.line0", kv...)}
+	if x.Idle.New > 0 { // "none unused" is of the skills counted: say how many were not
+		r.Line += s.T("su.idle.line.new", "n", x.Idle.New)
+	}
+	if x.Idle.Unused > 0 {
+		r.Value, r.State, r.Line = s.T("su.idle.val", kv...), s.T("su.idle.state"), s.T("su.idle.line", kv...)
+	}
+	return r
+}
+
+func (s *Story) idleArgs(x *SkillIdle) []any {
+	return []any{"u", x.Unused, "n", x.Listed, "days", x.Days, "s", x.Sessions, "pct", idlePct(x), "k", x.New, "min", IdleMinSessions}
+}
+
+// idlePct is the unused skills' share of the list in whole percent (at least 1 when there is any).
+func idlePct(x *SkillIdle) int {
+	p := int(math.Round(x.Share() * 100))
+	if p == 0 && x.Idle > 0 {
+		p = 1
+	}
+	return p
+}
+
+// idleGroups are the unused skills by source, one sentence each with every name (the fold is where they are
+// looked up): a plugin none of whose skills was used says so, so turning the plugin off is the step to take.
+func (s *Story) idleGroups(x *SkillIdle, allOnly bool) []string {
+	var out []string
+	for _, g := range x.Groups {
+		switch {
+		case g.All():
+			out = append(out, s.T("su.idle.all", "src", g.Source, "n", g.Listed, "days", x.Days))
+		case allOnly:
+		case g.Source != "":
+			out = append(out, s.T("su.idle.some", "src", g.Source, "u", len(g.Names), "n", g.Listed, "names", strings.Join(g.Names, ", ")))
+		default:
+			out = append(out, s.T("su.idle.rest", "names", strings.Join(g.Names, ", ")))
+		}
+	}
+	return out
+}
+
+// idleAdvice is the tool's advice for unused skills (nil when the catalogue has none).
+func (s *Story) idleAdvice(tool string) *ToolAdvice {
+	e := s.M.Advice.Get("setup.unused")
+	if e == nil {
+		return nil
+	}
+	a, ok := e.Tools[tool]
+	if !ok {
+		return nil
+	}
+	return &ToolAdvice{tool, a}
+}
+
+// idleHTML is the unused-skills row's fold: why it matters, the skills by source, what to do and the sources.
+func (s *Story) idleHTML(r setupRow) string {
+	x := r.Idle
+	if x.Unused == 0 {
+		return ""
+	}
+	return fmt.Sprintf(`<details class="idle9"><summary>%s %s</summary><p>%s</p>%s</details>`, iconChev, E(s.T("su.idle.more")), E(s.idleWhy(r.Tool)),
+		s.idleBody(r.Tool, x, true))
+}
+
+// idleWhy is why unused skills matter, from the tool's own docs.
+func (s *Story) idleWhy(tool string) string { return s.T("su.idle.why." + tool) }
+
+// idleNotes are the lines on what was not counted: skills listed lately, sessions whose list was hidden or cut.
+func (s *Story) idleNotes(x *SkillIdle) []string {
+	var out []string
+	if x.New > 0 {
+		out = append(out, s.T("su.idle.new", "n", x.New, "min", IdleMinSessions))
+	}
+	if x.Uncertain > 0 {
+		out = append(out, s.T("su.idle.unsure", "n", x.Uncertain))
+	}
+	return out
+}
+
+// idleBody is the skills by source, the notes, what to do and (with sources) the vendor's words, in HTML.
+func (s *Story) idleBody(tool string, x *SkillIdle, sources bool) string {
+	var b strings.Builder
+	b.WriteString(`<ul>`)
+	for _, l := range s.idleGroups(x, false) {
+		fmt.Fprintf(&b, `<li>%s</li>`, E(l))
+	}
+	b.WriteString(`</ul>`)
+	for _, n := range s.idleNotes(x) {
+		fmt.Fprintf(&b, `<p class="t3">%s</p>`, E(n))
+	}
+	if a := s.idleAdvice(tool); a != nil {
+		var how []string
+		for _, h := range a.A.How {
+			how = append(how, "<code>"+E(h)+"</code>")
+		}
+		line := E(s.X.Action(*a))
+		if len(how) > 0 {
+			line += " → " + strings.Join(how, ", ")
+		}
+		fmt.Fprintf(&b, `<p class="tooldo">%s</p>`, line)
+		if sources {
+			b.WriteString(s.sourcesHTML(&Finding{Advice: []ToolAdvice{*a}}))
+		}
+	}
+	return b.String()
+}
+
+// idleMD is the same fold in Markdown, after the table.
+func (s *Story) idleMD(r setupRow) []string {
+	x := r.Idle
+	if x.Unused == 0 {
+		return nil
+	}
+	md := []string{"**" + r.Name + "**: " + s.idleWhy(r.Tool), ""}
+	for _, l := range s.idleGroups(x, false) {
+		md = append(md, "- "+mq(l))
+	}
+	md = append(md, "")
+	for _, n := range s.idleNotes(x) {
+		md = append(md, n, "")
+	}
+	if a := s.idleAdvice(r.Tool); a != nil {
+		md = append(md, "**"+s.X.T["do"]+":** "+s.X.Do(*a, code), "")
+		for _, src := range a.A.Sources {
+			md = append(md, "- "+s.X.Basis(a.A.Basis)+": "+link(src.Title, src.URL)+" · "+src.Read+" · “"+mq(src.Claim)+"”")
+		}
+		md = append(md, "")
+	}
+	return md
+}
+
+// idleFix is what a skill-list fix adds about unused skills: the count, and each plugin none of whose skills was used.
+func (s *Story) idleFix(f *Finding) []string {
+	if f.Side != "setup" || f.Setup == nil || f.Setup.Kind != "skills" {
+		return nil
+	}
+	x := f.Setup.Idle
+	if x == nil || x.Unused == 0 {
+		return nil
+	}
+	return append([]string{s.T("pl.SETUP_SKILLS.idle", s.idleArgs(x)...)}, s.idleGroups(x, true)...)
 }
 
 // setupBlock is "Your setup" in Look things up (every state: the within rows are the quiet "checked" state).
@@ -304,8 +538,19 @@ func (s *Story) setupBlock() string {
 		if r.FixID != "" {
 			fx = fmt.Sprintf(` · <a href="#%s">%s</a>`, r.FixID, E(s.T("su.fixlink")))
 		}
-		fmt.Fprintf(&b, `<li class="%s"><span class="ci" role="img" aria-label="%s">%s</span><span class="nm">%s</span><span class="vv">%s</span><span class="ln">%s: %s · %s%s</span></li>`,
-			cls, E(r.State), ic, E(r.Name), E(r.Value), E(r.State), E(r.Line), aLink(r.URL, r.DocName), fx)
+		id := ""
+		if r.Idle != nil {
+			id = ` id="setup-idle-` + E(r.Tool) + `"`
+			if r.Idle.Unused > 0 {
+				cls, ic = "idle", "i"
+			}
+		}
+		fmt.Fprintf(&b, `<li class="%s"%s><span class="ci" role="img" aria-label="%s">%s</span><span class="nm">%s</span><span class="vv">%s</span><span class="ln">%s: %s · %s%s</span>`,
+			cls, id, E(r.State), ic, E(r.Name), E(r.Value), E(r.State), E(r.Line), aLink(r.URL, r.DocName), fx)
+		if r.Idle != nil {
+			b.WriteString(s.idleHTML(r))
+		}
+		b.WriteString(`</li>`)
 	}
 	b.WriteString(`</ul></div>`)
 	return b.String()
@@ -325,19 +570,43 @@ func (s *Story) setupMD() []string {
 		}
 		md = append(md, "| "+r.Name+" | "+mq(r.Value)+" | "+st+": "+r.Line+" · "+link(r.DocName, r.URL)+" |")
 	}
-	return append(md, "")
+	md = append(md, "")
+	for _, r := range rows {
+		if r.Idle != nil {
+			md = append(md, s.idleMD(r)...)
+		}
+	}
+	return md
 }
 
-const setupCSS = `.su9{list-style:none;margin:16px 0 0;padding:0;border-top:1px solid var(--line)}.su9 li{display:grid;grid-template-columns:22px minmax(150px,.8fr) minmax(0,1.1fr) minmax(0,1.6fr);gap:4px 12px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}.su9 .ci{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:700;border:1.5px solid currentColor;align-self:center}.su9 li.ok .ci{color:var(--good)}.su9 li.over .ci{color:var(--poor)}.su9 .nm{font-weight:600}.su9 .vv{color:var(--t1)}.su9 li.ok .vv{color:var(--t2)}.su9 .ln{font-size:13px;color:var(--t3)}.su9 li.over .ln{color:var(--t2)}.hk8{font-size:14.5px;margin-top:4px}@media (max-width:760px){.su9 li{grid-template-columns:22px minmax(0,1fr)}.su9 .vv,.su9 .ln{grid-column:2}}`
+const setupCSS = `.su9{list-style:none;margin:16px 0 0;padding:0;border-top:1px solid var(--line)}.su9 li{display:grid;grid-template-columns:22px minmax(150px,.8fr) minmax(0,1.1fr) minmax(0,1.6fr);gap:4px 12px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}.su9 .ci{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:700;border:1.5px solid currentColor;align-self:center}.su9 li.ok .ci{color:var(--good)}.su9 li.over .ci{color:var(--poor)}.su9 .nm{font-weight:600}.su9 .vv{color:var(--t1)}.su9 li.ok .vv{color:var(--t2)}.su9 .ln{font-size:13px;color:var(--t3)}.su9 li.over .ln{color:var(--t2)}.su9 li.idle .ci{color:var(--t2)}.su9 .idle9{grid-column:2/-1;font-size:13.5px;color:var(--t2)}.su9 .idle9 summary{cursor:pointer;color:var(--t2)}.su9 .idle9 ul{margin:6px 0;padding-left:18px}.su9 .idle9 li{display:list-item;padding:2px 0;border:0;font-size:13.5px}.su9 .idle9 p{margin:6px 0}.hk8{font-size:14.5px;margin-top:4px}@media (max-width:760px){.su9 li{grid-template-columns:22px minmax(0,1fr)}.su9 .vv,.su9 .ln{grid-column:2}}`
 
 // setupFixMD is a setup fix's how-to-fix, names and details in Markdown (nothing for other findings).
 func (s *Story) setupFixMD(f *Finding) []string {
 	if f.Side != "setup" {
 		return nil
 	}
+	if f.Kind == "SETUP_IDLE" {
+		x := f.Setup.Idle
+		var r []string
+		if a := s.idleAdvice(f.Setup.Tool); a != nil {
+			r = append(r, "**"+s.T("how_fix")+":** "+s.X.Do(*a, code), "")
+		}
+		for _, l := range s.idleGroups(x, false) {
+			r = append(r, "- "+mq(l))
+		}
+		r = append(r, "")
+		for _, n := range s.idleNotes(x) {
+			r = append(r, n, "")
+		}
+		return r
+	}
 	r := []string{"**" + s.T("how_fix") + ":** " + s.T(s.setupKey(f, "do")), ""}
 	if n := s.setupNames(f); n != "" {
 		r = append(r, n, "")
+	}
+	if l := s.idleFix(f); len(l) > 0 {
+		r = append(r, mq(strings.Join(l, " ")), "")
 	}
 	r = append(r, s.T("su.what")+": "+s.setupCount(f), "")
 	for _, x := range f.Against {

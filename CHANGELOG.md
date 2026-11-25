@@ -2,6 +2,17 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.12] - 2026-11-26
+
+### Added
+- "Your setup" shows the Claude Code skills not used in the period, under the skill list, even when the list is within its budget: how many of the listed skills, their share of the list's characters, and the unused ones by plugin ("none of this plugin's 3 skills was used in the last 30 days"), with the official way to turn them off. Uses count from every log file of the period (automations and sub-agent threads included): a Skill call, a command you typed or a skill you picked, and for Codex a tool call naming the skill's folder. Shown when at least 20 sessions in the period recorded the list. When the list is over its budget, the fix says the same.
+- The same "Unused skills" row for Codex, from the list Codex sent and the skills picked or whose folder a tool call named, with Codex's own way to turn them off (`[[skills.config]]`, `enabled = false`).
+- When half or more of a tool's listed skills went unused, a card at the end of Other things worth fixing and one line in the terminal summary; never among the first three fixes or in the rating.
+
+### Changed
+- A skill started by typing its command now counts as a use, as well as the agent's skill call, so "used least first" and "not used" count both.
+- "Used least first" (the skills whose descriptions were dropped) now counts uses in every log file of the period, automations and sub-agent threads included.
+
 ## [0.1.11] - 2026-11-25
 
 ### Added

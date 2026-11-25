@@ -106,11 +106,18 @@ func Terminal(m *Model, md, html string) string {
 			out = append(out, Wrap(lead+" “"+Clip(th.Quote, 44)+"”", TermWidth, "     ")...)
 		default: // cost fixes: the specific numbers; the why stays in the report
 			out = append(out, Wrap(q.Hook, TermWidth, "     ")...)
+			for _, l := range s.idleFix(s.Top[0]) {
+				out = append(out, Wrap(l, TermWidth, "     ")...)
+			}
 		}
 		out = append(out, "     "+s.T("source")+": "+q.SrcText())
 		for i, f := range s.Top[1:] {
 			out = append(out, Wrap(itoa(i+2)+". "+s.Plain(f).Short+" · "+s.unit(f), TermWidth, "  ")...)
 		}
+	}
+	for _, x := range s.idleAlso() { // not among the fixes: one line under them
+		out = append(out, "")
+		out = append(out, Wrap(s.T("su.idle.also", append(s.idleArgs(x.Idle), "tool", s.X.Tool(x.Tool))...), TermWidth, "  ")...)
 	}
 	if len(s.Good) > 0 {
 		out = append(out, "", s.T("t_good."+s.Good[0].Key, "v", s.Good[0].Value))
@@ -358,6 +365,9 @@ func Markdown(m *Model) string {
 	}
 	for _, n := range s.Notes() {
 		md = append(md, "- "+n)
+	}
+	for _, l := range s.idleRules() {
+		md = append(md, "- "+l)
 	}
 	md = append(md, "", "["+s.T("m_more")+"]("+docsURL()+")", "")
 	return strings.Join(md, "\n")

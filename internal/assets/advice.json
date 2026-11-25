@@ -1,6 +1,6 @@
 {
  "about": "Advice catalogue for the report (docs/24 section 6). One entry per finding id, with per-tool text (claude, codex): 'action' is one plain sentence a person can act on without knowing setting names, 'how' lists the exact command or setting shown after it, 'instruction' is a standing rule that may be copied into an instruction file. Each tool has a basis (official | study | ours | heuristic) and sources with the date read and the exact claim. A copy named advice.json in the settings folder replaces the built-in one; the report flags it when the oldest 'read' date is older than stale_after_days.",
- "version": "2026-11-23-r7",
+ "version": "2026-11-25-r8",
  "stale_after_days": 180,
  "entries": [
   {
@@ -751,6 +751,92 @@
      }
     }
    ]
+  },
+  {
+   "id": "setup.unused",
+   "tools": {
+    "claude": {
+     "basis": "official",
+     "action": {
+      "en": "Turn off the skills you have not used, and turn off a plugin whose skills you never use.",
+      "ko": "쓰지 않은 스킬은 끄고, 스킬을 하나도 쓰지 않는 플러그인은 꺼 두세요."
+     },
+     "sources": [
+      {
+       "title": "Claude Code docs: Extend Claude with skills",
+       "url": "https://code.claude.com/docs/en/skills.md",
+       "read": "2026-11-25",
+       "claim": "Every skill in the skill listing adds to your context on every turn, whether or not Claude ever uses it."
+      },
+      {
+       "title": "Claude Code docs: Extend Claude with skills",
+       "url": "https://code.claude.com/docs/en/skills.md",
+       "read": "2026-11-25",
+       "claim": "The `/skills` menu writes it for you: highlight a skill and press `Space` to cycle states, then `Esc` to save to `.claude/settings.local.json`."
+      },
+      {
+       "title": "Claude Code docs: Extend Claude with skills",
+       "url": "https://code.claude.com/docs/en/skills.md",
+       "read": "2026-11-25",
+       "claim": "Plugin skills are not affected by `skillOverrides`. Manage those through `/plugin` instead."
+      },
+      {
+       "title": "Claude Code docs: Extend Claude with skills",
+       "url": "https://code.claude.com/docs/en/skills.md",
+       "read": "2026-11-25",
+       "claim": "Bundled skill: set `disableBundledSkills` to `true` to turn off bundled skills, or set one skill to `\"off\"` in `skillOverrides` to hide it."
+      },
+      {
+       "title": "Claude Code docs: Install and manage plugins",
+       "url": "https://code.claude.com/docs/en/plugins/install.md",
+       "read": "2026-11-25",
+       "claim": "In a Claude Code session, run `/plugin` and press Tab to reach it, or run `/plugin enable`, `/plugin disable`, or `/plugin uninstall` to open the panel and make that change there."
+      }
+     ],
+     "how": [
+      "/skills",
+      "/plugin disable"
+     ]
+    },
+    "codex": {
+     "basis": "official",
+     "action": {
+      "en": "Turn off the skills you have not used, in Codex's config file.",
+      "ko": "쓰지 않은 스킬은 Codex 설정 파일에서 끄세요."
+     },
+     "sources": [
+      {
+       "title": "Codex docs: Build skills",
+       "url": "https://learn.chatgpt.com/docs/build-skills",
+       "read": "2026-11-25",
+       "claim": "ChatGPT and Codex start with each skill's name and description, then load the full `SKILL.md` instructions when they decide to use that skill."
+      },
+      {
+       "title": "Codex docs: Build skills",
+       "url": "https://learn.chatgpt.com/docs/build-skills",
+       "read": "2026-11-25",
+       "claim": "Use `[[skills.config]]` entries in `~/.codex/config.toml` to disable a skill without deleting it:"
+      },
+      {
+       "title": "Codex docs: Build skills",
+       "url": "https://learn.chatgpt.com/docs/build-skills",
+       "read": "2026-11-25",
+       "claim": "Use exactly one selector per entry. An absolute `path` matches one `SKILL.md` file. A `name` matches every skill with that name. When more than one entry matches a skill, the last matching entry wins."
+      },
+      {
+       "title": "Codex docs: Build skills",
+       "url": "https://learn.chatgpt.com/docs/build-skills",
+       "read": "2026-11-25",
+       "claim": "Restart Codex after changing the configuration."
+      }
+     ],
+     "how": [
+      "[[skills.config]]",
+      "enabled = false"
+     ]
+    }
+   },
+   "against": []
   },
   {
    "id": "setup.instr",

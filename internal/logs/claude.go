@@ -223,9 +223,6 @@ func ParseClaude(path string) (*File, error) {
 				}
 			}
 		}
-		if o.Get("isMeta").Truthy() || sub || o.Get("isCompactSummary").Truthy() {
-			return
-		}
 		var text string
 		switch content.K {
 		case py.Str:
@@ -242,6 +239,22 @@ func ParseClaude(path string) (*File, error) {
 			return
 		}
 		s := py.LStrip(text)
+		// a typed skill counts wherever it is logged: a meta record (Claude desktop), a sub-agent, a scheduled prompt,
+		// in any text block (an opened-file note may come first)
+		if !o.Get("isCompactSummary").Truthy() {
+			if content.K == py.Arr {
+				for _, c := range content.A {
+					if c.K == py.Obj && isStr(c.Get("type"), "text") {
+						su.typedUse(py.LStrip(py.PyStr(c.Get("text"))))
+					}
+				}
+			} else {
+				su.typedUse(s)
+			}
+		}
+		if o.Get("isMeta").Truthy() || sub || o.Get("isCompactSummary").Truthy() {
+			return
+		}
 		if inStrs(o.Get("promptSource"), "typed", "suggestion_accepted", "queued") {
 			b.meta.typedPrompts++
 		}
