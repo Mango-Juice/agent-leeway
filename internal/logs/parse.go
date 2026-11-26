@@ -3,6 +3,7 @@ package logs
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/Mango-Juice/agent-leeway/internal/py"
@@ -168,7 +169,23 @@ func pySlice(s string, a, b int) string {
 	return string(out)
 }
 
-// fileID is the Codex thread id taken from a rollout file name.
+// codexNameRE is a rollout file name as Codex writes it (codex-rs/rollout/src/rollout_file_name.rs):
+// rollout-<timestamp>-<thread id>.jsonl, or rollout-<timestamp>-<thread id>_<rollout id>.jsonl for a reverted
+// thread (the thread id stays, the rollout id is new).
+var codexNameRE = regexp.MustCompile(`^rollout-\d{4}-\d\d-\d\dT\d\d-\d\d-\d\d-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?\.jsonl$`)
+
+// codexThreadID is the thread id in a rollout file name, the id of the file's own session_meta ("" when the name
+// has another shape). It is not the thread key (fileID), which must stay unique per file: a reverted thread's
+// rollouts share their thread id.
+func codexThreadID(path string) string {
+	if m := codexNameRE.FindStringSubmatch(filepath.Base(strings.TrimSuffix(path, ".zst"))); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
+// fileID is the key of a Codex thread, taken from its rollout file name (the reference's slice: unique per file,
+// not the thread id itself; see codexThreadID).
 func fileID(path string) string {
 	return pySlice(filepath.Base(strings.TrimSuffix(path, ".zst")), -41, -6)
 }

@@ -9,9 +9,9 @@ import (
 	"github.com/Mango-Juice/agent-leeway/internal/py"
 )
 
-// parseCodexLegacy is ParseCodex of v0.1.13: every line decoded and held, then four passes.
+// parseCodexLegacy is ParseCodex of v0.1.13 (every line decoded and held, then four passes), with today's own
+// session_meta id rule for the cache events (legacyOwnID); the main pass keeps the name slice.
 func parseCodexLegacy(path string) (*File, error) {
-	fid := fileID(path)
 	b := &builder{tool: "codex", path: path}
 	var st Stats
 	var lines []py.Value
@@ -25,6 +25,7 @@ func parseCodexLegacy(path string) (*File, error) {
 	if err != nil {
 		return nil, err
 	}
+	fid := legacyOwnID(path, lines)
 	haveItems := false
 	maxOrd := int64(-1)
 	for _, o := range lines {
@@ -64,7 +65,7 @@ func parseCodexLegacy(path string) (*File, error) {
 		pt := p.Get("type")
 		ts := o.Get("timestamp")
 		if isStr(typ, "session_meta") {
-			if id := p.Get("id"); (id.K == py.Str && id.S == fid) || b.meta.threadID.IsNull() {
+			if id := p.Get("id"); (id.K == py.Str && id.S == fileID(path)) || b.meta.threadID.IsNull() {
 				b.meta.threadID = id
 				b.meta.sessionID = p.Get("session_id").Or(id)
 				b.meta.parentID = p.Get("parent_thread_id").Or(p.Get("forked_from_id"))
@@ -362,6 +363,9 @@ func codexEventsLegacy(lines []py.Value, fid string, maxOrd int64) []Event {
 			hasHist = false
 			if f, ok := h.Num(); ok && h.K != py.Bool && f <= float64(maxOrd) {
 				hist, hasHist = int64(f), true
+				if float64(hist) != f { // as ParseCodex: a fractional start compares as a float
+					hist++
+				}
 			}
 		}
 	}
@@ -409,4 +413,21 @@ func codexEventsLegacy(lines []py.Value, fid string, maxOrd int64) []Event {
 		}
 	}
 	return out
+}
+
+// legacyOwnID is the own session_meta id rule of ParseCodex over held lines, so the parity tests compare the two
+// readers under the same rule (the rule itself is tested on its own).
+func legacyOwnID(path string, lines []py.Value) string {
+	if id := codexThreadID(path); id != "" {
+		return id
+	}
+	for _, o := range lines {
+		if isStr(o.Get("type"), "session_meta") && o.Get("payload").K == py.Obj {
+			if id := o.Get("payload").Get("id"); id.K == py.Str && id.S != "" {
+				return id.S
+			}
+			break
+		}
+	}
+	return fileID(path)
 }

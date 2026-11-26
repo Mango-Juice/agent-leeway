@@ -87,7 +87,11 @@ func parseCodex(path string) (*File, error) {
 		return nil, err
 	}
 	defer fh.Close()
-	fid := fileID(path)
+	// the id of the file's own session_meta: the thread id in its name, else its first session_meta's id (read in
+	// the first pass); the reference's name slice when there is neither
+	fid := codexThreadID(path)
+	metaSeen := false
+	keyID := fileID(path)
 	b := &builder{tool: "codex", path: path}
 	var st Stats
 	haveItems := false
@@ -117,6 +121,15 @@ func parseCodex(path string) (*File, error) {
 			} else if isStr(p.Get("type"), "token_count") {
 				nTokenCount++
 			}
+			if isStr(o.Get("type"), "session_meta") && p.K == py.Obj && !metaSeen {
+				metaSeen = true
+				if fid == "" {
+					fid = fileID(path) // no id to go by: the reference's name slice, as before
+					if id := p.Get("id"); id.K == py.Str && id.S != "" {
+						fid = id.S
+					}
+				}
+			}
 			if isStr(o.Get("type"), "session_meta") && p.K == py.Obj && isStr(p.Get("id"), fid) {
 				h := p.Get("subagent_history_start_ordinal")
 				ownHist, ownHistOK = h.Num()
@@ -127,12 +140,18 @@ func parseCodex(path string) (*File, error) {
 	if err != nil {
 		return nil, err
 	}
+	if fid == "" {
+		fid = fileID(path)
+	}
 	if nUsage > 0 && nTokenCount == 0 {
 		st.UsageOnlyNew++ // usage only in the newer record kind: this file's responses are not counted
 	}
 	ev := &codexEv{}
 	if ownHistOK && ownHist <= float64(maxOrd) {
 		ev.hist, ev.hasHist = int64(ownHist), true
+		if float64(ev.hist) != ownHist { // fractional start ordinal: compare as float, as the main pass does
+			ev.hist++
+		}
 	}
 	histStart, hasHist := int64(0), false
 	var lastTotal, curModel py.Value
@@ -148,7 +167,9 @@ func parseCodex(path string) (*File, error) {
 		pt := p.Get("type")
 		ts := o.Get("timestamp")
 		if isStr(typ, "session_meta") {
-			if id := p.Get("id"); (id.K == py.Str && id.S == fid) || b.meta.threadID.IsNull() {
+			// the main pass keeps its rule (the name slice, so in practice the first session_meta, which is the
+			// file's own): only the cache events use the file's own id
+			if id := p.Get("id"); (id.K == py.Str && id.S == keyID) || b.meta.threadID.IsNull() {
 				b.meta.threadID = id
 				b.meta.sessionID = p.Get("session_id").Or(id)
 				b.meta.parentID = p.Get("parent_thread_id").Or(p.Get("forked_from_id"))

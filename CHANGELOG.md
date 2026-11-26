@@ -2,10 +2,13 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.14] - 2026-11-26
 
 ### Changed
 - The first run (with nothing cached yet) uses far less memory with large Codex logs: about 1.1 GB instead of about 8.4 GB in a test with 1,555 log files in the report's period, because Codex log files are now read line by line instead of being held in memory whole. In exchange it uses more processor time, since each line is read twice, so the first run can take up to about 15% longer. Results are unchanged.
+
+### Fixed
+- Codex: a sub-agent's log copies its parent's records, and those copies were also kept in the list of events used to explain cache resets (new user turns, developer messages, settings and model changes), because the log's own thread id was read from its file name one character short. They are now left out, as they already were everywhere else. In the logs we tested, no number in the reports changed: the cause shown for a cache reset could only differ when a copied record is timed after the sub-agent's first own response, and the amounts stay the same. The first run after the update reads the logs again.
 
 ## [0.1.13] - 2026-11-26
 
