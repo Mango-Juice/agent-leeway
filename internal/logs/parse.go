@@ -77,7 +77,7 @@ func (b *builder) lastStep() int { return len(b.steps) - 1 } // -1 when there is
 
 func (b *builder) addCommits(text string, ts py.Value, cwd NS) {
 	for _, m := range commitRE.FindAllStringSubmatch(text, -1) {
-		b.commits = append(b.commits, Commit{TS: tsOf(ts), Branch: m[1], SHA: m[2], Cwd: cwd})
+		b.commits = append(b.commits, Commit{TS: tsOf(ts), Branch: strings.Clone(m[1]), SHA: strings.Clone(m[2]), Cwd: cwd}) // not the whole output kept
 	}
 }
 

@@ -183,8 +183,25 @@ func Loads(s string) (Value, error) {
 }
 
 type parser struct {
-	s string
-	i int
+	s   string
+	i   int
+	own bool // strings are copies, not slices of s (see LoadsOwned)
+}
+
+// LoadsOwned is Loads whose strings do not share memory with s: a value kept from a large document (an id, a
+// path) does not keep the whole document alive. Same result as Loads.
+func LoadsOwned(s string) (Value, error) {
+	p := parser{s: s, own: true}
+	p.ws()
+	v, err := p.value(0)
+	if err != nil {
+		return Value{}, err
+	}
+	p.ws()
+	if p.i != len(p.s) {
+		return Value{}, errSyntax
+	}
+	return v, nil
 }
 
 func (p *parser) ws() {
@@ -408,6 +425,9 @@ func (p *parser) str() (string, error) {
 		if c == '"' {
 			s := p.s[st:p.i]
 			p.i++
+			if p.own {
+				s = strings.Clone(s)
+			}
 			return s, nil
 		}
 		if c == '\\' {

@@ -8,6 +8,8 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"hash"
+	"hash/crc32"
 	"io"
 	"os"
 	"strings"
@@ -52,16 +54,32 @@ func scan(path string, each func(line []byte)) error {
 		return err
 	}
 	defer f.Close()
+	_, _, err = scanUpTo(f, path, -1, false, each)
+	return err
+}
+
+// scanUpTo is scan over the first limit bytes of an open file's (decompressed) content, all of it when limit < 0,
+// from where the file is positioned. It returns how many bytes it read and their checksum, so a second read of the
+// same open file can stop where the first one did (a session being written grows in between) and tell when the
+// file was rewritten in place instead. The checksum is computed only when sum is set (0 otherwise).
+func scanUpTo(f *os.File, path string, limit int64, sum bool, each func(line []byte)) (int64, uint32, error) {
 	var r io.Reader = f
 	if strings.HasSuffix(path, ".zst") {
 		d, err := zstd.NewReader(f, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxMemory(8<<30))
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 		defer d.Close()
 		r = d
 	}
-	br := bufio.NewReaderSize(r, 1<<20)
+	if limit >= 0 {
+		r = io.LimitReader(r, limit)
+	}
+	cr := &countReader{r: r}
+	if sum {
+		cr.h = crc32.NewIEEE()
+	}
+	br := bufio.NewReaderSize(cr, 1<<20)
 	var long []byte
 	skipping := false
 	for {
@@ -79,12 +97,12 @@ func scan(path string, each func(line []byte)) error {
 			each(oversized)
 			skipping = false
 			if err != nil {
-				return nil
+				return cr.n, cr.sum(), nil
 			}
 			continue
 		}
 		if err != nil && !errors.Is(err, io.EOF) {
-			return err
+			return cr.n, cr.sum(), err
 		}
 		line := chunk
 		if long != nil {
@@ -99,12 +117,43 @@ func scan(path string, each func(line []byte)) error {
 			long = nil // do not keep a huge buffer around
 		}
 		if err != nil { // EOF
-			return nil
+			return cr.n, cr.sum(), nil
 		}
 	}
 }
 
-func handle(line []byte, st *Stats, fn func(v py.Value)) {
+// countReader counts what is read through it, and checksums it when h is set.
+type countReader struct {
+	r io.Reader
+	n int64
+	h hash.Hash32
+}
+
+func (c *countReader) Read(p []byte) (int, error) {
+	k, err := c.r.Read(p)
+	c.n += int64(k)
+	if c.h != nil {
+		c.h.Write(p[:k])
+	}
+	return k, err
+}
+
+func (c *countReader) sum() uint32 {
+	if c.h == nil {
+		return 0
+	}
+	return c.h.Sum32()
+}
+
+func handle(line []byte, st *Stats, fn func(v py.Value)) { handleWith(py.Loads, line, st, fn) }
+
+// handleOwned is handle with strings that do not share memory with the line (py.LoadsOwned): what a reader keeps
+// from a line does not keep the line alive.
+func handleOwned(line []byte, st *Stats, fn func(v py.Value)) {
+	handleWith(py.LoadsOwned, line, st, fn)
+}
+
+func handleWith(loads func(string) (py.Value, error), line []byte, st *Stats, fn func(v py.Value)) {
 	line = bytes.TrimSuffix(line, []byte("\n"))
 	line = bytes.TrimSuffix(line, []byte("\r"))
 	if len(bytes.TrimSpace(line)) == 0 {
@@ -112,7 +161,7 @@ func handle(line []byte, st *Stats, fn func(v py.Value)) {
 		return
 	}
 	s := py.DecodeBytes(line)
-	v, err := py.Loads(s)
+	v, err := loads(s)
 	if err != nil {
 		st.Broken++
 		return

@@ -1,6 +1,9 @@
 package logs
 
 import (
+	"errors"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/Mango-Juice/agent-leeway/internal/py"
@@ -56,53 +59,87 @@ func joinCmd(cmd py.Value) string {
 	return py.PyStr(cmd)
 }
 
-// ParseCodex reads one Codex rollout file.
+// ParseCodex reads one Codex rollout file in two streaming passes, so a rollout of hundreds of MB is never held
+// decoded in memory: the first pass collects what the second needs to know in advance (whether item_completed
+// records exist, the highest ordinal, the history start of the file's own session_meta, the usage record kinds,
+// the record types), the second reads the records in order. The second pass reads exactly the bytes the first
+// one did: a session being written can grow in between. A file replaced in between (another checksum) is read
+// again once.
 func ParseCodex(path string) (*File, error) {
+	f, err := parseCodex(path)
+	if errors.Is(err, errChanged) {
+		f, err = parseCodex(path)
+	}
+	return f, err
+}
+
+// betweenPasses runs between the two passes of parseCodex (tests: a file that grows or is replaced meanwhile).
+var betweenPasses func(path string)
+
+// errChanged is a file whose content changed between the two passes (not only grown at its end).
+var errChanged = errors.New("the log file changed while it was read; run again")
+
+func parseCodex(path string) (*File, error) {
+	// both passes read the same open file: a rollout moved, archived or replaced by name in between does not
+	// change what the second pass reads
+	fh, err := os.Open(path) // read-only; Go opens with read/write share flags on Windows
+	if err != nil {
+		return nil, err
+	}
+	defer fh.Close()
 	fid := fileID(path)
 	b := &builder{tool: "codex", path: path}
 	var st Stats
-	var lines []py.Value
-	err := ReadLines(path, &st, func(v py.Value) {
-		if v.K != py.Obj {
-			st.NotObject++ // a valid JSON line that is not an object is ignored
-			return
-		}
-		lines = append(lines, v)
+	haveItems := false
+	maxOrd := int64(-1)
+	nUsage, nTokenCount := 0, 0
+	// subagent_history_start_ordinal of the last session_meta of this file's own thread, as a number (nothing
+	// from the first pass is kept but numbers and flags)
+	ownHist, ownHistOK := 0.0, false
+	n, sum, err := scanUpTo(fh, path, -1, true, func(line []byte) {
+		handle(line, &st, func(o py.Value) {
+			if o.K != py.Obj {
+				st.NotObject++ // a valid JSON line that is not an object is ignored
+				return
+			}
+			p := o.Get("payload")
+			if isStr(o.Get("type"), "event_msg") && p.K == py.Obj && isStr(p.Get("type"), "item_completed") && isStr(p.Get("item").Get("type"), "CommandExecution") {
+				haveItems = true
+			}
+			if ord := o.Get("ordinal"); ord.K == py.Int && ord.Big == "" && ord.I > maxOrd {
+				maxOrd = ord.I
+			}
+			if t := o.Get("type"); t.K == py.Str && !codexTypes[t.S] {
+				st.unknown("codex:" + t.S)
+			}
+			if isStr(o.Get("type"), "token_usage_record") {
+				nUsage++
+			} else if isStr(p.Get("type"), "token_count") {
+				nTokenCount++
+			}
+			if isStr(o.Get("type"), "session_meta") && p.K == py.Obj && isStr(p.Get("id"), fid) {
+				h := p.Get("subagent_history_start_ordinal")
+				ownHist, ownHistOK = h.Num()
+				ownHistOK = ownHistOK && h.K != py.Bool
+			}
+		})
 	})
 	if err != nil {
 		return nil, err
 	}
-	haveItems := false
-	maxOrd := int64(-1)
-	for _, o := range lines {
-		p := o.Get("payload")
-		if isStr(o.Get("type"), "event_msg") && p.K == py.Obj && isStr(p.Get("type"), "item_completed") && isStr(p.Get("item").Get("type"), "CommandExecution") {
-			haveItems = true
-		}
-		if ord := o.Get("ordinal"); ord.K == py.Int && ord.Big == "" && ord.I > maxOrd {
-			maxOrd = ord.I
-		}
-		if t := o.Get("type"); t.K == py.Str && !codexTypes[t.S] {
-			st.unknown("codex:" + t.S)
-		}
-	}
-	nUsage, nTokenCount := 0, 0
-	for _, o := range lines {
-		if isStr(o.Get("type"), "token_usage_record") {
-			nUsage++
-		} else if isStr(o.Get("payload").Get("type"), "token_count") {
-			nTokenCount++
-		}
-	}
 	if nUsage > 0 && nTokenCount == 0 {
 		st.UsageOnlyNew++ // usage only in the newer record kind: this file's responses are not counted
+	}
+	ev := &codexEv{}
+	if ownHistOK && ownHist <= float64(maxOrd) {
+		ev.hist, ev.hasHist = int64(ownHist), true
 	}
 	histStart, hasHist := int64(0), false
 	var lastTotal, curModel py.Value
 	compaction := false
 	callByID := map[string]int{}
 	su := newSetup()
-	for _, o := range lines {
+	process := func(o py.Value) {
 		typ := o.Get("type")
 		p := o.Get("payload")
 		if p.K != py.Obj {
@@ -143,14 +180,14 @@ func ParseCodex(path string) (*File, error) {
 					}
 				}
 			}
-			continue
+			return
 		}
 		// skip history inherited from the parent thread
 		if ord := o.Get("ordinal"); hasHist && ord.K == py.Int && ord.Big == "" && ord.I < histStart {
-			continue
+			return
 		}
 		if o.Get("metadata").Get("inherited_user_message").Truthy() {
-			continue
+			return
 		}
 		b.ts(ts)
 		switch {
@@ -176,7 +213,7 @@ func ParseCodex(path string) (*File, error) {
 			info := p.Get("info")
 			tot, lu := info.Get("total_token_usage"), info.Get("last_token_usage")
 			if !lu.Truthy() || Equal(tot, lastTotal) {
-				continue
+				return
 			}
 			lastTotal = tot
 			inp, cached := orZero(lu.Get("input_tokens")), orZero(lu.Get("cached_input_tokens"))
@@ -274,7 +311,7 @@ func ParseCodex(path string) (*File, error) {
 			case isStr(name, "apply_patch") || (isStr(name, "exec") && strings.Contains(py.Head(args, 200), "*** Begin Patch")):
 				kind = "edit"
 				if m := patchFileRE.FindStringSubmatch(args); m != nil {
-					path_ = Some(py.Strip(m[1]))
+					path_ = Some(strings.Clone(py.Strip(m[1]))) // not the whole patch kept alive
 				}
 				target = Some("edit:" + path_.S)
 			case inStrs(name, "exec_command", "shell", "local_shell") && !haveItems:
@@ -287,7 +324,7 @@ func ParseCodex(path string) (*File, error) {
 				cmd := joinCmd(cmdV)
 				kind, target = "exec", Some("cmd:"+H(cmd))
 				if m := codexReadRE.FindStringSubmatch(cmd); m != nil {
-					kind, path_ = "read", Some(m[1])
+					kind, path_ = "read", Some(strings.Clone(m[1]))
 				}
 				if strings.Contains(cmd, "git commit") {
 					kind = "commit"
@@ -377,13 +414,31 @@ func ParseCodex(path string) (*File, error) {
 			}
 		}
 	}
+	if betweenPasses != nil {
+		betweenPasses(path)
+	}
+	if _, err := fh.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	var again Stats // the first pass counted the unusable lines
+	n2, sum2, err := scanUpTo(fh, path, n, true, func(line []byte) {
+		handleOwned(line, &again, func(o py.Value) {
+			if o.K == py.Obj {
+				process(o)
+				ev.add(o)
+			}
+		})
+	})
+	if err != nil || n2 != n || sum2 != sum { // rewritten in place between the passes (it read fine the first time)
+		return nil, errChanged
+	}
 	f := b.finish()
 	for i, ci := range b.imageCall {
 		if f.Calls[ci].Step >= 0 {
 			f.Images[i].Step = f.Calls[ci].Step
 		}
 	}
-	f.Events = codexEvents(lines, fid, maxOrd)
+	f.Events = ev.out
 	f.Stats = st
 	su.codexResolve()
 	su.cx = nil
@@ -455,65 +510,57 @@ func iterKeys(v py.Value) []string {
 	return nil
 }
 
-// codexEvents lists what can precede a cache rewrite in one Codex file (own records only), as
-// cache_causes.codex_events does.
-func codexEvents(lines []py.Value, fid string, maxOrd int64) []Event {
-	var out []Event
-	hist, hasHist := int64(0), false
-	for _, o := range lines {
-		p := o.Get("payload")
-		if isStr(o.Get("type"), "session_meta") && p.K == py.Obj && isStr(p.Get("id"), fid) {
-			h := p.Get("subagent_history_start_ordinal")
-			hasHist = false
-			if f, ok := h.Num(); ok && h.K != py.Bool && f <= float64(maxOrd) {
-				hist, hasHist = int64(f), true
-			}
-		}
+// codexEv lists what can precede a cache rewrite in one Codex file (own records only), as
+// cache_causes.codex_events does, one record at a time: hist is the history start of the file's own session_meta
+// (from the first pass).
+type codexEv struct {
+	hist                  int64
+	hasHist               bool
+	lastModel, lastEffort py.Value
+	out                   []Event
+}
+
+func (e *codexEv) add(o py.Value) {
+	if ord := o.Get("ordinal"); e.hasHist && ord.K == py.Int && ord.Big == "" && ord.I < e.hist {
+		return
 	}
-	var lastModel, lastEffort py.Value
-	for _, o := range lines {
-		if ord := o.Get("ordinal"); hasHist && ord.K == py.Int && ord.Big == "" && ord.I < hist {
-			continue
-		}
-		if o.Get("metadata").Get("inherited_user_message").Truthy() {
-			continue
-		}
-		typ := o.Get("type")
-		p := o.Get("payload")
-		if p.K != py.Obj {
-			p = py.Value{}
-		}
-		pt := p.Get("type")
-		ts := tsOf(o.Get("timestamp"))
-		add := func(k string) { out = append(out, Event{TS: ts, Kind: k}) }
-		switch {
-		case isStr(typ, "turn_context"):
-			model := p.Get("model")
-			effort := p.Get("effort").Or(p.Get("collaboration_mode").Get("settings").Get("reasoning_effort"))
-			if !lastModel.IsNull() && !Equal(model, lastModel) {
-				add("model_change")
-			}
-			if !lastEffort.IsNull() && !Equal(effort, lastEffort) {
-				add("effort_change")
-			}
-			lastModel, lastEffort = model, effort
-		case isStr(pt, "configuration_update"):
-			add("config_update")
-		case inStrs(pt, "additional_tools", "tool_search_output"):
-			add("tools_change")
-		case isStr(typ, "world_state") && p.Get("full").Truthy():
-			add("world_state_full")
-		case isStr(pt, "thread_settings_applied"):
-			add("settings_applied")
-		case isStr(pt, "message") && isStr(p.Get("role"), "developer"):
-			add("developer_msg")
-		case isStr(pt, "task_started"):
-			add("new_user_turn")
-		case isStr(pt, "item_completed") && isStr(p.Get("item").Get("type"), "SubAgentActivity"):
-			add("subagent_activity")
-		}
+	if o.Get("metadata").Get("inherited_user_message").Truthy() {
+		return
 	}
-	return out
+	typ := o.Get("type")
+	p := o.Get("payload")
+	if p.K != py.Obj {
+		p = py.Value{}
+	}
+	pt := p.Get("type")
+	ts := tsOf(o.Get("timestamp"))
+	add := func(k string) { e.out = append(e.out, Event{TS: ts, Kind: k}) }
+	switch {
+	case isStr(typ, "turn_context"):
+		model := p.Get("model")
+		effort := p.Get("effort").Or(p.Get("collaboration_mode").Get("settings").Get("reasoning_effort"))
+		if !e.lastModel.IsNull() && !Equal(model, e.lastModel) {
+			add("model_change")
+		}
+		if !e.lastEffort.IsNull() && !Equal(effort, e.lastEffort) {
+			add("effort_change")
+		}
+		e.lastModel, e.lastEffort = model, effort
+	case isStr(pt, "configuration_update"):
+		add("config_update")
+	case inStrs(pt, "additional_tools", "tool_search_output"):
+		add("tools_change")
+	case isStr(typ, "world_state") && p.Get("full").Truthy():
+		add("world_state_full")
+	case isStr(pt, "thread_settings_applied"):
+		add("settings_applied")
+	case isStr(pt, "message") && isStr(p.Get("role"), "developer"):
+		add("developer_msg")
+	case isStr(pt, "task_started"):
+		add("new_user_turn")
+	case isStr(pt, "item_completed") && isStr(p.Get("item").Get("type"), "SubAgentActivity"):
+		add("subagent_activity")
+	}
 }
 
 // textOf is c.get('text', ”) used as text: a string, "" when missing or falsy, else its str().

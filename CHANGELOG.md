@@ -2,6 +2,11 @@
 
 All notable changes to Leeway (`agent-leeway`) are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- The first run (with nothing cached yet) uses far less memory with large Codex logs: about 1.1 GB instead of about 8.4 GB in a test with 1,555 log files in the report's period, because Codex log files are now read line by line instead of being held in memory whole. In exchange it uses more processor time, since each line is read twice, so the first run can take up to about 15% longer. Results are unchanged.
+
 ## [0.1.13] - 2026-11-26
 
 ### Fixed
